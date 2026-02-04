@@ -1,6 +1,11 @@
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
+// --- SAFETY CHECK ---
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY) {
+    console.error("❌ CRITICAL: Cloudinary credentials are missing in .env file!");
+}
+
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -19,7 +24,7 @@ const storage = new CloudinaryStorage({
 
         if (isVideo) {
             return {
-                folder: 'niche_boutique_videos',
+                folder: 'auroni_videos',
                 resource_type: 'video',
                 format: 'mp4',
                 public_id: file.fieldname + '-' + Date.now(),
@@ -30,7 +35,7 @@ const storage = new CloudinaryStorage({
             };
         } else {
             return {
-                folder: isBanner ? 'niche_boutique_banners' : 'niche_boutique_products',
+                folder: isBanner ? 'auroni_banners' : 'auroni_products',
                 resource_type: 'image',
                 format: 'webp',
                 public_id: file.fieldname + '-' + Date.now(),

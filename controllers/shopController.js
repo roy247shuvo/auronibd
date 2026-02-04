@@ -113,7 +113,7 @@ exports.getHome = async (req, res) => {
         `);
 
         res.render('shop/home', { 
-            title: 'Niche Boutique',
+            title: 'Auroni',
             layout: 'shop/layout',
             lightboxes,
             collections,

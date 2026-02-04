@@ -117,6 +117,14 @@
                 headers: { 'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                 body: formData 
             });
+
+            // 1. Catch Server Crashes (HTML responses)
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("Server Error Log:", text); // Check Console for details
+                throw new Error("Server Error: " + res.status);
+            }
+
             const data = await res.json();
 
             if(data.success) {
@@ -127,11 +135,19 @@
                 }
                 
                 loader.classList.add('hidden');
-                input.value = ""; // Reset input
+                input.value = ""; 
             } else {
-                alert('Upload failed');
+                // 2. Show the specific error from backend
+                alert('Upload failed: ' + (data.error || 'Unknown Error'));
                 loader.classList.add('hidden');
             }
+        } catch(err) {
+            console.error(err);
+            // 3. Show the actual network/server error
+            alert(err.message); 
+            loader.classList.add('hidden');
+        }
+        
         } catch(err) {
             console.error(err);
             alert('Upload error');
