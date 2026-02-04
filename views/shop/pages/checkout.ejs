@@ -1,0 +1,229 @@
+<div class="max-w-6xl mx-auto px-6 pt-32 pb-20">
+    
+    <div class="text-center mb-10">
+        <h1 class="font-serif text-3xl italic text-gray-900 mb-2">Secure Checkout</h1>
+        <div class="flex items-center justify-center gap-2 text-green-700 bg-green-50 inline-flex px-4 py-1 rounded-full border border-green-100">
+            <span class="material-icons-outlined text-sm">lock</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest">100% Secured Payment</span>
+        </div>
+    </div>
+
+    <form action="/checkout/place-order" method="POST" 
+          <form action="/checkout/place-order" method="POST" 
+          x-data="{ 
+              area: 'inside', 
+              paymentMethod: 'cod', 
+              /* NEW LINE: If DB is 'yes', use 'yes'. If NULL or anything else, use 'no' */
+              advanceRequired: '<%= settings.checkout_advance_delivery === "yes" ? "yes" : "no" %>',
+              insideRate: <%= settings.delivery_inside_dhaka %>, 
+              outsideRate: <%= settings.delivery_outside_dhaka %>,
+              subtotal: <%= subtotal %>,
+              phone: '' 
+          }"
+          class="flex flex-col lg:flex-row gap-12">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="w-full lg:w-3/5 space-y-8">
+            
+            <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
+                <h2 class="font-bold text-xs uppercase tracking-widest mb-6 pb-2 border-b border-gray-100 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[10px]">1</span>
+                    Customer Details
+                </h2>
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">Full Name</label>
+                        <input type="text" name="full_name" required class="w-full bg-gray-50 border border-gray-200 p-3 text-sm focus:border-black focus:bg-white outline-none transition rounded-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">Phone Number</label>
+                        <div class="flex">
+                            <span class="inline-flex items-center px-4 bg-gray-100 border border-r-0 border-gray-200 text-gray-500 text-sm font-bold rounded-l-sm">+88</span>
+                            
+                            <input type="tel" name="phone" x-model="phone" placeholder="017XXXXXXXX" maxlength="11" required pattern="01[0-9]{9}" 
+                                   class="w-full bg-gray-50 border border-gray-200 p-3 text-sm outline-none transition rounded-r-sm"
+                                   :class="{
+                                       'border-red-500 bg-red-50 focus:border-red-500': phone.length > 0 && (!phone.startsWith('01') || phone.length < 11),
+                                       'border-green-500 bg-green-50 focus:border-green-500': /^01\d{9}$/.test(phone),
+                                       'focus:border-black focus:bg-white': phone.length === 0
+                                   }"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+
+                        <p x-show="phone.length > 0 && !phone.startsWith('01')" class="text-red-600 text-[10px] font-bold mt-1" style="display: none;">
+                            <span class="material-icons-outlined text-[10px] align-middle">error</span> Must start with 01
+                        </p>
+                        
+                        <p x-show="phone.length > 1 && phone.startsWith('01') && phone.length < 11" class="text-orange-500 text-[10px] font-bold mt-1" style="display: none;">
+                            Typing... <span x-text="phone.length"></span>/11 digits
+                        </p>
+
+                        <p x-show="phone.length === 11 && /^01\d{9}$/.test(phone)" class="text-green-600 text-[10px] font-bold mt-1" style="display: none;">
+                            <span class="material-icons-outlined text-[10px] align-middle">check_circle</span> Valid Number
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">Full Address</label>
+                        <textarea name="address" rows="2" required placeholder="House, Road, Area..." class="w-full bg-gray-50 border border-gray-200 p-3 text-sm focus:border-black focus:bg-white outline-none transition rounded-sm"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
+                <h2 class="font-bold text-xs uppercase tracking-widest mb-6 pb-2 border-b border-gray-100 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[10px]">2</span>
+                    Delivery Area
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="relative flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-all hover:bg-gray-50"
+                           :class="area === 'inside' ? 'border-black bg-gray-50 ring-1 ring-black' : 'border-gray-200'">
+                        <div class="flex items-center">
+                            <input type="radio" name="delivery_area" value="inside" x-model="area" class="w-4 h-4 text-black focus:ring-black">
+                            <span class="ml-3 font-bold text-sm">Inside Dhaka</span>
+                        </div>
+                        <span class="font-bold text-sm">TK. <%= settings.delivery_inside_dhaka %></span>
+                    </label>
+
+                    <label class="relative flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-all hover:bg-gray-50"
+                           :class="area === 'outside' ? 'border-black bg-gray-50 ring-1 ring-black' : 'border-gray-200'">
+                        <div class="flex items-center">
+                            <input type="radio" name="delivery_area" value="outside" x-model="area" class="w-4 h-4 text-black focus:ring-black">
+                            <span class="ml-3 font-bold text-sm">Outside Dhaka</span>
+                        </div>
+                        <span class="font-bold text-sm">TK. <%= settings.delivery_outside_dhaka %></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                    <label class="flex items-start p-4 border border-gray-200 rounded-lg bg-white cursor-pointer hover:border-gray-300 transition group">
+                        <input type="radio" name="payment_method" value="cod" x-model="paymentMethod" class="w-4 h-4 text-black focus:ring-black mt-1">
+                        <div class="ml-3">
+                            <span class="block font-bold text-sm group-hover:text-gray-700">Cash on Delivery</span>
+                            
+                            <% if (settings.checkout_advance_delivery === 'yes') { %>
+                            <p class="text-[10px] font-medium text-gray-500 mt-1.5 bg-gray-100 px-2 py-1 rounded-sm border border-gray-200 inline-block">
+                                <span class="text-red-600 font-bold">*</span> Must pay Delivery Charge in advance through Bkash
+                            </p>
+                            <% } %>
+
+                        </div>
+                    </label>
+
+                    <% if (settings.bkash_enabled === 'yes') { %>
+                    <label class="flex items-center p-4 border border-pink-200 rounded-lg bg-pink-50/30 cursor-pointer hover:border-pink-300 transition group">
+                        <input type="radio" name="payment_method" value="bkash" x-model="paymentMethod" class="w-4 h-4 text-pink-600 focus:ring-pink-500">
+                        <div class="ml-3 flex items-center gap-3">
+                            <img src="/uploads/bkash.png" alt="bKash" class="h-8 w-auto object-contain">
+                        </div>
+                    </label>
+                    <% } %>
+                </div>
+
+        </div>
+
+        <div class="w-full lg:w-2/5">
+            <div class="bg-white border border-gray-200 p-8 rounded-lg sticky top-32 shadow-xl">
+                <h2 class="font-serif text-xl italic text-gray-900 mb-6">Order Summary</h2>
+
+                <div class="space-y-4 mb-6 custom-scrollbar max-h-80 overflow-y-auto pr-2">
+                    <% cartItems.forEach(item => { %>
+                    <div class="flex gap-4 py-2">
+                        <div class="w-16 h-20 bg-gray-50 flex-shrink-0 rounded-sm overflow-hidden border border-gray-100">
+                            <img src="<%= item.image %>" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-sm font-bold truncate"><%= item.name %></h3>
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wide mt-1"><%= item.color %> / <%= item.size %></p>
+                            <p class="text-xs font-medium mt-1 text-gray-400">Qty: <%= item.quantity %></p>
+                        </div>
+                        <div class="text-sm font-bold">
+                            TK. <%= item.price * item.quantity %>
+                        </div>
+                    </div>
+                    <% }) %>
+                </div>
+
+                <div class="border-t border-dashed border-gray-200 pt-6 space-y-3 text-sm">
+                    <div class="flex justify-between text-gray-600">
+                        <span>Subtotal</span>
+                        <span class="font-medium text-black">TK. <%= subtotal %></span>
+                    </div>
+                    <div class="flex justify-between text-gray-600">
+                        <span>Delivery</span>
+                        <span x-text="'TK. ' + (area === 'inside' ? insideRate : outsideRate)" class="font-medium text-black"></span>
+                    </div>
+                    <div class="flex justify-between text-xl font-bold text-black border-t border-gray-200 pt-4 mt-2">
+                        <span>Total</span>
+                        <span x-text="'TK. ' + (subtotal + (area === 'inside' ? insideRate : outsideRate))"></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-black text-white text-xs font-bold uppercase tracking-[0.2em] py-5 mt-8 hover:bg-gray-800 transition shadow-lg rounded-sm flex items-center justify-center gap-2 group">
+                    
+                    <span x-text="
+                        (paymentMethod === 'cod' && advanceRequired === 'no') 
+                        ? 'Confirm Order' 
+                        : 'Confirm and Pay TK. ' + (paymentMethod === 'cod' ? (area === 'inside' ? insideRate : outsideRate) : (subtotal + (area === 'inside' ? insideRate : outsideRate)))
+                    "></span>
+
+                    <span class="material-icons-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </button>
+
+                <div class="mt-6 flex justify-center gap-4 opacity-50 grayscale">
+                    <span class="material-icons-outlined">verified_user</span>
+                    <span class="material-icons-outlined">lock</span>
+                    <span class="text-[10px] uppercase tracking-widest pt-1">SSL Encrypted</span>
+                </div>
+            </div>
+        </div>
+
+    </form>
+    
+    <script>
+    document.addEventListener('alpine:init', () => {
+        // Watch for phone number changes
+        const phoneInput = document.querySelector('input[name="phone"]');
+        const nameInput = document.querySelector('input[name="full_name"]');
+        const addressInput = document.querySelector('textarea[name="address"]');
+        
+        let typingTimer;
+        
+        // Function to send data
+        const captureIncomplete = () => {
+            const phone = phoneInput.value;
+            // Only capture if phone looks roughly valid (11 chars)
+            if(phone.length >= 11) {
+                fetch('/checkout/capture-incomplete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // CRITICAL FIX: Add CSRF Token Header
+                        'CSRF-Token': document.querySelector('input[name="_csrf"]').value 
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        full_name: nameInput.value,
+                        address: addressInput.value
+                        // _csrf in body is optional if header is present, but header is safer for JSON
+                    })
+                })
+                .then(res => res.json())
+                .then(data => console.log('Capture status:', data.success));
+            }
+        };
+
+        // Trigger 1.5 seconds after user stops typing phone
+        phoneInput.addEventListener('keyup', () => {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(captureIncomplete, 1500);
+        });
+
+        // Trigger immediately if they leave the phone field (blur)
+        phoneInput.addEventListener('blur', captureIncomplete);
+    });
+</script>
+
+</div>

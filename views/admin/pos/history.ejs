@@ -1,0 +1,112 @@
+<div class="p-6">
+    <% if (!can('pos_terminal', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to operate the POS terminal.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-gray-800 uppercase tracking-tight">POS Sale History</h2>
+            <p class="text-xs text-gray-500 mt-1">View all Point of Sale transactions</p>
+        </div>
+        <% if (can('pos_terminal', 'write')) { %>
+        <a href="/admin/pos" class="bg-black text-white px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider shadow hover:bg-gray-800 transition flex items-center gap-2">
+            <span class="material-icons-outlined text-sm">point_of_sale</span>
+            Open Terminal
+        </a>
+        <% } %>
+    </div>
+
+    <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4 mb-4">
+        <% 
+        const visibleStatuses = ['POS Complete', 'POS Partial', 'POS Cancelled', 'all'];
+        const statusColors = {
+            'POS Complete': 'bg-green-100 text-green-700 border-green-200',
+            'POS Partial': 'bg-blue-100 text-blue-700 border-blue-200',
+            'POS Cancelled': 'bg-red-100 text-red-700 border-red-200',
+            'all': 'bg-gray-800 text-white border-black'
+        };
+        %>
+
+        <% visibleStatuses.forEach(status => { %>
+            <a href="/admin/pos/history?status=<%= status %>" 
+               class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded border transition-all
+               <%= currentStatus === status ? statusColors[status] || 'bg-black text-white' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300' %>">
+               <%= status %>
+               <span class="ml-1 opacity-80">(<%= statusCounts[status] || 0 %>)</span>
+            </a>
+        <% }) %>
+    </div>
+
+    <div class="flex flex-col gap-3">
+        <% if (orders.length === 0) { %>
+            <div class="text-center py-10 text-gray-400">
+                <span class="material-icons-outlined text-4xl mb-2">receipt_long</span>
+                <p>No POS orders found</p>
+            </div>
+        <% } %>
+
+        <% orders.forEach(order => { %>
+        <div class="bg-white rounded border border-gray-200 shadow-sm flex flex-col md:flex-row items-center p-3 gap-4 transition-all hover:border-gray-300">
+            
+            <div class="w-full md:w-40 flex flex-row md:flex-col justify-between items-center md:items-start gap-2 shrink-0">
+                <div>
+                    <span class="font-mono text-sm font-bold text-gray-900"><%= order.order_number %></span>
+                    <% if(order.nb_trx_id) { %>
+                        <div class="text-[10px] text-gray-500 font-mono mt-0.5"><%= order.nb_trx_id %></div>
+                    <% } %>
+                </div>
+                
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border <%= statusColors[order.status] || 'bg-gray-100' %>">
+                    <%= order.status %>
+                </span>
+            </div>
+
+            <div class="w-full md:w-48 shrink-0 border-t md:border-t-0 md:border-l border-gray-100 pt-2 md:pt-0 md:pl-4 flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                    <span class="material-icons-outlined text-[14px] text-gray-400">person</span>
+                    <span class="text-xs font-bold text-gray-800 truncate"><%= order.guest_name || 'Guest' %></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="material-icons-outlined text-[14px] text-gray-400">phone</span>
+                    <span class="text-[11px] text-gray-600 font-mono"><%= order.guest_phone || '-' %></span>
+                </div>
+                <div class="text-[10px] text-gray-400 mt-1">
+                    <%= new Date(order.created_at).toLocaleString() %>
+                </div>
+            </div>
+
+            <div class="w-full flex-1 border-t md:border-t-0 md:border-l border-gray-100 pt-2 md:pt-0 md:pl-4 flex justify-between items-center">
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-gray-400 uppercase font-bold">Payment</span>
+                    <span class="text-xs font-bold text-gray-700 uppercase"><%= order.payment_method %></span>
+                    <% if(order.payment_trx_id) { %>
+                        <span class="text-[9px] text-gray-400 font-mono">Trx: <%= order.payment_trx_id %></span>
+                    <% } %>
+                </div>
+
+                <div class="text-right">
+                    <div class="flex flex-col items-end">
+                        <span class="text-[9px] text-gray-400 uppercase font-bold">Total</span>
+                        <span class="text-lg font-black text-gray-900">TK. <%= order.total_amount %></span>
+                    </div>
+                    <% if(order.paid_amount > 0) { %>
+                        <div class="text-[10px] text-green-600 font-bold">Paid: <%= order.paid_amount %></div>
+                    <% } %>
+                </div>
+            </div>
+
+        </div>
+        <% }) %>
+    </div>
+</div>

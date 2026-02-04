@@ -1,0 +1,103 @@
+<div class="max-w-6xl mx-auto">
+    <% if (!can('purchase_orders', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You cannot receive orders or make payments.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900"><%= vendor.name %> / History</h1>
+            <p class="text-sm text-gray-500">Total <%= vendor.po_count %> Orders</p>
+        </div>
+        <a href="/admin/vendors/details/<%= vendor.id %>" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
+            &larr; Back to Profile
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-bold sticky top-0">
+                <tr>
+                    <th class="px-6 py-4">PO Number</th>
+                    <th class="px-6 py-4 text-center">Total Items</th>
+                    <th class="px-6 py-4 text-right">Total Amount</th>
+                    <th class="px-6 py-4 text-right">Paid</th>
+                    <th class="px-6 py-4 text-right">Due</th>
+                    <th class="px-6 py-4 text-center">Status</th>
+                    <th class="px-6 py-4 text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50 text-sm">
+                <% orders.forEach(po => { 
+                   const due = po.total_amount - po.paid_amount;
+                %>
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4">
+                        <a href="#" onclick="openViewPO('<%= po.id %>'); return false;" class="font-bold text-blue-600 hover:underline">
+                            <%= po.po_number %>
+                        </a>
+                        <p class="text-[10px] text-gray-400"><%= new Date(po.created_at).toLocaleDateString() %></p>
+                    </td>
+                    <td class="px-6 py-4 text-center font-bold text-gray-700">
+                        <%= po.total_qty %>
+                    </td>
+                    <td class="px-6 py-4 text-right font-mono">TK. <%= po.total_amount %></td>
+                    <td class="px-6 py-4 text-right font-mono text-gray-500">TK. <%= po.paid_amount %></td>
+                    <td class="px-6 py-4 text-right font-mono font-bold <%= due > 0 ? 'text-red-600' : 'text-green-600' %>">
+                        <%= due.toFixed(2) %>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <% if(po.status === 'received') { %>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase">Received</span>
+                        <% } else { %>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-[10px] font-bold uppercase">Pending</span>
+                        <% } %>
+                    </td>
+                    <td class="px-6 py-4 text-center flex justify-center gap-2">
+                        <% if(po.status === 'pending' && can('purchase_orders', 'write')) { %>
+                            <button onclick="receivePO('<%= po.id %>')" class="w-8 h-8 rounded hover:bg-blue-50 text-blue-600 flex items-center justify-center transition" title="Mark as Received">
+                                <span class="material-icons-outlined text-sm">inventory</span>
+                            </button>
+                        <% } %>
+
+                        <% if(due > 0 && can('purchase_orders', 'write')) { %>
+                            <button onclick="openPaymentModal('existing', { id: <%= po.id %>, total: <%= po.total_amount %>, paid: <%= po.paid_amount %> })" 
+                                    class="w-8 h-8 rounded hover:bg-green-50 text-green-600 flex items-center justify-center transition" title="Add Payment">
+                                <span class="material-icons-outlined text-sm">payments</span>
+                            </button>
+                        <% } %>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<%- include('../orders/modals/payment_modal') %>
+<%- include('../orders/modals/view_po_details') %>
+
+<script>
+    async function receivePO(id) {
+         if(!confirm('Are you sure you received these items? This will add stock to inventory batches.')) return;
+         try {
+            const res = await fetch(`/admin/purchase-orders/receive/${id}`, { 
+                method: 'POST',
+                headers: { 'CSRF-Token': '<%= csrfToken %>' }
+            });
+            const data = await res.json();
+            if(data.success) location.reload();
+            else alert(data.error);
+        } catch(err) { alert('Error receiving PO'); }
+    }
+</script>

@@ -1,0 +1,517 @@
+<div class="p-6">
+    <% if (!can('orders_web', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage orders.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div id="bulkActions" class="bg-gray-900 text-white p-4 rounded mb-6 flex flex-col md:flex-row justify-between items-center shadow-lg sticky top-0 z-40 transition-all duration-200">
+        <div class="text-sm font-bold flex items-center gap-2 mb-3 md:mb-0">
+            <span class="bg-gray-700 px-2 py-1 rounded text-xs" id="selectedCount">0</span> 
+            <span class="opacity-80">Orders Selected</span>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 justify-center md:justify-end">
+            <% if (can('orders_web', 'write')) { %>
+            <button onclick="sendToSteadfast()" id="btn-steadfast" disabled 
+                    class="bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed px-4 py-2 rounded text-xs font-bold uppercase flex items-center gap-2 transition-colors">
+                <span class="material-icons-outlined text-sm">local_shipping</span> Send to Courier
+            </button>
+            <% } %>
+    
+            <% if (can('orders_web', 'write')) { %>
+            <button onclick="printLabels()" id="btn-print" disabled 
+                    class="bg-white text-black hover:bg-gray-200 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed px-4 py-2 rounded text-xs font-bold uppercase flex items-center gap-2 transition-colors">
+                <span class="material-icons-outlined text-sm">print</span> Print Labels
+            </button>
+            <% } %>
+    
+            <% if (can('orders_web', 'write')) { %>
+            <select id="bulkStatusSelect" onchange="bulkChangeStatus(this.value)" disabled
+                    class="bg-gray-800 border border-gray-600 text-white text-xs rounded px-3 py-2 outline-none focus:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+            <% } else { %>
+            <select disabled class="bg-gray-800 border border-gray-600 text-gray-500 text-xs rounded px-3 py-2 cursor-not-allowed">
+                <option>View Only</option>
+            </select>
+            <% } %>
+                <option value="">-- Change Status --</option>
+                <optgroup label="General">
+                    <option value="confirmed">Mark Confirmed</option>
+                    <option value="hold">Mark Hold</option>
+                    <option value="cancelled">Mark Cancelled</option>
+                </optgroup>
+                <optgroup label="Processing">
+                    <option value="RTS">Mark RTS (Ready to Ship)</option>
+                    <option value="shipped">Mark Shipped</option>
+                </optgroup>
+                <optgroup label="Returns">
+                    <option value="Returned">Mark Returned (Restock)</option>
+                </optgroup>
+            </select>
+        </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-gray-800 uppercase tracking-tight">Web Orders</h2>
+            <p class="text-xs text-gray-500 mt-1">Manage website and manual orders</p>
+        </div>
+        
+        <% if (can('orders_web', 'write')) { %>
+        <button onclick="openNewOrderModal()" 
+                class="bg-black text-white px-5 py-2.5 rounded text-xs font-bold uppercase tracking-wider shadow hover:bg-gray-800 transition flex items-center gap-2">
+            <span class="material-icons-outlined text-sm">add</span>
+            New Order
+        </button>
+        <% } %>
+    </div>
+
+    <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4 mb-4">
+        <% 
+        const visibleStatuses = [
+            'pending', 'incomplete', 'hold', 'confirmed', 
+            'RTS', 'shipped', 'delivered', 
+            'Partially_Delivered', 'Pending_return', 'Returned', 
+            'cancelled', 'payment_cancelled', 'fraud_check', 
+            'all'
+        ];
+        
+        const statusColors = {
+            'pending': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+            'incomplete': 'bg-red-100 text-red-700 border-red-200',
+            'hold': 'bg-pink-100 text-pink-700 border-pink-200',
+            'confirmed': 'bg-green-100 text-green-700 border-green-200',
+            'RTS': 'bg-purple-100 text-purple-700 border-purple-200',
+            'shipped': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+            'delivered': 'bg-teal-100 text-teal-700 border-teal-200',
+            'Partially_Delivered': 'bg-blue-100 text-blue-700 border-blue-200',
+            'Pending_return': 'bg-orange-100 text-orange-700 border-orange-200',
+            'Returned': 'bg-gray-100 text-gray-700 border-gray-200',
+            'cancelled': 'bg-red-100 text-red-700 border-red-200',
+            'payment_cancelled': 'bg-red-50 text-red-600 border-red-200',
+            'fraud_check': 'bg-red-200 text-red-900 border-red-400 font-bold',
+            'all': 'bg-gray-800 text-white border-black'
+        };
+        %>
+
+        <% visibleStatuses.forEach(status => { %>
+            <a href="/admin/orders/web-orders?status=<%= status %>" 
+               class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded border transition-all
+               <%= currentStatus === status ? statusColors[status] || 'bg-black text-white' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300' %>">
+               <%= status.replace(/_/g, ' ') %>
+               <span class="ml-1 opacity-80">(<%= statusCounts[status] || 0 %>)</span>
+            </a>
+        <% }) %>
+    </div>
+
+    <div class="flex flex-col gap-3">
+        <% orders.forEach(order => { 
+            let cardBorder = 'border-gray-200 hover:border-gray-300';
+            if(['confirmed', 'delivered'].includes(order.status)) cardBorder = 'border-green-200 hover:border-green-300 bg-green-50/10';
+            if(['incomplete', 'cancelled', 'hold'].includes(order.status)) cardBorder = 'border-red-200 hover:border-red-300 bg-red-50/10';
+            if(['pending'].includes(order.status)) cardBorder = 'border-yellow-200 hover:border-yellow-300 bg-yellow-50/10';
+        %>
+
+       <div class="bg-white rounded border <%= cardBorder %> shadow-sm flex flex-col md:flex-row items-center p-3 gap-4 transition-all group relative">
+            
+            <div class="pl-2">
+                <input type="checkbox" name="order_ids[]" value="<%= order.id %>" 
+                       data-status="<%= order.status %>"
+                       data-sent="<%= order.sent_to_courier %>"
+                       class="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 order-checkbox cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                       onchange="updateBulkUI()"
+                       <%= can('orders_web', 'write') ? '' : 'disabled' %>>
+            </div>
+
+            <div class="w-full md:w-32 flex flex-row md:flex-col justify-between items-center md:items-start gap-2 shrink-0">
+                <div class="flex items-center gap-1">
+                    <span class="font-mono text-sm font-bold text-gray-900"><%= order.order_number %></span>
+                    <button onclick="navigator.clipboard.writeText('<%= order.order_number %>')" class="text-gray-300 hover:text-gray-500" title="Copy">
+                        <span class="material-icons-outlined text-[12px]">content_copy</span>
+                    </button>
+                </div>
+                
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border
+                      <%= statusColors[order.status] || 'bg-gray-100 text-gray-600 border-gray-200' %>">
+                    <%= order.status.replace(/_/g, ' ') %>
+                </span>
+
+                <span class="text-[9px] text-gray-400 uppercase tracking-wider">
+                    via <%= order.order_source || 'website' %>
+                </span>
+            </div>
+
+            <div class="w-full md:w-48 shrink-0 border-t md:border-t-0 md:border-l border-gray-100 pt-2 md:pt-0 md:pl-4 flex flex-col gap-1">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="material-icons-outlined text-[14px] text-gray-400">person</span>
+                        <span class="text-xs font-bold text-gray-800 truncate"><%= order.guest_name %></span>
+                    </div>
+                    <% if(order.admin_note) { %>
+                        <div class="relative group/note">
+                            <span class="material-icons-outlined text-[16px] text-yellow-500 cursor-help">sticky_note_2</span>
+                            <div class="absolute left-0 bottom-full mb-2 w-48 bg-black text-white text-[10px] p-2 rounded shadow-lg hidden group-hover/note:block z-50">
+                                <%= order.admin_note %>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="material-icons-outlined text-[14px] text-gray-400">phone</span>
+                    <a href="tel:<%= order.guest_phone %>" class="text-[11px] text-blue-600 font-mono hover:underline"><%= order.guest_phone %></a>
+                </div>
+
+                <div class="flex items-start gap-2 mt-1">
+                    <span class="material-icons-outlined text-[14px] text-gray-400 mt-0.5">location_on</span>
+                    <div class="text-[10px] text-gray-600 leading-tight" title="<%= order.shipping_address %>">
+                        <%= order.shipping_address && order.shipping_address.length > 45 ? order.shipping_address.substring(0, 45) + '...' : order.shipping_address %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full flex-1 border-t md:border-t-0 md:border-l border-gray-100 pt-2 md:pt-0 md:pl-4 relative flex flex-col justify-center">
+                
+                <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200">
+                    <% if (order.items && order.items.length > 0) { %>
+                        <% order.items.forEach(item => { %>
+                        <div class="flex items-start gap-3 pr-4 shrink-0 group/item border-r border-gray-50 last:border-0 min-w-[120px]">
+                            <div class="relative mt-0.5">
+                                <img src="<%= item.image || '/uploads/placeholder.jpg' %>" 
+                                     class="w-9 h-11 object-cover rounded border border-gray-200 bg-white">
+                            </div>
+                            
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-[10px] font-bold text-gray-900 whitespace-nowrap"><%= item.sku %></span>
+                                
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="text-[9px] text-gray-600 border border-gray-200 px-1.5 rounded bg-white"><%= item.size %></span>
+                                    
+                                    <% if(item.color) { %>
+                                        <div class="flex items-center gap-1 border border-gray-200 px-1.5 rounded bg-white" title="<%= item.color %>">
+                                            <% if(item.hex_code) { %>
+                                                <span class="w-1.5 h-1.5 rounded-full border border-gray-300" style="background-color: <%= item.hex_code %>;"></span>
+                                            <% } %>
+                                            <span class="text-[9px] text-gray-600"><%= item.color %></span>
+                                        </div>
+                                    <% } %>
+                                </div>
+
+                                <div class="text-[9px] text-gray-500 mt-0.5">
+                                    Qty: <strong class="text-gray-900"><%= item.quantity %></strong>
+                                </div>
+                            </div>
+                        </div>
+                        <% }) %>
+                    <% } else { %>
+                        <span class="text-[10px] text-gray-400 italic">No items</span>
+                    <% } %>
+                </div>
+
+                <% if(order.sent_to_courier === 'yes') { %>
+                    <div class="mt-2 pt-2 border-t border-gray-50 flex flex-wrap items-center gap-3">
+                        <span class="bg-blue-100 text-blue-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-blue-200 flex items-center">
+                            <span class="material-icons-outlined text-[10px] mr-1">local_shipping</span> Sent
+                        </span>
+                        
+                        <% if(order.is_label_printed === 'yes') { %>
+                            <span class="bg-gray-100 text-gray-600 text-[9px] font-bold px-1.5 py-0.5 rounded border border-gray-200 flex items-center">
+                                <span class="material-icons-outlined text-[10px] mr-1">print</span> Printed
+                            </span>
+                        <% } %>
+
+                        <span class="text-[10px] text-gray-500">
+                            Consignment ID: <strong class="font-mono text-gray-800"><%= order.courier_consignment_id %></strong>
+                        </span>
+
+                        <% if(order.courier_tracking_code) { %>
+                            <a href="https://steadfast.com.bd/t/<%= order.courier_tracking_code %>" target="_blank" 
+                               class="bg-black text-white hover:bg-gray-800 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 transition shadow-sm">
+                                <span class="material-icons-outlined text-[10px]">near_me</span> Track
+                            </a>
+                        <% } %>
+                    </div>
+                <% } %>
+
+            </div>
+
+            <div class="w-full md:w-36 shrink-0 border-t md:border-t-0 md:border-l border-gray-100 pt-2 md:pt-0 md:pl-4 flex flex-row md:flex-col justify-between items-center md:items-end gap-2 bg-gray-50/30 rounded-r-lg">
+                <div class="flex items-center gap-1.5 self-end">
+                    <% if (order.payment_method === 'bkash') { %>
+                        <img src="/uploads/bkash.png" class="h-3 w-auto" alt="bKash">
+                        <span class="text-[10px] font-bold text-pink-600">bKash</span>
+                    <% } else { %>
+                        <span class="px-1.5 py-0.5 bg-gray-800 text-white text-[9px] font-bold rounded">COD</span>
+                    <% } %>
+                </div>
+
+                <div class="text-right w-full">
+                    <div class="flex justify-end items-baseline gap-1">
+                        <span class="text-[9px] text-gray-400 uppercase">Total</span>
+                        <span class="text-sm font-bold text-gray-900 font-mono">TK.<%= order.total_amount %></span>
+                    </div>
+                    
+                    <% if (order.final_due > 0) { %>
+                        <div class="mt-1 flex flex-col items-end">
+                            <span class="text-[9px] font-bold text-red-500 uppercase tracking-wider">Due Amount</span>
+                            <span class="text-xl font-bold text-red-600 font-mono leading-none mt-0.5">
+                                <%= order.final_due %>
+                            </span>
+                        </div>
+                    <% } else { %>
+                        <div class="mt-1">
+                            <div class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100 inline-block">
+                               PAID FULL
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <div class="shrink-0 border-l border-gray-100 pl-4 flex items-center gap-2">
+                <% if (can('orders_web', 'write')) { %>
+                <button onclick="openEditModal('<%= order.id %>')" 
+                        class="w-8 h-8 bg-gray-50 rounded-full hover:bg-black hover:text-white flex items-center justify-center text-gray-500 transition" 
+                        title="Edit Order">
+                    <span class="material-icons-outlined text-[16px]">edit</span>
+                </button>
+                <% } %>
+            </div>
+
+        </div>
+        <% }) %>
+    </div>
+</div>
+
+<%- include('./modals/create_order') %>
+
+<script>
+    // --- DATA INJECTION ---
+    const allOrders = <%- JSON.stringify(orders) %>;
+
+    // --- 1. STATUS FLOW RULES ---
+    const allowedTransitions = {
+        'pending': ['confirmed', 'hold', 'cancelled'],
+        'hold': ['RTS', 'cancelled'],
+        'confirmed': ['hold', 'RTS', 'cancelled'],
+        'RTS': ['confirmed', 'hold', 'cancelled'], // 'shipped' is added dynamically below if sent
+        'Pending_return': ['Returned'],
+        'shipped': [],   // Locked
+        'delivered': [], // Locked
+        'cancelled': [], // Locked
+        'Returned': []   // Locked
+    };
+
+    // --- BULK UI LOGIC (Strict Condition) ---
+    function updateBulkUI() {
+        const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+        const count = checkboxes.length;
+        
+        const btnSteadfast = document.getElementById('btn-steadfast');
+        const btnPrint = document.getElementById('btn-print');
+        const selectStatus = document.getElementById('bulkStatusSelect');
+        const countBadge = document.getElementById('selectedCount');
+        
+        countBadge.innerText = count;
+
+        if (count > 0) {
+            // A. CHECK STATUSES
+            // Get unique statuses of selected items
+            const statuses = [...new Set(Array.from(checkboxes).map(cb => cb.dataset.status))];
+            const currentStatus = statuses.length === 1 ? statuses[0] : 'mixed';
+            
+            // Check Courier Status
+            const allRTS = Array.from(checkboxes).every(cb => cb.dataset.status === 'RTS');
+            const anySent = Array.from(checkboxes).some(cb => cb.dataset.sent === 'yes');
+            const allSent = Array.from(checkboxes).every(cb => cb.dataset.sent === 'yes');
+
+            // B. FILTER DROPDOWN OPTIONS
+            if (currentStatus !== 'mixed') {
+                let allowed = [...(allowedTransitions[currentStatus] || [])];
+
+                // Special Rule: RTS -> Shipped (Only if sent to courier)
+                if (currentStatus === 'RTS' && allSent) {
+                    allowed.push('shipped');
+                }
+
+                // Apply Visibility
+                let hasEnabledOptions = false;
+                Array.from(selectStatus.options).forEach(opt => {
+                    if (opt.value === "") return; // Skip placeholder
+                    
+                    if (allowed.includes(opt.value)) {
+                        opt.hidden = false;
+                        opt.disabled = false;
+                        hasEnabledOptions = true;
+                    } else {
+                        opt.hidden = true;
+                        opt.disabled = true; // Fallback for some browsers
+                    }
+                });
+
+                // Hide empty OptGroups
+                selectStatus.querySelectorAll('optgroup').forEach(og => {
+                    const visibleChildren = Array.from(og.children).filter(c => !c.hidden);
+                    og.hidden = (visibleChildren.length === 0);
+                });
+
+                selectStatus.disabled = !hasEnabledOptions;
+                selectStatus.value = ""; // Reset selection to force valid choice
+            } else {
+                // Mixed statuses selected: Disable dropdown
+                selectStatus.disabled = true;
+            }
+
+            // C. BUTTON LOGIC
+            // Steadfast: Only RTS and NOT sent
+            btnSteadfast.disabled = !(allRTS && !anySent);
+
+            // Print: Only RTS and SENT
+            const allPrintable = Array.from(checkboxes).every(cb => cb.dataset.status === 'RTS' && cb.dataset.sent === 'yes');
+            btnPrint.disabled = !allPrintable;
+
+        } else {
+            // No Selection
+            selectStatus.disabled = true;
+            btnSteadfast.disabled = true;
+            btnPrint.disabled = true;
+        }
+    }
+
+    async function sendToSteadfast() {
+        if(!confirm("Send selected orders to Steadfast Courier?")) return;
+        const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+        
+        try {
+            const res = await fetch('/admin/orders/send-to-steadfast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'CSRF-Token': '<%= csrfToken %>' },
+                body: JSON.stringify({ order_ids: ids })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if(data.success) window.location.reload();
+        } catch(e) { alert('Error sending to courier'); }
+    }
+
+    async function bulkChangeStatus(status) {
+        if(!status) return;
+        const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+        
+        try {
+            const res = await fetch('/admin/orders/bulk-update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'CSRF-Token': '<%= csrfToken %>' },
+                body: JSON.stringify({ order_ids: ids, new_status: status })
+            });
+            const data = await res.json();
+            if(data.success) window.location.reload();
+            else alert("Action Blocked: " + data.message); // Show restrictions
+        } catch(e) { alert('Error updating status'); }
+    }
+
+    function printLabels() {
+        const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value).join(',');
+        const size = localStorage.getItem('barcodeLabelSize') || '38x25';
+        const url = `/admin/orders/print-labels?order_ids=${ids}&size=${size}`;
+        window.open(url, '_blank');
+        setTimeout(() => window.location.reload(), 2000);
+    }
+
+    // ... (Keep existing openEditModal, openNewOrderModal, etc.) ...
+    
+    function openEditModal(orderId) {
+        const order = allOrders.find(o => o.id == orderId);
+        if(!order) return;
+        
+        // Populate and show modal (simplified for brevity, assume existing logic)
+        document.getElementById('modalTitle').innerText = `Edit Order #${order.order_number}`;
+        document.getElementById('createOrderForm').action = '/admin/orders/update-order';
+        
+        // Hide Confirmation
+        const confirmSection = document.getElementById('confirmationSection');
+        if(confirmSection) confirmSection.classList.add('hidden');
+
+        // Add ID
+        let idInput = document.getElementById('editOrderId');
+        if(!idInput) {
+            idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'order_id';
+            idInput.id = 'editOrderId';
+            document.getElementById('createOrderForm').appendChild(idInput);
+        }
+        idInput.value = order.id;
+
+        // Fill Fields
+        document.getElementById('phoneInput').value = order.guest_phone;
+        document.getElementById('nameInput').value = order.guest_name;
+        document.getElementById('addressInput').value = order.shipping_address;
+        
+        // Set Selects
+        const delArea = document.getElementsByName('delivery_area')[0];
+        if(delArea) delArea.value = order.delivery_area;
+        const ordSource = document.getElementsByName('order_source')[0];
+        if(ordSource) ordSource.value = order.order_source;
+
+        // HANDLE NOTES
+        const historyDiv = document.getElementById('noteHistory');
+        const newNoteInput = document.getElementsByName('new_admin_note')[0];
+        
+        if (order.admin_note) {
+            historyDiv.innerText = order.admin_note;
+            historyDiv.classList.remove('hidden');
+        } else {
+            historyDiv.innerText = '';
+            historyDiv.classList.add('hidden');
+        }
+        newNoteInput.value = ''; // Always clear new input on open
+
+        document.getElementById('advanceInput').value = order.paid_amount || 0;
+        
+        // Cart
+        cart = [];
+        if(order.items && order.items.length > 0) {
+            order.items.forEach(item => {
+                cart.push({
+                    product_id: item.product_id,
+                    variant_id: item.variant_id,
+                    product_name: item.product_name,
+                    sku: item.sku,
+                    size: item.size,
+                    color: item.color,
+                    image: item.image,
+                    price: item.price, 
+                    quantity: item.quantity
+                });
+            });
+        }
+        renderCart();
+        document.getElementById('newOrderModal').classList.remove('hidden');
+    }
+
+    function openNewOrderModal() {
+        document.getElementById('modalTitle').innerText = 'Create New Order';
+        document.getElementById('createOrderForm').action = '/admin/orders/create-order';
+        document.getElementById('createOrderForm').reset();
+        
+        const confirmSection = document.getElementById('confirmationSection');
+        if(confirmSection) confirmSection.classList.remove('hidden');
+
+        const idInput = document.getElementById('editOrderId');
+        if(idInput) idInput.remove();
+
+        cart = [];
+        renderCart();
+        document.getElementById('newOrderModal').classList.remove('hidden');
+    }
+</script>

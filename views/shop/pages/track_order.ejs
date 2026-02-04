@@ -1,0 +1,170 @@
+<div class="max-w-4xl mx-auto px-4 pt-32 pb-16 min-h-[70vh]">
+    
+    <% if (!order) { %>
+        <div class="max-w-lg mx-auto" x-data="{ phone: '', loading: false }">
+            
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                    <span class="material-icons-outlined text-3xl text-brand-black">local_shipping</span>
+                </div>
+                <h1 class="text-3xl font-serif italic font-bold mb-2 text-brand-black">Track Your Order</h1>
+                <p class="text-gray-500 text-sm">Enter your Order ID & Phone Number to see your parcel's journey.</p>
+            </div>
+
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
+                
+                <div x-show="loading" class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center backdrop-blur-sm" style="display: none;">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-black"></div>
+                </div>
+
+                <form action="/track" method="POST" @submit="loading = true" class="space-y-5">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5 ml-1">Order ID</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 material-icons-outlined text-lg">receipt</span>
+                            <input type="text" name="order_id" value="<%= prefillOrder %>" placeholder="NB-ON12345" 
+                                class="w-full bg-gray-50 border border-gray-200 pl-11 p-3 text-sm focus:border-brand-black focus:bg-white focus:ring-1 focus:ring-brand-black outline-none transition rounded-lg font-mono placeholder-gray-300 uppercase" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5 ml-1">Phone Number</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 material-icons-outlined text-lg">smartphone</span>
+                            <input type="tel" name="phone" x-model="phone" placeholder="017XXXXXXXX" maxlength="11" required 
+                                class="w-full bg-gray-50 border border-gray-200 pl-11 p-3 text-sm outline-none transition rounded-lg font-mono tracking-widest"
+                                :class="{
+                                    'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200': phone.length > 0 && (!phone.startsWith('01') || phone.length < 11),
+                                    'border-green-500 bg-green-50 focus:border-green-500 focus:ring-green-200': phone.length === 11 && /^01\d{9}$/.test(phone),
+                                    'focus:border-brand-black focus:bg-white focus:ring-brand-black': phone.length === 0
+                                }"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                        
+                        <p x-show="phone.length > 0 && !phone.startsWith('01')" class="text-red-500 text-[10px] font-bold mt-2 ml-1 flex items-center gap-1" style="display: none;">
+                            <span class="material-icons-outlined text-[12px]">error</span> Must start with 01
+                        </p>
+                        <p x-show="phone.length === 11 && /^01\d{9}$/.test(phone)" class="text-green-600 text-[10px] font-bold mt-2 ml-1 flex items-center gap-1" style="display: none;">
+                            <span class="material-icons-outlined text-[12px]">check_circle</span> Valid Number
+                        </p>
+                    </div>
+
+                    <button type="submit" class="w-full bg-brand-black text-white text-xs font-bold uppercase tracking-[0.2em] py-4 rounded-lg hover:bg-gray-800 transition shadow-lg flex items-center justify-center gap-2 group transform hover:-translate-y-0.5 duration-200">
+                        Track Now
+                        <span class="material-icons-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </button>
+                </form>
+
+                <% if (error) { %>
+                    <div class="mt-6 p-4 bg-red-50 text-red-600 text-xs font-medium rounded-lg border border-red-100 flex items-center gap-3 animate-fade-up">
+                        <span class="material-icons-outlined text-lg">warning</span>
+                        <%= error %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+    <% } else { %>
+        <div class="animate-fade-up">
+            <a href="/track" class="inline-flex items-center gap-2 text-gray-500 hover:text-black text-xs font-bold uppercase tracking-widest mb-8 transition-colors">
+                <span class="material-icons-outlined text-sm">arrow_back</span> Track Another Order
+            </a>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-brand-cream/50 p-8 rounded-xl border border-brand-cream h-fit md:sticky md:top-24">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-brand-black text-white flex items-center justify-center">
+                            <span class="material-icons-outlined text-sm">shopping_bag</span>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold">Order Details</h3>
+                    </div>
+
+                    <div class="space-y-4 text-sm font-sans text-gray-600">
+                        <div class="flex justify-between border-b border-gray-200 pb-2">
+                            <span>Order ID</span>
+                            <span class="font-mono font-bold text-black"><%= order.order_number %></span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-200 pb-2">
+                            <span>Customer</span>
+                            <span class="font-medium text-black"><%= order.guest_name %></span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-200 pb-2">
+                            <span>Status</span>
+                            <span class="inline-flex px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wide"><%= order.status %></span>
+                        </div>
+                        
+                        <div class="pt-4 space-y-2">
+                            <div class="flex justify-between"><span>Total Amount</span> <span class="font-bold text-black">Tk. <%= order.total_amount %></span></div>
+                            <div class="flex justify-between"><span>Paid</span> <span class="font-bold text-black">Tk. <%= order.paid_amount %></span></div>
+                            <div class="flex justify-between text-red-600"><span>Due Amount</span> <span class="font-bold">Tk. <%= order.due_amount %></span></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-white p-4 rounded-lg border border-gray-200">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-2">Share Tracking Link</p>
+                        <div class="flex gap-2">
+                            <input type="text" value="<%= order.secret_link %>" readonly class="flex-1 text-xs bg-gray-50 border border-gray-200 rounded px-3 text-gray-600 focus:outline-none font-mono">
+                            <button onclick="navigator.clipboard.writeText('<%= order.secret_link %>'); alert('Copied!')" class="text-xs bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition">Copy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 p-8 rounded-xl shadow-sm">
+                    <h3 class="font-serif text-xl font-bold mb-8 flex items-center gap-2">
+                        <span class="material-icons-outlined text-brand-gold">local_shipping</span> 
+                        Shipment Journey
+                    </h3>
+                    
+                    <% if (timeline.length === 0) { %>
+                        <div class="text-center py-12 flex flex-col items-center">
+                            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <span class="material-icons-outlined text-gray-400 text-2xl">pending</span>
+                            </div>
+                            <p class="text-gray-900 font-medium">Order Placed Successfully</p>
+                            <p class="text-gray-500 text-sm mt-1">We are preparing your parcel. Check back soon!</p>
+                        </div>
+                    <% } else { %>
+                        <div class="relative border-l-2 border-gray-100 ml-3 space-y-10">
+                            <% timeline.forEach((item, index) => { %>
+                                <div class="relative pl-8 group">
+                                    <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-125 <%= index === 0 ? 'bg-green-500 ring-4 ring-green-50' : 'bg-gray-300' %>"></span>
+                                    
+                                    <div class="<%= index === 0 ? 'opacity-100' : 'opacity-70 group-hover:opacity-100 transition-opacity' %>">
+                                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                            <%= new Date(item.time).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric', hour12: true }) %>
+                                        </p>
+                                        
+                                        <p class="font-medium text-gray-800 text-sm leading-relaxed"><%= item.vibe_msg %></p>
+
+                                        <% if (item.is_rider_msg && item.rider_phone) { %>
+                                            <div class="mt-4 bg-green-50/50 p-4 rounded-lg border border-green-100 flex items-center justify-between">
+                                                <div>
+                                                    <p class="text-xs text-gray-500">Rider Name</p>
+                                                    <p class="text-sm font-bold text-green-800"><%= item.rider_name || 'Steadfast Rider' %></p>
+                                                </div>
+                                                <a href="tel:<%= item.rider_phone %>" class="flex items-center gap-2 bg-green-600 text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full hover:bg-green-700 transition shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                                                    <span class="material-icons-outlined text-sm">call</span>
+                                                    Call Now
+                                                </a>
+                                            </div>
+                                        <% } %>
+
+                                        <% if (item.original && item.original.toLowerCase().includes('delivered')) { %>
+                                            <div class="mt-4">
+                                                <a href="https://www.facebook.com/bdnicheboutique" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 font-bold hover:underline">
+                                                    <span class="material-icons-outlined text-sm">thumb_up</span> Like us on Facebook
+                                                </a>
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    <% } %>
+</div>

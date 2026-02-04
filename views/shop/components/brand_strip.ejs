@@ -1,0 +1,15 @@
+<div class="py-8 bg-white border-b border-gray-100">
+    <div class="max-w-[1800px] mx-auto px-6">
+        <div class="flex overflow-x-auto space-x-12 pb-4 no-scrollbar items-center md:justify-center">
+            <% brands.forEach(b => { %>
+                <a href="/shop?brand=<%= b.id %>" class="flex-shrink-0 opacity-40 hover:opacity-100 transition duration-300 grayscale hover:grayscale-0 group">
+                    <% if(b.logo_image) { %>
+                        <img src="<%= b.logo_image %>" class="h-6 md:h-8 w-auto object-contain">
+                    <% } else { %>
+                        <span class="text-lg font-serif italic text-gray-400 group-hover:text-black"><%= b.name %></span>
+                    <% } %>
+                </a>
+            <% }) %>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,205 @@
+<div x-data="cartSidebar()" 
+     x-init="initCart()"
+     @open-cart.window="open = true" 
+     class="relative z-[100]" 
+     aria-labelledby="slide-over-title" 
+     role="dialog" 
+     aria-modal="true"
+     style="display: none;"
+     x-show="open">
+
+    <div x-show="open" 
+         x-transition:enter="ease-in-out duration-500" 
+         x-transition:enter-start="opacity-0" 
+         x-transition:enter-end="opacity-100" 
+         x-transition:leave="ease-in-out duration-500" 
+         x-transition:leave-start="opacity-100" 
+         x-transition:leave-end="opacity-0" 
+         class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
+         @click="open = false"></div>
+
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-0 md:pl-10">
+                
+                <div x-show="open"
+                     x-transition:enter="transform transition ease-in-out duration-500" 
+                     x-transition:enter-start="translate-x-full" 
+                     x-transition:enter-end="translate-x-0" 
+                     x-transition:leave="transform transition ease-in-out duration-500" 
+                     x-transition:leave-start="translate-x-0" 
+                     x-transition:leave-end="translate-x-full"
+                     class="pointer-events-auto w-[80vw] md:w-screen md:max-w-md">
+                    
+                    <div class="flex h-full flex-col bg-white shadow-2xl">
+                        
+                        <div class="flex-shrink-0">
+                            <div class="bg-[#800000] text-white text-center py-2 text-[10px] font-bold uppercase tracking-widest"
+                                 x-show="cart.items.length > 0">
+                                Discounts expire in <span x-text="timerDisplay" class="font-mono text-xs ml-1"></span>
+                            </div>
+
+                            <div class="flex items-center justify-between px-6 py-6 border-b border-gray-100">
+                                <h2 class="text-xl font-serif italic text-gray-900">Shopping Bag</h2>
+                                <button @click="open = false" class="text-gray-400 hover:text-black transition-colors">
+                                    <span class="material-icons-outlined">close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+                            
+                            <div x-show="cart.items.length === 0" class="h-full flex flex-col items-center justify-center text-center space-y-4 text-gray-400" style="display: none;">
+                                <span class="material-icons-outlined text-4xl">shopping_basket</span>
+                                <p class="text-xs uppercase tracking-widest">Your bag is empty</p>
+                                <button @click="open = false" class="text-black border-b border-black text-xs font-bold uppercase pb-1">Continue Shopping</button>
+                            </div>
+
+                            <ul role="list" class="-my-6 divide-y divide-gray-100" x-show="cart.items.length > 0">
+                                <template x-for="item in cart.items" :key="item.variantId">
+                                    <li class="flex py-6">
+                                        <div class="h-24 w-20 flex-shrink-0 overflow-hidden rounded-sm border border-gray-100">
+                                            <img :src="item.image" :alt="item.name" class="h-full w-full object-cover object-center">
+                                        </div>
+
+                                        <div class="ml-4 flex flex-1 flex-col">
+                                            <div>
+                                                <div class="flex justify-between text-base font-medium text-gray-900">
+                                                    <h3 class="font-serif italic text-lg leading-tight">
+                                                        <a :href="'/product/' + item.slug" x-text="item.name"></a>
+                                                    </h3>
+                                                    <p class="ml-4 font-bold text-sm" x-text="'TK. ' + item.lineTotal"></p>
+                                                </div>
+                                                <p class="mt-1 text-[10px] text-gray-500 uppercase tracking-widest">
+                                                    <span x-text="item.color"></span> / <span x-text="item.size"></span>
+                                                </p>
+                                                
+                                                <template x-if="item.price < item.originalPrice">
+                                                    <p class="text-[10px] text-[#800000] mt-1 font-bold">
+                                                        Saved TK. <span x-text="(item.originalPrice - item.price) * item.quantity"></span>
+                                                    </p>
+                                                </template>
+                                            </div>
+                                            
+                                            <div class="flex flex-1 items-end justify-between text-sm">
+                                                <div class="flex items-center border border-gray-200">
+                                                    <button @click="updateQty(item.variantId, 'decrease')" class="px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-black transition">-</button>
+                                                    <span class="px-2 text-xs font-bold" x-text="item.quantity"></span>
+                                                    <button @click="updateQty(item.variantId, 'increase')" class="px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-black transition">+</button>
+                                                </div>
+
+                                                <button type="button" @click="removeItem(item.variantId)" class="font-medium text-[10px] text-gray-400 uppercase tracking-widest hover:text-red-600 transition-colors">Remove</button>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+
+                        <div class="border-t border-gray-100 px-6 py-6 bg-gray-50" x-show="cart.items.length > 0" style="display: none;">
+                            
+                            <template x-if="cart.totalSavings > 0">
+                                <div class="mb-4 bg-green-50 border border-green-100 p-3 flex items-center justify-center space-x-2 text-green-800">
+                                    <span class="material-icons-outlined text-sm">savings</span>
+                                    <span class="text-xs font-bold uppercase tracking-wide">You have saved TK. <span x-text="cart.totalSavings"></span> today</span>
+                                </div>
+                            </template>
+
+                            <div class="flex justify-between text-base font-bold text-gray-900 mb-2">
+                                <p>Subtotal</p>
+                                <p x-text="'TK. ' + cart.subtotal"></p>
+                            </div>
+                            <p class="mt-0.5 text-[10px] text-gray-500 text-center mb-6">Delivery charge will be calculated during checkout.</p>
+                            
+                            <div class="mt-6">
+                                <a href="/checkout" class="flex items-center justify-center w-full bg-black px-6 py-4 text-xs font-bold text-white uppercase tracking-[0.2em] shadow-sm hover:bg-gray-800 transition-all group">
+                                    <span>Checkout Now</span>
+                                    <span class="material-icons-outlined ml-2 text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                </a>
+                            </div>
+                            <div class="mt-4 flex justify-center text-center text-sm text-gray-500">
+                                <button type="button" class="font-medium text-[10px] uppercase tracking-widest hover:text-gray-800" @click="open = false">
+                                    Continue Shopping
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cartSidebar() {
+    return {
+        open: false,
+        cart: { items: [], subtotal: 0, totalSavings: 0, count: 0 },
+        timerDisplay: '55:38',
+        timeLeft: 3338, // 55m 38s in seconds
+
+        initCart() {
+            this.fetchCart();
+            this.startTimer();
+            
+            // Listen for Global Event from Add to Cart buttons
+            window.addEventListener('cart-updated', () => {
+                this.fetchCart();
+                this.open = true; // Open sidebar when item added
+            });
+
+            // Listen for Global Event from Header
+            window.addEventListener('open-cart', () => {
+                this.open = true;
+            });
+        },
+
+        startTimer() {
+            setInterval(() => {
+                if (this.timeLeft > 0) {
+                    this.timeLeft--;
+                    const m = Math.floor(this.timeLeft / 60);
+                    const s = this.timeLeft % 60;
+                    this.timerDisplay = `${m} min ${s < 10 ? '0'+s : s} sec`;
+                }
+            }, 1000);
+        },
+
+        async fetchCart() {
+            try {
+                const res = await fetch('/cart/api');
+                this.cart = await res.json();
+            } catch(e) { console.error("Cart fetch error", e); }
+        },
+
+        async updateQty(id, action) {
+            try {
+                const res = await fetch('/cart/update', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // <--- ADD THIS
+                    },
+                    body: JSON.stringify({ variantId: id, action })
+                });
+                if(res.ok) this.fetchCart();
+            } catch(e) { console.error(e); }
+        },
+
+        async removeItem(id) {
+            try {
+                const res = await fetch('/cart/remove', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // <--- ADD THIS
+                    },
+                    body: JSON.stringify({ variantId: id })
+                });
+                if(res.ok) this.fetchCart();
+            } catch(e) { console.error(e); }
+        }
+    }
+}
+</script>

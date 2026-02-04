@@ -1,0 +1,27 @@
+<section class="py-20 bg-white">
+    <div class="max-w-[1800px] mx-auto px-6">
+        <h2 class="text-3xl font-serif text-center mb-12">Shop by Category</h2>
+        
+        <div class="flex overflow-x-auto space-x-5 pb-6 no-scrollbar snap-x justify-start md:justify-center">
+            <% categories.forEach(cat => { %>
+                <a href="/shop?category=<%= cat.id %>" class="snap-start min-w-[200px] md:min-w-[240px] aspect-[2/3] relative group overflow-hidden cursor-pointer rounded-sm shadow-md hover:shadow-xl transition-all">
+                    <img src="<%= cat.cover_image %>" class="w-full h-full object-cover transition duration-1000 group-hover:scale-110">
+                    
+                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
+                    
+                    <div class="absolute bottom-6 left-0 w-full text-center">
+                        <h3 class="font-serif text-xl text-white border-b border-transparent group-hover:border-white transition-all inline-block pb-1">
+                            <%= cat.name %>
+                        </h3>
+                    </div>
+                </a>
+            <% }) %>
+        </div>
+
+        <div class="text-center mt-10">
+            <a href="/shop" class="inline-block border border-black px-10 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
+                View All Categories
+            </a>
+        </div>
+    </div>
+</section>

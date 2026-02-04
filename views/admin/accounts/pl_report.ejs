@@ -1,0 +1,158 @@
+<div class="max-w-5xl mx-auto">
+    
+    <% if (!can('acc_reports', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm print:hidden">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to generate custom reports.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 print:hidden">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Profit & Loss Statement</h1>
+            <p class="text-sm text-gray-500 mt-1">Monthly financial performance report.</p>
+        </div>
+        
+        <form method="GET" class="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+            <span class="text-xs font-bold text-gray-500 uppercase px-2">Select Month:</span>
+            <input type="month" name="month" value="<%= month %>" class="border-none bg-gray-50 rounded-lg text-sm font-bold text-gray-900 focus:ring-0 cursor-pointer disabled:text-gray-500 disabled:bg-gray-100" <%= can('acc_reports', 'write') ? '' : 'disabled' %>>
+            <% if (can('acc_reports', 'write')) { %>
+            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors">
+                Generate Report
+            </button>
+            <% } %>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden print:shadow-none print:border-none">
+        
+        <div class="bg-gray-900 text-white p-8 text-center print:bg-white print:text-black">
+            <h2 class="text-xl font-bold uppercase tracking-widest mb-1">Income Statement</h2>
+            <p class="opacity-80">For the period: <span class="font-mono font-bold text-lg"><%= new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) %></span></p>
+        </div>
+
+        <div class="p-8 md:p-12 space-y-8">
+            
+            <div>
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Revenue (Income)</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">Steadfast COD Received</span>
+                        <span class="font-mono font-medium">৳<%= parseFloat(stats.breakdown_revenue.cod).toLocaleString() %></span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">Bkash/Manual Advances</span>
+                        <span class="font-mono font-medium">৳<%= parseFloat(stats.breakdown_revenue.advance).toLocaleString() %></span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mt-4 pt-4 border-t border-dashed border-gray-200">
+                    <span class="font-bold text-gray-900">Total Revenue</span>
+                    <span class="font-bold text-xl text-gray-900">৳<%= stats.revenue.toLocaleString() %></span>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Cost of Sales</h3>
+                <div class="flex justify-between items-center text-sm text-red-600">
+                    <span class="flex items-center gap-2">
+                        <span class="material-icons-outlined text-[16px]">inventory_2</span>
+                        Cost of Goods Sold (Product Cost)
+                    </span>
+                    <span class="font-mono font-medium">- ৳<%= stats.cogs.toLocaleString() %></span>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-4 mt-4 flex justify-between items-center border border-gray-100">
+                    <span class="font-bold text-gray-700 uppercase text-sm">Gross Profit</span>
+                    <span class="font-bold text-xl text-gray-900">৳<%= stats.gross_profit.toLocaleString() %></span>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Operating Expenses</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600 flex items-center gap-2">
+                            <span class="material-icons-outlined text-[16px] text-gray-400">local_shipping</span>
+                            Courier Delivery Charges
+                        </span>
+                        <span class="font-mono font-medium text-red-600">- ৳<%= stats.courier_cost.toLocaleString() %></span>
+                    </div>
+
+                    <% if (stats.hidden_costs) { %>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600 flex items-center gap-2">
+                            <span class="material-icons-outlined text-[16px] text-gray-400">percent</span>
+                            Steadfast COD Fee (1%)
+                        </span>
+                        <span class="font-mono font-medium text-red-600">- ৳<%= stats.hidden_costs.cod_fee.toLocaleString() %></span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600 flex items-center gap-2">
+                            <span class="material-icons-outlined text-[16px] text-gray-400">credit_card</span>
+                            Gateway Fees (1.5%)
+                        </span>
+                        <span class="font-mono font-medium text-red-600">- ৳<%= stats.hidden_costs.gateway_fee.toLocaleString() %></span>
+                    </div>
+                    
+                    <% } %>
+
+                    <% for (const [category, amount] of Object.entries(stats.expense_breakdown)) { 
+                        // Filter out hidden costs if they are already in the breakdown object to avoid duplicates
+                        if(['courier_cod_fee', 'gateway_fees', 'packaging_materials'].includes(category)) continue;
+                    %>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600 capitalize"><%= category %></span>
+                        <span class="font-mono font-medium text-red-600">- ৳<%= amount.toLocaleString() %></span>
+                    </div>
+                    <% } %>
+                </div>
+
+                <div class="flex justify-between items-center mt-4 pt-4 border-t border-dashed border-gray-200">
+                    <span class="font-bold text-gray-600">Total Expenses</span>
+                    <% 
+                       // Calculate Total including hidden costs
+                       let totalHidden = 0;
+                       if(stats.hidden_costs) {
+                           totalHidden = stats.hidden_costs.cod_fee + stats.hidden_costs.gateway_fee + stats.hidden_costs.packaging;
+                       }
+                       const finalTotalExpenses = stats.courier_cost + stats.opex + totalHidden;
+                    %>
+                    <span class="font-bold text-lg text-red-600">- ৳<%= finalTotalExpenses.toLocaleString() %></span>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 text-white rounded-2xl p-6 flex justify-between items-center shadow-lg mt-8 print:bg-black print:text-white">
+                <div>
+                    <h3 class="text-lg font-bold uppercase tracking-widest">Net Profit</h3>
+                    <p class="text-sm opacity-70 mt-1">Actual Cash In Hand</p>
+                </div>
+                <div class="text-right">
+                    <span class="block text-3xl font-bold tracking-tight <%= stats.net_profit >= 0 ? 'text-green-400' : 'text-red-400' %>">
+                        ৳<%= stats.net_profit.toLocaleString() %>
+                    </span>
+                    <% if (stats.revenue > 0) { %>
+                    <span class="text-xs font-medium opacity-60">
+                        Margin: <%= ((stats.net_profit / stats.revenue) * 100).toFixed(1) %>%
+                    </span>
+                    <% } %>
+                </div>
+            </div>
+
+        </div>
+        
+        <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400 print:hidden">
+            <span>Generated on <%= new Date().toLocaleDateString() %></span>
+            <button onclick="window.print()" class="flex items-center gap-1 hover:text-gray-900 font-bold transition-colors">
+                <span class="material-icons-outlined text-[16px]">print</span> Print Report
+            </button>
+        </div>
+    </div>
+</div>

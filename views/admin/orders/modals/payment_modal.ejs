@@ -1,0 +1,199 @@
+<div id="paymentModal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden border border-gray-200 transform scale-100 transition-all">
+        
+        <% if (!can('prod_po', 'write')) { %>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-0 rounded-t-xl shadow-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <span class="material-icons-outlined text-yellow-400">lock</span>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <span class="font-bold">View Only Mode:</span> You do not have permission to add payments.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <% } %>
+
+        <div class="px-6 py-4 bg-gray-900 text-white flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-lg">Add Payment</h3>
+                <p class="text-xs text-gray-400" id="payModalSubtitle">Record payment for this order</p>
+            </div>
+            <button onclick="closePaymentModal()" class="text-gray-400 hover:text-white">
+                <span class="material-icons-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+            
+            <div id="payErrorMessage" class="hidden bg-red-50 text-red-600 border border-red-200 p-3 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-2 animate-pulse">
+                <span class="material-icons-outlined text-sm">error</span>
+                <span id="payErrorText">Error message here</span>
+            </div>
+
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 grid grid-cols-2 gap-4 text-center">
+                <div>
+                    <span class="text-[10px] uppercase text-gray-500 font-bold block">Total Amount</span>
+                    <span class="font-mono font-bold text-gray-900" id="payModalTotal">0.00</span>
+                </div>
+                <div>
+                    <span class="text-[10px] uppercase text-gray-500 font-bold block">Due Amount</span>
+                    <span class="font-mono font-bold text-red-600" id="payModalDue">0.00</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pay From Account</label>
+                <select id="payAccount" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+                    <option value="">-- Select Account --</option>
+                    <% accounts.forEach(acc => { %>
+                        <option value="<%= acc.id %>" data-balance="<%= acc.current_balance %>">
+                            <%= acc.account_name %> (৳<%= acc.current_balance %>)
+                        </option>
+                    <% }) %>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Payment Amount</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">৳</span>
+                    <input type="number" id="payAmount" step="0.01" class="w-full pl-8 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold focus:border-black outline-none disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Note (Optional)</label>
+                <input type="text" id="payNote" placeholder="e.g. Partial payment via Bkash" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none transition disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Transaction ID (Optional)</label>
+                <input type="text" id="payTrxId" placeholder="e.g. 9JKS82..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none transition font-mono disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Payment Date</label>
+                <input type="date" id="payDate" value="<%= new Date().toISOString().split('T')[0] %>" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+            </div>
+
+            <input type="hidden" id="payContext" value=""> <input type="hidden" id="payTargetPO" value="">
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <button onclick="closePaymentModal()" class="px-4 py-2 text-gray-500 font-bold text-sm hover:text-gray-800">Cancel</button>
+            <% if (can('prod_po', 'write')) { %>
+            <button onclick="confirmPayment()" class="bg-black text-white px-6 py-2 rounded-lg font-bold text-sm shadow hover:bg-gray-800 transition">
+                Confirm Payment
+            </button>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script>
+    // GLOBAL PAYMENT LOGIC
+    function openPaymentModal(context, data) {
+        document.getElementById('paymentModal').classList.remove('hidden');
+        document.getElementById('payContext').value = context;
+        
+        // Reset Inputs & Error
+        document.getElementById('payAccount').value = '';
+        document.getElementById('payAmount').value = '';
+        document.getElementById('payNote').value = '';
+        document.getElementById('payTrxId').value = '';
+        document.getElementById('payErrorMessage').classList.add('hidden'); // Hide previous errors
+        
+        if (context === 'create') {
+            // Data = { total: 1000, paid: 0 }
+            const total = parseFloat(data.total) || 0;
+            const paid = parseFloat(data.paid) || 0;
+            const due = total - paid;
+            
+            document.getElementById('payModalTotal').innerText = total.toFixed(2);
+            document.getElementById('payModalDue').innerText = due.toFixed(2);
+            document.getElementById('payAmount').value = due; // Suggest full payment
+            document.getElementById('payTargetPO').value = 'DRAFT'; // Marker
+
+        } else if (context === 'existing') {
+            // Data = { id: 1, total: 1000, paid: 500 }
+            const total = parseFloat(data.total) || 0;
+            const paid = parseFloat(data.paid) || 0;
+            const due = total - paid;
+
+            document.getElementById('payModalTotal').innerText = total.toFixed(2);
+            document.getElementById('payModalDue').innerText = due.toFixed(2);
+            document.getElementById('payAmount').value = due;
+            document.getElementById('payTargetPO').value = data.id;
+        }
+    }
+
+    function closePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    async function confirmPayment() {
+        const context = document.getElementById('payContext').value;
+        const accountId = document.getElementById('payAccount').value;
+        const amount = parseFloat(document.getElementById('payAmount').value);
+        const date = document.getElementById('payDate').value;
+        const note = document.getElementById('payNote').value;
+        const trxId = document.getElementById('payTrxId').value;
+
+        // Helper for showing errors inside modal
+        const showError = (msg) => {
+            const errDiv = document.getElementById('payErrorMessage');
+            document.getElementById('payErrorText').innerText = msg;
+            errDiv.classList.remove('hidden');
+        };
+
+        // Reset error state
+        document.getElementById('payErrorMessage').classList.add('hidden');
+
+        if (!accountId) return showError("Please select an account.");
+        if (!amount || amount <= 0) return showError("Invalid payment amount.");
+
+        // Validate Balance
+        const selectedOption = document.querySelector(`#payAccount option[value="${accountId}"]`);
+        const currentBalance = parseFloat(selectedOption.getAttribute('data-balance'));
+        const accountName = selectedOption.innerText;
+
+        if (amount > currentBalance) {
+            return showError(`Insufficient Balance! Account has only ৳${currentBalance}`);
+        }
+
+        if (context === 'create') {
+            // Just update the UI in Create PO Modal
+            window.applyDraftPayment({
+                accountId,
+                amount,
+                date,
+                accountName: accountName,
+                trxId: trxId
+            });
+            closePaymentModal();
+
+        } else if (context === 'existing') {
+            // AJAX call to save immediately
+            const poId = document.getElementById('payTargetPO').value;
+            
+            try {
+                const res = await fetch('/admin/purchase-orders/add-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': '<%= csrfToken %>' },
+                    body: JSON.stringify({ po_id: poId, account_id: accountId, amount, date, note, trx_id: trxId })
+                });
+                const resp = await res.json();
+                if(resp.success) {
+                    location.reload();
+                } else {
+                    showError(resp.error); // Show server-side errors too
+                }
+            } catch(err) {
+                showError("Payment failed. Please try again.");
+            }
+        }
+    }
+</script>

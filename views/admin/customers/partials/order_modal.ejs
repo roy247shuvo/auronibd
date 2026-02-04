@@ -1,0 +1,100 @@
+<div x-show="modalOpen" 
+     style="display: none;" 
+     class="fixed inset-0 z-50 overflow-y-auto" 
+     aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div x-show="modalOpen" 
+             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" 
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" 
+             class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+             @click="modalOpen = false"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div x-show="modalOpen" 
+             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+             class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full">
+            
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                
+                <% if (!can('orders_web', 'write')) { %>
+                <div x-show="modalOrder" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 rounded-r shadow-sm">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <span class="material-icons-outlined text-yellow-400">lock</span>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                <span class="font-bold">View Only Mode:</span> You do not have permission to manage orders.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <div x-show="!modalOrder" class="flex justify-center py-10">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+
+                <div x-show="modalOrder">
+                    <div class="flex justify-between items-start mb-4 border-b pb-2">
+                        <div>
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                                Order #<span x-text="modalOrder?.order_number"></span>
+                            </h3>
+                            <p class="text-sm text-gray-500" x-text="modalOrder?.created_at"></p>
+                        </div>
+                        <span class="px-2 py-1 bg-gray-100 text-xs rounded uppercase font-bold" x-text="modalOrder?.status"></span>
+                    </div>
+
+                    <div class="overflow-y-auto max-h-60 mb-4">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <tbody class="divide-y divide-gray-200">
+                                <template x-for="item in modalItems" :key="item.id">
+                                    <tr>
+                                        <td class="py-2 w-12">
+                                            <img :src="item.image || '/images/placeholder.jpg'" class="h-10 w-10 object-cover rounded">
+                                        </td>
+                                        <td class="py-2 pl-2">
+                                            <p class="text-sm font-medium text-gray-900" x-text="item.product_name"></p>
+                                            <p class="text-xs text-gray-500">
+                                                <span x-text="item.size"></span> / <span x-text="item.color"></span>
+                                            </p>
+                                        </td>
+                                        <td class="py-2 text-right text-sm text-gray-500">
+                                            <span x-text="item.quantity"></span> x <span x-text="item.price"></span>
+                                        </td>
+                                        <td class="py-2 text-right text-sm font-bold text-gray-900" x-text="item.line_total"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="border-t pt-4 bg-gray-50 -mx-6 -mb-4 px-6 py-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-500">Subtotal</span>
+                            <span class="font-medium" x-text="'Tk. ' + modalOrder?.product_subtotal"></span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-500">Delivery</span>
+                            <span class="font-medium" x-text="'Tk. ' + modalOrder?.delivery_charge"></span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold mt-2 pt-2 border-t border-gray-200">
+                            <span>Total</span>
+                            <span x-text="'Tk. ' + modalOrder?.total_amount"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" @click="modalOpen = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

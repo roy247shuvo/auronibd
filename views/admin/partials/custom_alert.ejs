@@ -1,0 +1,40 @@
+<div id="global-alert-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100 animate-bounce-in">
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-50 mb-4">
+                <span class="material-icons-outlined text-red-600 text-3xl">priority_high</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Attention</h3>
+            <p id="global-alert-message" class="text-sm text-gray-500 font-medium">Warning message goes here.</p>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <button onclick="closeGlobalAlert()" class="w-full bg-gray-900 text-white py-3 rounded-lg font-bold hover:bg-black transition-all shadow-lg text-sm uppercase tracking-wide">
+                Okay, Got it
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Store original alert just in case (optional)
+    const originalAlert = window.alert;
+
+    // OVERRIDE: Redirect all alert() calls to this custom function
+    window.alert = function(message) {
+        const modal = document.getElementById('global-alert-modal');
+        const msgBox = document.getElementById('global-alert-message');
+        
+        // Set message and show modal
+        if(msgBox && modal) {
+            msgBox.innerText = message;
+            modal.classList.remove('hidden');
+        } else {
+            // Fallback if modal DOM isn't ready
+            console.log("Custom alert not ready:", message);
+        }
+    };
+
+    function closeGlobalAlert() {
+        document.getElementById('global-alert-modal').classList.add('hidden');
+    }
+</script>

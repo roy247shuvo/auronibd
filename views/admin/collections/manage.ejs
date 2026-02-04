@@ -1,0 +1,146 @@
+<div class="max-w-4xl mx-auto">
+    <% if (!can('prod_collections', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to modify this collection.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex items-center space-x-4 mb-8">
+        <a href="/admin/collections" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:border-gray-300 transition shadow-sm">
+            <span class="material-icons-outlined">arrow_back</span>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900"><%= collection.name %></h1>
+            <p class="text-sm text-gray-500">Scan items to add them to this collection.</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Scan Variant Barcode / SKU</label>
+        <div class="flex space-x-2">
+            <input type="text" id="barcodeInput" placeholder="Click here & Scan Barcode..." autofocus
+                class="flex-1 border-2 border-gray-200 rounded-lg px-4 py-3 text-lg font-mono focus:border-red-500 outline-none transition disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_collections', 'write') ? '' : 'disabled' %>>
+            <% if (can('prod_collections', 'write')) { %>
+            <button onclick="addByBarcode()" class="bg-red-600 text-white px-6 rounded-lg font-bold hover:bg-red-700 transition flex items-center">
+                <span class="material-icons-outlined mr-2">qr_code_scanner</span> ADD
+            </button>
+            <% } %>
+        </div>
+        <p id="msg" class="text-sm font-bold mt-2 h-5"></p>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+            <h3 class="font-bold text-gray-800">Products in Collection (<%= products.length %>)</h3>
+        </div>
+        <table class="w-full text-left text-sm text-gray-600">
+            <tbody class="divide-y divide-gray-100">
+                <% products.forEach(p => { %>
+                    <tr class="hover:bg-gray-50 transition" id="row-<%= p.id %>">
+                        <td class="px-6 py-3 w-16">
+                            <div class="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-white">
+                                <% if(p.image) { %>
+                                    <img src="<%= p.image %>" class="w-full h-full object-cover">
+                                <% } else { %>
+                                    <span class="material-icons-outlined text-gray-300">image</span>
+                                <% } %>
+                            </div>
+                        </td>
+                        <td class="px-6 py-3 font-medium text-gray-900">
+                            <%= p.name %>
+                            <div class="text-xs text-gray-400 font-mono"><%= p.sku %></div>
+                        </td>
+                        <td class="px-6 py-3 text-right">
+                            <% if (can('prod_collections', 'write')) { %>
+                            <button onclick="removeProduct(<%= p.id %>)" class="text-red-500 hover:text-red-700 font-bold text-xs uppercase border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg transition">
+                                Remove
+                            </button>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }) %>
+                <% if(products.length === 0) { %>
+                    <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No products added yet. Scan a barcode to begin.</td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const collectionId = '<%= collection.id %>';
+    const input = document.getElementById('barcodeInput');
+    const msg = document.getElementById('msg');
+
+    // Auto-submit on Enter key
+    input.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            addByBarcode();
+        }
+    });
+
+    async function addByBarcode() {
+        const barcode = input.value;
+        if(!barcode) return;
+
+        msg.innerText = "Scanning...";
+        msg.className = "text-sm font-bold mt-2 text-gray-500";
+
+        try {
+            const res = await fetch('/admin/collections/add-product', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ collection_id: collectionId, barcode: barcode })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                msg.innerText = "Success! Product added.";
+                msg.className = "text-sm font-bold mt-2 text-green-600";
+                input.value = ''; // Clear input for next scan
+                setTimeout(() => window.location.reload(), 500); // Reload to show new product
+            } else {
+                msg.innerText = data.message;
+                msg.className = "text-sm font-bold mt-2 text-red-600";
+                input.value = ''; // Clear bad input
+            }
+        } catch (err) {
+            msg.innerText = "Error connecting to server.";
+            msg.className = "text-sm font-bold mt-2 text-red-600";
+        }
+    }
+
+    async function removeProduct(productId) {
+        if(!confirm("Remove this product from the collection?")) return;
+
+        try {
+            const res = await fetch('/admin/collections/remove-product', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ collection_id: collectionId, product_id: productId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('row-' + productId).remove();
+            }
+        } catch (err) {
+            alert("Error removing product.");
+        }
+    }
+</script>

@@ -1,0 +1,545 @@
+<div class="max-w-7xl mx-auto min-h-[600px]">
+    
+    <% if (!can('prod_settings', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage product settings.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Product Settings</h1>
+        <p class="text-gray-500 text-sm mt-1">Manage master data and configuration.</p>
+    </div>
+
+    <div class="border-b border-gray-200 mb-8">
+        <nav class="-mb-px flex space-x-6 overflow-x-auto custom-scrollbar" aria-label="Tabs">
+            <button onclick="switchTab('brands')" id="tab-btn-brands" class="tab-btn group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm border-red-500 text-red-600">
+                <span class="material-icons-outlined text-lg mr-2">verified</span> Brands
+            </button>
+
+            <button onclick="switchTab('categories')" id="tab-btn-categories" class="tab-btn group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <span class="material-icons-outlined text-lg mr-2">category</span> Categories
+            </button>
+
+            <button onclick="switchTab('types')" id="tab-btn-types" class="tab-btn group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <span class="material-icons-outlined text-lg mr-2">style</span> Types
+            </button>
+
+            <button onclick="switchTab('fabrics')" id="tab-btn-fabrics" class="tab-btn group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <span class="material-icons-outlined text-lg mr-2">texture</span> Fabrics
+            </button>
+
+            <button onclick="switchTab('work_types')" id="tab-btn-work_types" class="tab-btn group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <span class="material-icons-outlined text-lg mr-2">handyman</span> Work Types
+            </button>
+
+            <button onclick="switchTab('colors')" id="tab-btn-colors" class="tab-btn group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <span class="material-icons-outlined text-lg mr-2">palette</span> Colors
+            </button>
+            
+            <button onclick="switchTab('labels')" id="tab-btn-labels" class="tab-btn group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <span class="material-icons-outlined text-lg mr-2">qr_code_2</span> Label Settings
+            </button>
+        </nav>
+    </div>
+
+    <div id="tab-brands" class="tab-content">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800">Brands List</h3>
+                <% if (can('prod_settings', 'write')) { %>
+                <button onclick="openModal('brands')" class="bg-gray-900 text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-black transition flex items-center">
+                    <span class="material-icons-outlined text-sm mr-1">add</span> Add Brand
+                </button>
+                <% } %>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <% brands.forEach(item => { %>
+                    <div class="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition group">
+                        <div class="flex items-center">
+                            <% if(item.logo_image) { %>
+                                <div class="h-10 w-10 rounded-lg border border-gray-200 overflow-hidden bg-white mr-4 flex items-center justify-center">
+                                    <img src="<%= item.logo_image %>" class="h-full w-full object-contain">
+                                </div>
+                            <% } else { %>
+                                <div class="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 mr-4 flex items-center justify-center text-gray-400">
+                                    <span class="material-icons-outlined text-lg">image</span>
+                                </div>
+                            <% } %>
+                            <div>
+                                <p class="font-bold text-gray-900 text-sm"><%= item.name %></p>
+                                <p class="font-mono text-xs text-gray-400"><%= item.shortcode %></p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition">
+                            <% if (can('prod_settings', 'write')) { %>
+                            <button onclick="openModal('brands', '<%= JSON.stringify(item) %>')" class="text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">edit</span></button>
+                            <% } %>
+                            <% if (can('prod_settings', 'delete')) { %>
+                            <button class="text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">delete</span></button>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+                <% if(brands.length === 0) { %> <div class="p-8 text-center text-gray-400 text-sm">No brands found.</div> <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-categories" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800">Categories List</h3>
+                <% if (can('prod_settings', 'write')) { %>
+                <button onclick="openModal('categories')" class="bg-gray-900 text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-black transition flex items-center">
+                    <span class="material-icons-outlined text-sm mr-1">add</span> Add Category
+                </button>
+                <% } %>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <% categories.forEach(item => { %>
+                    <div class="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition group">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 mr-4 flex items-center justify-center">
+                                <span class="material-icons-outlined text-lg">category</span>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900 text-sm"><%= item.name %></p>
+                                <p class="font-mono text-xs text-gray-400"><%= item.shortcode %></p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="openModal('categories', '<%= JSON.stringify(item) %>')" class="text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">edit</span></button>
+                            <button class="text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">delete</span></button>
+                        </div>
+                    </div>
+                <% }) %>
+                <% if(categories.length === 0) { %> <div class="p-8 text-center text-gray-400 text-sm">No categories found.</div> <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-types" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800">Product Types List</h3>
+                <% if (can('prod_settings', 'write')) { %>
+                <button onclick="openModal('product_types')" class="bg-gray-900 text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-black transition flex items-center">
+                    <span class="material-icons-outlined text-sm mr-1">add</span> Add Type
+                </button>
+                <% } %>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <% types.forEach(item => { %>
+                    <div class="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition group">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-lg bg-purple-50 text-purple-600 mr-4 flex items-center justify-center">
+                                <span class="material-icons-outlined text-lg">style</span>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900 text-sm"><%= item.name %></p>
+                                <p class="font-mono text-xs text-gray-400"><%= item.shortcode %></p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="openModal('product_types', '<%= JSON.stringify(item) %>')" class="text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">edit</span></button>
+                            <button class="text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">delete</span></button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-fabrics" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800">Fabrics List</h3>
+                <% if (can('prod_settings', 'write')) { %>
+                <button onclick="openModal('fabrics')" class="bg-gray-900 text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-black transition flex items-center">
+                    <span class="material-icons-outlined text-sm mr-1">add</span> Add Fabric
+                </button>
+                <% } %>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <% fabrics.forEach(item => { %>
+                    <div class="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition group">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-lg bg-yellow-50 text-yellow-600 mr-4 flex items-center justify-center">
+                                <span class="material-icons-outlined text-lg">texture</span>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900 text-sm"><%= item.name %></p>
+                                <p class="font-mono text-xs text-gray-400"><%= item.shortcode %></p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="openModal('fabrics', '<%= JSON.stringify(item) %>')" class="text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">edit</span></button>
+                            <button class="text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">delete</span></button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-work_types" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800">Work Types List</h3>
+                <% if (can('prod_settings', 'write')) { %>
+                <button onclick="openModal('work_types')" class="bg-gray-900 text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-black transition flex items-center">
+                    <span class="material-icons-outlined text-sm mr-1">add</span> Add Work Type
+                </button>
+                <% } %>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <% work_types.forEach(item => { %>
+                    <div class="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition group">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-lg bg-green-50 text-green-600 mr-4 flex items-center justify-center">
+                                <span class="material-icons-outlined text-lg">handyman</span>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900 text-sm"><%= item.name %></p>
+                                <p class="font-mono text-xs text-gray-400"><%= item.shortcode %></p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="openModal('work_types', '<%= JSON.stringify(item) %>')" class="text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">edit</span></button>
+                            <button class="text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">delete</span></button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-colors" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800">Colors List</h3>
+                <% if (can('prod_settings', 'write')) { %>
+                <button onclick="openModal('colors')" class="bg-gray-900 text-white text-xs font-bold uppercase px-4 py-2 rounded-lg hover:bg-black transition flex items-center">
+                    <span class="material-icons-outlined text-sm mr-1">add</span> Add Color
+                </button>
+                <% } %>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <% colors.forEach(item => { %>
+                    <div class="px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition group">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full border border-gray-200 mr-4 shadow-sm" style="background-color: <%= item.hex_code %>;"></div>
+                            <div>
+                                <p class="font-bold text-gray-900 text-sm"><%= item.name %></p>
+                                <p class="font-mono text-xs text-gray-400"><%= item.hex_code %></p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="openModal('colors', '<%= JSON.stringify(item) %>')" class="text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">edit</span></button>
+                            <button class="text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 p-1.5 rounded-lg"><span class="material-icons-outlined text-base">delete</span></button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-labels" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 max-w-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800">Barcode Label Configuration</h3>
+            </div>
+            
+            <div class="p-8">
+                <div class="mb-8">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-3">Select Label Size</label>
+                    <div class="grid grid-cols-3 gap-4">
+                        <button onclick="selectLabelSize('38x25')" id="btn-38x25" class="label-btn border-2 border-gray-200 rounded-xl p-4 hover:border-red-500 hover:bg-red-50 transition text-center group">
+                            <span class="block text-sm font-bold text-gray-700 group-hover:text-red-600">38 x 25 mm</span>
+                            <span class="text-[10px] text-gray-400">Standard</span>
+                        </button>
+                        <button onclick="selectLabelSize('50x30')" id="btn-50x30" class="label-btn border-2 border-gray-200 rounded-xl p-4 hover:border-red-500 hover:bg-red-50 transition text-center group">
+                            <span class="block text-sm font-bold text-gray-700 group-hover:text-red-600">50 x 30 mm</span>
+                            <span class="text-[10px] text-gray-400">Medium</span>
+                        </button>
+                        <button onclick="selectLabelSize('40x60')" id="btn-40x60" class="label-btn border-2 border-gray-200 rounded-xl p-4 hover:border-red-500 hover:bg-red-50 transition text-center group">
+                            <span class="block text-sm font-bold text-gray-700 group-hover:text-red-600">40 x 60 mm</span>
+                            <span class="text-[10px] text-gray-400">Hang Tag</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-3">Live Preview</label>
+                    <div class="bg-gray-100 rounded-xl p-8 flex items-center justify-center border border-gray-200 border-dashed min-h-[260px]">
+                        <div id="labelPreview" class="bg-white shadow-md border border-gray-200 p-2 flex flex-col items-center justify-center text-center leading-tight relative overflow-hidden transition-all duration-300">
+                            <h4 class="font-bold text-gray-900 text-[10px] mb-0.5 truncate w-full px-1">Luxury Lawn Suit</h4>
+                            <div class="font-mono text-[8px] text-gray-500 mb-0.5">SKU: NICH-001-RED</div>
+                            
+                            <div class="my-1 flex items-center justify-center w-full">
+                                <div class="h-8 w-10/12" style="background: repeating-linear-gradient(90deg, #000 0px, #000 2px, transparent 2px, transparent 4px);"></div>
+                            </div>
+                            <div class="text-[8px] font-mono text-gray-400 mb-1">123456789</div>
+
+                            <div class="flex items-center gap-2 mt-auto">
+                                <div class="text-[9px] text-gray-400 line-through">৳5,500</div>
+                                <div class="text-xs font-bold text-gray-900">৳4,800</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <% if (can('prod_settings', 'write')) { %>
+                <button onclick="saveBarcodeSetting()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-black transition shadow-lg">
+                    Save Configuration
+                </button>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="modalOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-[100] flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-all duration-300" id="modalContent">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-800" id="modalTitle">Add New Item</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <span class="material-icons-outlined">close</span>
+            </button>
+        </div>
+
+        <form onsubmit="submitSetting(event)" enctype="multipart/form-data" class="p-6" id="settingsForm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="id" id="modalIdInput">
+            <input type="hidden" name="table" id="modalTableInput">
+            
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Name</label>
+                <input type="text" name="name" required 
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none disabled:bg-gray-100" 
+                       placeholder="e.g. Sapphire"
+                       <%= can('prod_settings', 'write') ? '' : 'disabled' %>>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Shortcode (Unique)</label>
+                <input type="text" name="shortcode" required maxlength="5" 
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono uppercase focus:ring-2 focus:ring-red-500 outline-none disabled:bg-gray-100" 
+                       placeholder="e.g. SAP"
+                       <%= can('prod_settings', 'write') ? '' : 'disabled' %>>
+            </div>
+
+            <div id="field-image" class="hidden mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Brand Logo</label>
+                <input type="file" name="logo" accept="image/*" 
+                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                       <%= can('prod_settings', 'write') ? '' : 'disabled' %>>
+            </div>
+
+            <div id="field-color" class="hidden mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Color Hex Code</label>
+                <div class="flex items-center">
+                    <input type="color" id="colorPicker" 
+                           class="h-10 w-10 border-0 p-0 mr-3 rounded overflow-hidden cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                           <%= can('prod_settings', 'write') ? '' : 'disabled' %>>
+                    <input type="text" name="hex_code" id="hexInput" 
+                           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 font-mono uppercase disabled:bg-gray-100" 
+                           placeholder="#000000"
+                           <%= can('prod_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+
+            <div id="modalErrorMessage" class="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg hidden font-medium flex items-center">
+                <span class="material-icons-outlined text-base mr-2">error</span>
+                <span id="modalErrorText"></span>
+            </div>
+
+            <% if (can('prod_settings', 'write')) { %>
+            <button type="submit" id="saveBtn" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-black transition shadow-lg mt-2 flex justify-center items-center">
+                Save Item
+            </button>
+            <% } %>
+        </form>
+    </div>
+</div>
+
+<script>
+    // === 1. TAB SWITCHING LOGIC ===
+    function switchTab(tabName) {
+        // Hide all contents
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        
+        // Remove active state from all buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('border-red-500', 'text-red-600');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        // Show selected content
+        document.getElementById('tab-' + tabName).classList.remove('hidden');
+
+        // Add active state to button
+        const btn = document.getElementById('tab-btn-' + tabName);
+        btn.classList.remove('border-transparent', 'text-gray-500');
+        btn.classList.add('border-red-500', 'text-red-600');
+
+        // Special init for barcode tab if selected
+        if(tabName === 'labels') {
+            const saved = localStorage.getItem('barcodeLabelSize') || '38x25';
+            selectLabelSize(saved);
+        }
+    }
+
+    // === 2. CRUD MODAL LOGIC ===
+    function openModal(type, item = null) {
+        const overlay = document.getElementById('modalOverlay');
+        const title = document.getElementById('modalTitle');
+        const tableInput = document.getElementById('modalTableInput');
+        const idInput = document.getElementById('modalIdInput');
+        const errorBox = document.getElementById('modalErrorMessage');
+        
+        // Reset form & UI
+        document.getElementById('settingsForm').reset();
+        errorBox.classList.add('hidden');
+        document.getElementById('saveBtn').disabled = false;
+        document.getElementById('saveBtn').innerText = "Save Item";
+
+        // Fields visibility
+        const imgField = document.getElementById('field-image');
+        const colorField = document.getElementById('field-color');
+        
+        tableInput.value = type;
+        imgField.classList.add('hidden');
+        colorField.classList.add('hidden');
+        
+        if (item) {
+            // EDIT MODE
+            try {
+                const data = (typeof item === 'string') ? JSON.parse(item) : item;
+                idInput.value = data.id;
+                title.innerText = 'Edit ' + type.replace('_', ' ').replace(/s$/, '').toUpperCase();
+                document.querySelector('input[name="name"]').value = data.name;
+                if(data.shortcode) document.querySelector('input[name="shortcode"]').value = data.shortcode;
+                
+                if (data.hex_code) {
+                    document.querySelector('input[name="hex_code"]').value = data.hex_code;
+                    document.getElementById('colorPicker').value = data.hex_code;
+                }
+            } catch(e) { console.error(e); }
+        } else {
+            // ADD MODE
+            idInput.value = '';
+            title.innerText = 'Add New ' + type.replace('_', ' ').replace(/s$/, '').toUpperCase();
+        }
+
+        if (type === 'brands') imgField.classList.remove('hidden');
+        if (type === 'colors') colorField.classList.remove('hidden');
+
+        overlay.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.add('hidden');
+    }
+
+    // Link Color Picker to Text Input
+    const colorPicker = document.getElementById('colorPicker');
+    if(colorPicker) {
+        colorPicker.addEventListener('input', function() {
+            document.getElementById('hexInput').value = this.value;
+        });
+    }
+
+    async function submitSetting(e) {
+        e.preventDefault(); 
+        const form = document.getElementById('settingsForm');
+        const formData = new FormData(form);
+        const errorBox = document.getElementById('modalErrorMessage');
+        const errorText = document.getElementById('modalErrorText');
+        const saveBtn = document.getElementById('saveBtn');
+
+        errorBox.classList.add('hidden');
+        saveBtn.disabled = true;
+        saveBtn.innerText = "Saving...";
+
+        try {
+            const response = await fetch('/admin/products/save-item', {
+                method: 'POST',
+                headers: {
+                    'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.reload(); 
+            } else {
+                errorText.innerText = result.message;
+                errorBox.classList.remove('hidden');
+                saveBtn.disabled = false;
+                saveBtn.innerText = "Save Item";
+            }
+        } catch (err) {
+            console.error(err);
+            errorText.innerText = "Network Error.";
+            errorBox.classList.remove('hidden');
+            saveBtn.disabled = false;
+            saveBtn.innerText = "Save Item";
+        }
+    }
+
+    // === 3. BARCODE LOGIC (Browser Memory) ===
+    let currentLabelSize = localStorage.getItem('barcodeLabelSize') || '38x25';
+
+    function selectLabelSize(size) {
+        currentLabelSize = size;
+        
+        // 1. Update Buttons State
+        document.querySelectorAll('.label-btn').forEach(btn => {
+            btn.classList.remove('border-red-500', 'bg-red-50', 'ring-2', 'ring-red-200');
+            btn.classList.add('border-gray-200');
+        });
+        const activeBtn = document.getElementById('btn-' + size);
+        if(activeBtn) {
+            activeBtn.classList.remove('border-gray-200');
+            activeBtn.classList.add('border-red-500', 'bg-red-50', 'ring-2', 'ring-red-200');
+        }
+
+        // 2. Update Preview Dimensions
+        const preview = document.getElementById('labelPreview');
+        let width, height;
+        
+        switch(size) {
+            case '38x25': width = '144px'; height = '95px'; break; 
+            case '50x30': width = '189px'; height = '113px'; break; 
+            case '40x60': width = '151px'; height = '227px'; break; 
+            default: width = '144px'; height = '95px';
+        }
+
+        preview.style.width = width;
+        preview.style.height = height;
+    }
+
+    function saveBarcodeSetting() {
+        localStorage.setItem('barcodeLabelSize', currentLabelSize);
+        alert('Label preference saved: ' + currentLabelSize);
+    }
+
+    // Initialize logic on load
+    document.addEventListener('DOMContentLoaded', () => {
+        // If url has hash #labels, switch to it, otherwise brands
+        if(window.location.hash === '#labels') switchTab('labels');
+    });
+</script>

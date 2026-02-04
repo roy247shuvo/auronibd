@@ -1,0 +1,78 @@
+<div class="max-w-4xl mx-auto">
+    <% if (!can('site_settings', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to update analytics settings.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Meta Pixel & Analytics</h1>
+    </div>
+
+    <form action="/admin/settings/analytics" method="POST" class="space-y-6">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                <span class="material-icons-outlined text-blue-600">facebook</span> Meta Integration
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Meta Pixel ID</label>
+                    <input type="text" name="meta_pixel_id" value="<%= setting.meta_pixel_id || '' %>" placeholder="1234567890" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Conversion API Access Token (CAPI)</label>
+                    <input type="password" name="meta_conversion_api_token" value="<%= setting.meta_conversion_api_token || '' %>" placeholder="EAA..." 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                    <p class="text-[10px] text-gray-400 mt-1">Generate this in Events Manager > Settings > Generate Access Token.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Test Event Code</label>
+                        <input type="text" name="meta_test_code" value="<%= setting.meta_test_code || '' %>" placeholder="TEST12345" 
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono transition disabled:bg-gray-100 disabled:text-gray-500"
+                               <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                        <p class="text-[10px] text-gray-400 mt-1">Optional: Use for testing server events.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Domain Verification Meta-Tag</label>
+                        <input type="text" name="meta_domain_verification" value="<%= setting.meta_domain_verification || '' %>" placeholder='<meta name="facebook-domain-verification" content="..." />' 
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono transition disabled:bg-gray-100 disabled:text-gray-500"
+                               <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                <span class="material-icons-outlined text-orange-500">analytics</span> Google Analytics 4
+            </h2>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Measurement ID</label>
+                <input type="text" name="ga_measurement_id" value="<%= setting.ga_measurement_id || '' %>" placeholder="G-XXXXXXXXXX" 
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono transition disabled:bg-gray-100 disabled:text-gray-500"
+                       <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+            </div>
+        </div>
+
+        <% if (can('site_settings', 'write')) { %>
+        <div class="flex justify-end">
+            <button type="submit" class="bg-black text-white px-8 py-3 rounded-xl font-bold uppercase tracking-wider text-sm shadow hover:bg-gray-800 transition">Save Tracking IDs</button>
+        </div>
+        <% } %>
+    </form> 
+    </div>

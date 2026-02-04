@@ -1,0 +1,484 @@
+<div id="poModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    
+    <div id="step1_Wrapper" class="bg-white w-full max-w-6xl h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+        
+        <% if (!can('prod_po', 'write')) { %>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-0 rounded-t-xl shadow-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <span class="material-icons-outlined text-yellow-400">lock</span>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <span class="font-bold">View Only Mode:</span> You do not have permission to create purchase orders.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <% } %>
+
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div>
+                <h3 class="font-bold text-lg text-gray-900">New Purchase Order</h3>
+                <p class="text-xs text-gray-500">Draft items before confirming stock.</p>
+            </div>
+            <button onclick="closePOModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 hover:text-red-600 transition">
+                <span class="material-icons-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="space-y-6">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Vendor</label>
+                        <select id="poVendor" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 outline-none font-medium disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+                            <option value="">-- Select Vendor --</option>
+                            <% vendors.forEach(v => { %>
+                                <option value="<%= v.id %>"><%= v.name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+
+                    <div class="relative">
+                        <input type="text" id="poProductSearch" oninput="searchPOProduct(this.value)" placeholder="Scan SKU or Search Name..." 
+                               class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-black focus:ring-1 focus:ring-black outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                               <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+                        <span class="material-icons-outlined absolute left-3 top-3 text-gray-400">search</span>
+                        
+                        <div id="poSearchResults" class="hidden absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto z-20"></div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm min-h-[400px] flex flex-col">
+                    <div class="p-3 border-b border-gray-100 bg-gray-50 font-bold text-xs text-gray-500 uppercase">Draft Items</div>
+                    <div class="flex-1 overflow-y-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-white sticky top-0 text-gray-500 text-[10px] uppercase border-b border-gray-100">
+                                <tr>
+                                    <th class="px-4 py-2">Item</th>
+                                    <th class="px-4 py-2 text-right">Qty</th>
+                                    <th class="px-4 py-2 text-right">Cost</th>
+                                    <th class="px-4 py-2 text-right">Total</th>
+                                    <th class="px-4 py-2 w-8"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="poItemsBody" class="text-sm divide-y divide-gray-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 bg-white border-t border-gray-100 flex justify-between items-center">
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <span class="text-xs text-gray-500 uppercase block">Total</span>
+                    <span class="text-xl font-bold font-mono">TK. <span id="poGrandTotal">0</span></span>
+                </div>
+                
+                <div class="text-right border-l border-gray-200 pl-6">
+                    <span class="text-xs text-gray-500 uppercase block">Remaining</span>
+                    <span class="text-xl font-bold font-mono text-red-600">TK. <span id="displayRemaining">0</span></span>
+                </div>
+
+                <% if (can('prod_po', 'write')) { %>
+                <button onclick="triggerAddPayment()" class="ml-4 bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-bold text-xs uppercase hover:bg-gray-200 transition border border-gray-200">
+                    + Add Payment
+                </button>
+                <% } %>
+            </div>
+            
+            <% if (can('prod_po', 'write')) { %>
+            <button onclick="submitPO()" class="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg">
+                Create Order
+            </button>
+            <% } %>
+        </div>
+            
+            <button onclick="submitPO()" class="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg">
+                Create Order
+            </button>
+        </div>
+    </div>
+
+    <div id="step2_Snapshot" class="hidden absolute bg-white w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] z-[60] border border-gray-200">
+        <div class="px-6 py-4 bg-gray-900 text-white flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-lg" id="step2Title">Product Name</h3>
+                <p class="text-xs text-gray-400 font-mono" id="step2Sku">SKU</p>
+            </div>
+            <button onclick="closeStep2()" class="text-gray-400 hover:text-white"><span class="material-icons-outlined">close</span></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto">
+            <% if (!can('prod_po', 'write')) { %>
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 rounded-r shadow-sm">
+                <p class="text-sm text-yellow-700 font-bold">
+                    <span class="material-icons-outlined text-xs align-middle">lock</span> View Only Mode
+                </p>
+            </div>
+            <% } %>
+
+            <div class="flex justify-between items-center mb-4">
+                <div class="text-xs text-gray-500 font-bold uppercase">Current Inventory Status</div>
+                <% if (can('prod_po', 'write')) { %>
+                <button onclick="openStep3()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-blue-700 shadow-md flex items-center gap-2">
+                    <span class="material-icons-outlined text-sm">add</span> Add Stock
+                </button>
+                <% } %>
+            </div>
+
+            <table class="w-full text-left border border-gray-200 rounded-lg overflow-hidden">
+                <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase">
+                    <tr>
+                        <th class="px-4 py-3 border-b">Variant</th>
+                        <th class="px-4 py-3 border-b text-center">Current Stock</th>
+                        <th class="px-4 py-3 border-b text-center">Buy Price Range</th>
+                        <th class="px-4 py-3 border-b bg-blue-50 text-blue-700 text-center font-bold border-l">+ New Qty</th>
+                        <th class="px-4 py-3 border-b bg-blue-50 text-blue-700 text-center font-bold">New Cost</th>
+                    </tr>
+                </thead>
+                <tbody id="snapshotBody" class="text-sm divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <button onclick="closeStep2()" class="px-4 py-2 text-gray-500 font-bold text-sm hover:text-gray-800">Cancel</button>
+            <% if (can('prod_po', 'write')) { %>
+            <button onclick="confirmBatchToPO()" class="bg-black text-white px-6 py-2 rounded-lg font-bold text-sm shadow hover:bg-gray-800">
+                Save Changes
+            </button>
+            <% } %>
+        </div>
+
+    <div id="step3_Batch" class="hidden absolute bg-white w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] z-[70] border border-gray-200">
+        <div class="px-6 py-4 bg-blue-600 text-white flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-lg">Input New Batch</h3>
+                <p class="text-xs text-blue-200 font-mono flex items-center gap-2 mt-1">
+                    <span class="bg-white/20 px-2 py-0.5 rounded uppercase tracking-wider" id="step3BatchNum">BATCH #--</span>
+                    <span>Enter incoming quantity & cost</span>
+                </p>
+            </div>
+            <button onclick="closeStep3()" class="text-blue-200 hover:text-white"><span class="material-icons-outlined">close</span></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-blue-50 text-blue-800 text-[10px] uppercase">
+                    <tr>
+                        <th class="px-4 py-2 w-1/3">Variant</th>
+                        <th class="px-4 py-2 text-center">New Quantity</th>
+                        <th class="px-4 py-2 text-center">Buying Price</th>
+                    </tr>
+                </thead>
+                <tbody id="batchInputBody" class="text-sm divide-y divide-blue-100"></tbody>
+            </table>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <button onclick="closeStep3()" class="px-4 py-2 text-gray-500 font-bold text-sm hover:text-gray-800">Cancel</button>
+            <button onclick="saveBatchInputs()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-sm shadow hover:bg-blue-700">
+                Apply to Draft
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let poCart = [];
+    let currentProduct = null;
+    let currentBatchData = {}; 
+
+    // --- MODAL CONTROLS ---
+    function openPOCreator() {
+        document.getElementById('poModal').classList.remove('hidden');
+        poCart = [];
+        renderPOCart();
+    }
+    function closePOModal() {
+        if(poCart.length > 0 && !confirm('Discard current PO draft?')) return;
+        document.getElementById('poModal').classList.add('hidden');
+    }
+
+    // --- SEARCH ---
+    let searchTimeout;
+    function searchPOProduct(query) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            const resultsDiv = document.getElementById('poSearchResults');
+            if(query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+
+            const res = await fetch(`/admin/purchase-orders/search-product?q=${query}`);
+            const products = await res.json();
+
+            resultsDiv.innerHTML = products.map(p => `
+                <div onclick="selectProduct(${p.id})" class="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-50 last:border-0 transition">
+                    <img src="${p.image || '/uploads/placeholder.jpg'}" class="w-10 h-10 object-cover rounded border border-gray-200">
+                    <div>
+                        <div class="font-bold text-sm text-gray-800">${p.name}</div>
+                        <div class="text-xs text-gray-500 font-mono">${p.sku}</div>
+                    </div>
+                </div>
+            `).join('');
+            resultsDiv.classList.remove('hidden');
+        }, 300);
+    }
+
+    // --- SELECT & SNAPSHOT ---
+    async function selectProduct(id) {
+        document.getElementById('poSearchResults').classList.add('hidden');
+        document.getElementById('poProductSearch').value = '';
+
+        const res = await fetch(`/admin/purchase-orders/variant-snapshot/${id}`);
+        const data = await res.json();
+        
+        if(!data.success) return alert('Error loading product');
+
+        currentProduct = data;
+        currentBatchData = {}; // Clear old inputs for this product
+
+        // If product already in cart, load those values into temp storage
+        poCart.filter(i => i.product_id === id).forEach(i => {
+            currentBatchData[i.variant_id] = { qty: i.qty, cost: i.cost };
+        });
+
+        renderSnapshotTable();
+        
+        document.getElementById('step2Title').innerText = currentProduct.variants[0].product_name;
+        document.getElementById('step2Sku').innerText = currentProduct.variants[0].product_sku;
+        document.getElementById('step2_Snapshot').classList.remove('hidden');
+    }
+
+    function renderSnapshotTable() {
+        const tbody = document.getElementById('snapshotBody');
+        tbody.innerHTML = currentProduct.variants.map(v => {
+            const newQty = currentBatchData[v.id]?.qty || 0;
+            const newCost = currentBatchData[v.id]?.cost || 0;
+            
+            return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-medium text-gray-700">${v.color} / ${v.size}</td>
+                <td class="px-4 py-3 text-center text-gray-500">${v.real_stock}</td>
+                <td class="px-4 py-3 text-center text-gray-500 font-mono text-xs">${v.price_range}</td>
+                <td class="px-4 py-3 text-center font-bold border-l ${newQty > 0 ? 'text-blue-600 bg-blue-50' : 'text-gray-300'}">+${newQty}</td>
+                <td class="px-4 py-3 text-center font-bold ${newQty > 0 ? 'text-blue-600 bg-blue-50' : 'text-gray-300'}">${newCost}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function closeStep2() { document.getElementById('step2_Snapshot').classList.add('hidden'); }
+
+    // --- BATCH INPUT ---
+    function openStep3() {
+        document.getElementById('step3BatchNum').innerText = 'BATCH #' + currentProduct.nextBatchNum;
+        
+        const tbody = document.getElementById('batchInputBody');
+        tbody.innerHTML = currentProduct.variants.map(v => `
+            <tr>
+                <td class="px-4 py-3 font-medium">${v.color} / ${v.size}</td>
+                <td class="px-4 py-3">
+                    <input type="number" id="qty_${v.id}" value="${currentBatchData[v.id]?.qty || 0}" 
+                           class="w-full border border-blue-200 rounded px-2 py-1.5 text-center font-bold focus:border-blue-500 focus:bg-white bg-blue-50 transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+                </td>
+                <td class="px-4 py-3">
+                    <input type="number" id="cost_${v.id}" value="${currentBatchData[v.id]?.cost || 0}" 
+                           class="w-full border border-blue-200 rounded px-2 py-1.5 text-center font-bold focus:border-blue-500 focus:bg-white bg-blue-50 transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('prod_po', 'write') ? '' : 'disabled' %>>
+                </td>
+            </tr>
+        `).join('');
+
+        document.getElementById('step3_Batch').classList.remove('hidden');
+    }
+
+    function saveBatchInputs() {
+        currentProduct.variants.forEach(v => {
+            const qty = parseInt(document.getElementById(`qty_${v.id}`).value) || 0;
+            const cost = parseFloat(document.getElementById(`cost_${v.id}`).value) || 0;
+            if(qty > 0) {
+                currentBatchData[v.id] = { qty, cost };
+            } else {
+                delete currentBatchData[v.id];
+            }
+        });
+        
+        closeStep3();
+        renderSnapshotTable();
+    }
+
+    function closeStep3() { document.getElementById('step3_Batch').classList.add('hidden'); }
+
+    // --- FINALIZE ITEM ---
+    function confirmBatchToPO() {
+        // Remove existing entries for this product to avoid duplicates
+        poCart = poCart.filter(i => i.product_id !== currentProduct.variants[0].product_id);
+
+        let addedCount = 0;
+        currentProduct.variants.forEach(v => {
+            if(currentBatchData[v.id]) {
+                poCart.push({
+                    product_id: v.product_id,
+                    product_name: v.product_name,
+                    variant_id: v.id,
+                    variant_name: `${v.color}/${v.size}`,
+                    qty: currentBatchData[v.id].qty,
+                    cost: currentBatchData[v.id].cost
+                });
+                addedCount++;
+            }
+        });
+
+        if(addedCount === 0) return alert('No quantities added for this product.');
+        
+        closeStep2();
+        renderPOCart();
+    }
+
+    // --- CART RENDER ---
+    function renderPOCart() {
+        const tbody = document.getElementById('poItemsBody');
+        let total = 0;
+
+        if(poCart.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400 italic">No items drafted.</td></tr>';
+            document.getElementById('poGrandTotal').innerText = '0';
+            return;
+        }
+
+        tbody.innerHTML = poCart.map((item, index) => {
+            const lineTotal = item.qty * item.cost;
+            total += lineTotal;
+            return `
+            <tr class="group hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                <td class="px-4 py-3">
+                    <div class="font-bold text-gray-800">${item.product_name}</div>
+                    <div class="text-xs text-gray-500">${item.variant_name}</div>
+                </td>
+                <td class="px-4 py-3 text-right font-medium">${item.qty}</td>
+                <td class="px-4 py-3 text-right text-gray-500">${item.cost}</td>
+                <td class="px-4 py-3 text-right font-mono font-bold">${lineTotal}</td>
+                <td class="px-4 py-3 text-center">
+                    <button onclick="poCart.splice(${index}, 1); renderPOCart()" class="text-gray-300 hover:text-red-500 transition">
+                        <span class="material-icons-outlined text-sm">delete</span>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('poGrandTotal').innerText = total;
+    }
+
+    // --- SUBMIT ---
+    async function submitPO() {
+        const vendor_id = document.getElementById('poVendor').value;
+        const paid_amount = document.getElementById('poPaidAmount').value;
+
+        if(!vendor_id) return alert('Please select a vendor');
+        if(poCart.length === 0) return alert('PO is empty');
+
+        const payload = {
+            vendor_id,
+            paid_amount,
+            items: poCart,
+            _csrf: '<%= csrfToken %>' 
+        };
+
+        try {
+            const res = await fetch('/admin/purchase-orders/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'CSRF-Token': '<%= csrfToken %>' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert('Purchase Order Created Successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch(err) {
+            console.error(err);
+            alert('Server Communication Error');
+        }
+    }
+    
+    // --- PAYMENT HANDLING ---
+    let draftPaymentData = null; // Stores { accountId, amount, date }
+
+    function triggerAddPayment() {
+        if (poCart.length === 0) return alert("Add items to the order first.");
+        
+        let total = 0;
+        poCart.forEach(i => total += (i.qty * i.cost));
+        
+        // Open the shared modal in 'create' mode
+        openPaymentModal('create', { 
+            total: total, 
+            paid: draftPaymentData ? draftPaymentData.amount : 0 
+        });
+    }
+
+    // Called by the Payment Modal
+    window.applyDraftPayment = function(data) {
+        draftPaymentData = data;
+        
+        // Update UI
+        let total = parseFloat(document.getElementById('poGrandTotal').innerText);
+        document.getElementById('displayPaid').innerText = data.amount.toFixed(2);
+        document.getElementById('displayRemaining').innerText = (total - data.amount).toFixed(2);
+    };
+
+    // --- UPDATE renderPOCart ---
+    // Make sure to recalculate remaining when cart changes
+    const originalRenderPOCart = renderPOCart;
+    renderPOCart = function() {
+        originalRenderPOCart(); // Call original
+        
+        // Update totals logic
+        let total = 0;
+        poCart.forEach(i => total += (i.qty * i.cost));
+        
+        let paid = draftPaymentData ? draftPaymentData.amount : 0;
+        
+        document.getElementById('poGrandTotal').innerText = total;
+        document.getElementById('displayPaid').innerText = paid.toFixed(2);
+        document.getElementById('displayRemaining').innerText = (total - paid).toFixed(2);
+    }
+
+    // --- UPDATE submitPO ---
+    async function submitPO() {
+        const vendor_id = document.getElementById('poVendor').value;
+        
+        if(!vendor_id) return alert('Please select a vendor');
+        if(poCart.length === 0) return alert('PO is empty');
+
+        const payload = {
+            vendor_id,
+            items: poCart,
+            payment: draftPaymentData, // Send the payment object
+            _csrf: '<%= csrfToken %>' 
+        };
+
+        try {
+            const res = await fetch('/admin/purchase-orders/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'CSRF-Token': '<%= csrfToken %>' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert('Purchase Order Created Successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch(err) {
+            console.error(err);
+            alert('Server Communication Error');
+        }
+    }
+</script>

@@ -1,0 +1,212 @@
+<div id="viewPOModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-4xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+        
+        <% if (!can('prod_po', 'write')) { %>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-0 rounded-t-xl shadow-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <span class="material-icons-outlined text-yellow-400">lock</span>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <span class="font-bold">View Only Mode:</span> You cannot modify this Purchase Order.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <% } %>
+
+        <div class="px-6 py-4 bg-gray-900 text-white flex justify-between items-center shrink-0">
+            <div>
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <span class="material-icons-outlined text-gray-400">receipt_long</span> 
+                    <span id="viewPONumber">PO-0000</span>
+                </h3>
+                <p class="text-xs text-gray-400" id="viewPOVendor">Vendor Name</p>
+            </div>
+            <button onclick="closeViewPO()" class="text-gray-400 hover:text-white transition">
+                <span class="material-icons-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50" id="viewPOContent">
+            </div>
+
+        <div class="px-6 py-4 bg-white border-t border-gray-200 shrink-0">
+            <div class="grid grid-cols-4 gap-4 items-center">
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold">Total Items</p>
+                    <p class="font-bold text-lg text-gray-800" id="viewPOTotalItems">0</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold">Total Amount</p>
+                    <p class="font-bold text-lg text-gray-800">TK. <span id="viewPOTotalAmount">0</span></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold">Paid / Due</p>
+                    <div class="text-xs">
+                        <span class="text-green-600 font-bold">Paid: <span id="viewPOPaid">0</span></span> <br>
+                        <span class="text-red-600 font-bold">Due: <span id="viewPODue">0</span></span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <button onclick="openTransactionsModal()" class="bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 px-4 py-2 rounded-lg font-bold text-xs uppercase transition flex items-center gap-2 ml-auto">
+                        <span class="material-icons-outlined text-sm">history</span> View Transactions
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="transactionsModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/40">
+    <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden border border-gray-200 animate-fade-in-up">
+        <div class="px-6 py-3 bg-blue-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-sm uppercase tracking-wide">Payment History</h3>
+            <button onclick="closeTransactionsModal()" class="text-blue-200 hover:text-white"><span class="material-icons-outlined">close</span></button>
+        </div>
+        
+        <div class="max-h-[60vh] overflow-y-auto">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 text-xs text-gray-500 uppercase sticky top-0">
+                    <tr>
+                        <th class="px-6 py-3">Date</th>
+                        <th class="px-6 py-3">Paid From</th>
+                        <th class="px-6 py-3 text-right">Amount</th>
+                        <th class="px-6 py-3 text-right">User</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 text-sm" id="transactionsBody">
+                    </tbody>
+            </table>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 text-right">
+            <button onclick="closeTransactionsModal()" class="text-xs font-bold text-gray-500 hover:text-gray-800">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentTransactions = [];
+
+    async function openViewPO(id) {
+        // Fetch Data
+        try {
+            const res = await fetch(`/admin/purchase-orders/details/${id}`);
+            const data = await res.json();
+            
+            if(!data.success) return alert(data.error);
+
+            const { po, items, totalItemCount, transactions } = data;
+            currentTransactions = transactions; // Store for 2nd modal
+
+            // 1. Populate Header
+            document.getElementById('viewPONumber').innerText = po.po_number;
+            document.getElementById('viewPOVendor').innerText = po.vendor_name;
+
+            // 2. Populate Footer
+            document.getElementById('viewPOTotalItems').innerText = totalItemCount;
+            document.getElementById('viewPOTotalAmount').innerText = po.total_amount;
+            document.getElementById('viewPOPaid').innerText = po.paid_amount;
+            document.getElementById('viewPODue').innerText = (po.total_amount - po.paid_amount).toFixed(2);
+
+            // 3. Render Items
+            const container = document.getElementById('viewPOContent');
+            container.innerHTML = Object.values(items).map(prod => `
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm mb-4 overflow-hidden">
+                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                        <div class="font-bold text-gray-800 text-sm">
+                            ${prod.product_name}
+                        </div>
+                        <div class="text-xs font-mono bg-white border border-gray-200 px-2 py-1 rounded text-gray-500">
+                            Batch: <span class="text-black font-bold">${prod.batch_number}</span>
+                        </div>
+                    </div>
+                    
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-[10px] text-gray-400 uppercase bg-white border-b border-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 font-medium">SKU</th>
+                                <th class="px-4 py-2 font-medium">Color</th>
+                                <th class="px-4 py-2 font-medium">Size</th>
+                                <th class="px-4 py-2 font-medium text-right">Buy Price</th>
+                                <th class="px-4 py-2 font-medium text-center">Qty</th>
+                                <th class="px-4 py-2 font-medium text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            ${prod.variants.map(v => `
+                                <tr class="hover:bg-gray-50/50">
+                                    <td class="px-4 py-2 font-mono text-gray-500 text-xs">${v.sku || '-'}</td>
+                                    <td class="px-4 py-2 text-gray-700">${v.color}</td>
+                                    <td class="px-4 py-2 text-gray-700">${v.size}</td>
+                                    <td class="px-4 py-2 text-right text-gray-600">${v.buying_price}</td>
+                                    <td class="px-4 py-2 text-center font-bold bg-blue-50/30 text-blue-700">${v.qty}</td>
+                                    <td class="px-4 py-2 text-right font-bold text-gray-800">${(v.buying_price * v.qty).toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `).join('');
+
+            document.getElementById('viewPOModal').classList.remove('hidden');
+
+        } catch(err) {
+            console.error(err);
+            alert("Failed to load PO details");
+        }
+    }
+
+    function closeViewPO() {
+        document.getElementById('viewPOModal').classList.add('hidden');
+    }
+
+    // --- TRANSACTION MODAL LOGIC ---
+    function openTransactionsModal() {
+        const tbody = document.getElementById('transactionsBody');
+        
+        if (currentTransactions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400 italic">No payments recorded yet.</td></tr>';
+        } else {
+            tbody.innerHTML = currentTransactions.map(t => {
+                // Prepare Note Icon Logic
+                let noteHtml = '';
+                if (t.note) {
+                    noteHtml = `
+                        <div class="group relative inline-block ml-2 align-middle">
+                            <span class="material-icons-outlined text-[16px] text-orange-500 animate-pulse cursor-help">sticky_note_2</span>
+                            
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 bg-gray-900 text-white text-[10px] p-2 rounded shadow-lg z-50 text-center leading-relaxed">
+                                ${t.note}
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0">
+                    <td class="px-6 py-3 font-mono text-xs text-gray-600">
+                        ${new Date(t.payment_date).toLocaleDateString()}
+                    </td>
+                    <td class="px-6 py-3 font-bold text-gray-800">
+                        ${t.account_name || 'Unknown'}
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <span class="font-bold text-green-600 bg-green-50 px-2 py-1 rounded text-xs">TK. ${t.amount}</span>
+                        ${noteHtml} </td>
+                    <td class="px-6 py-3 text-right text-xs text-gray-500 uppercase">
+                        ${t.created_by}
+                    </td>
+                </tr>
+            `}).join('');
+        }
+        
+        document.getElementById('transactionsModal').classList.remove('hidden');
+    }
+
+    function closeTransactionsModal() {
+        document.getElementById('transactionsModal').classList.add('hidden');
+    }
+</script>

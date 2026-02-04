@@ -1,0 +1,41 @@
+<div class="flex flex-col h-full" x-data="{ activeTab: 'hero' }">
+    
+    <% if (!can('site_content', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to modify website content.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex items-center mb-6">
+        <div class="flex space-x-1 bg-gray-200 p-1 rounded-lg">
+            <button @click="activeTab = 'hero'" 
+                    :class="{ 'bg-white text-black shadow-sm': activeTab === 'hero', 'text-gray-500 hover:text-gray-700': activeTab !== 'hero' }"
+                    class="px-6 py-2 rounded-md text-sm font-bold transition-all duration-200">
+                Hero Cards
+            </button>
+            <button @click="activeTab = 'lightbox'" 
+                    :class="{ 'bg-white text-black shadow-sm': activeTab === 'lightbox', 'text-gray-500 hover:text-gray-700': activeTab !== 'lightbox' }"
+                    class="px-6 py-2 rounded-md text-sm font-bold transition-all duration-200">
+                Lightboxes
+            </button>
+        </div>
+    </div>
+
+    <div x-show="activeTab === 'hero'" x-transition:enter="transition ease-out duration-300">
+        <%- include('hero_cards') %>
+    </div>
+
+    <div x-show="activeTab === 'lightbox'" x-cloak x-transition:enter="transition ease-out duration-300">
+        <%- include('lightbox') %>
+    </div>
+
+</div>

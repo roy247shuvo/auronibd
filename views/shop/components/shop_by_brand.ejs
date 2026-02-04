@@ -1,0 +1,35 @@
+<section class="py-20 bg-gray-50 overflow-hidden">
+    <div class="max-w-[1800px] mx-auto px-6">
+        <h2 class="text-center font-serif text-3xl mb-12">Our Brands</h2>
+
+        <div class="flex overflow-x-auto space-x-5 pb-8 no-scrollbar snap-x">
+            <% brands.forEach(b => { %>
+                <a href="/shop?brand=<%= b.id %>" class="snap-start block w-[220px] h-[400px] relative group flex-shrink-0 bg-white overflow-hidden rounded-sm shadow-sm hover:shadow-lg transition-all border border-gray-100">
+                    
+                    <% if(b.cover_image) { %>
+                        <img src="<%= b.cover_image %>" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition duration-700">
+                    <% } else { %>
+                        <div class="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
+                            <span class="material-icons-outlined text-4xl">store</span>
+                        </div>
+                    <% } %>
+                    
+                    <div class="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col items-center justify-end h-2/3">
+                        <% if(b.logo_image) { %>
+                            <img src="<%= b.logo_image %>" class="h-8 w-auto object-contain mb-3 brightness-0 invert opacity-80 group-hover:opacity-100 transition duration-500">
+                        <% } %>
+                        <h3 class="font-serif text-white text-center <%= b.logo_image ? 'text-base' : 'text-xl' %> tracking-wide">
+                            <%= b.name %>
+                        </h3>
+                    </div>
+                </a>
+            <% }) %>
+        </div>
+
+        <div class="text-center mt-12">
+            <a href="/shop?cat=brands" class="inline-block border border-black px-10 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
+                View All Designers
+            </a>
+        </div>
+    </div>
+</section>

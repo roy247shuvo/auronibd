@@ -1,0 +1,130 @@
+<div class="max-w-4xl mx-auto">
+    <% if (!can('site_settings', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to modify store details.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Store Details</h1>
+    </div>
+
+    <form action="/admin/settings/store" method="POST" class="space-y-6">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <div class="md:col-span-1 flex flex-col items-center">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-3 text-center">Store Logo</label>
+                
+                <div class="relative group w-40 h-40">
+                    <div class="w-full h-full rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 relative">
+                        <img id="logoPreview" src="<%= setting.shop_logo || '/uploads/placeholder.jpg' %>" class="w-full h-full object-contain p-2">
+                        
+                        <% if (can('site_settings', 'write')) { %>
+                        <div onclick="document.getElementById('directLogoUpload').click()" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                            <span class="text-white text-xs font-bold uppercase tracking-wider">Change</span>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="shop_logo" id="logoInput" value="<%= setting.shop_logo %>">
+                
+                <% if (can('site_settings', 'write')) { %>
+                <input type="file" id="directLogoUpload" accept="image/*" class="hidden" onchange="handleDirectLogoUpload(this)">
+                <% } %>
+
+                <p class="text-[10px] text-gray-400 mt-2 text-center">Recommended: 500x500px (PNG/JPG)</p>
+                <p id="uploadStatus" class="text-[10px] text-blue-600 font-bold mt-1 hidden">Uploading...</p>
+            </div>
+
+            <div class="md:col-span-2 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Shop Name</label>
+                    <input type="text" name="shop_name" value="<%= setting.shop_name %>" required 
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-black font-bold text-gray-800 disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Shop Phone</label>
+                    <input type="text" name="shop_phone" value="<%= setting.shop_phone %>" 
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-black disabled:bg-gray-100 disabled:text-gray-500"
+                           placeholder="01xxxxxxxxx" <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Shop Address</label>
+                    <textarea name="shop_address" rows="4" 
+                              class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-black text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                              placeholder="Full address of your shop..." <%= can('site_settings', 'write') ? '' : 'disabled' %>><%= setting.shop_address %></textarea>
+                </div>
+            </div>
+        </div>
+
+        <% if (can('site_settings', 'write')) { %>
+        <div class="flex justify-end">
+            <button type="submit" class="bg-black text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-sm shadow hover:bg-gray-800 transition">
+                Save Details
+            </button>
+        </div>
+        <% } %>
+    </form>
+</div>
+
+<script>
+    async function handleDirectLogoUpload(input) {
+        if (!input.files || !input.files[0]) return;
+
+        const file = input.files[0];
+        const statusMsg = document.getElementById('uploadStatus');
+        const preview = document.getElementById('logoPreview');
+        const hiddenInput = document.getElementById('logoInput');
+
+        // Show loading state
+        statusMsg.classList.remove('hidden');
+        preview.style.opacity = '0.5';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            // Use the Local Upload Route
+            const res = await fetch('/admin/media/upload-local?context=logo', {
+                method: 'POST',
+                headers: {
+                    'CSRF-Token': document.querySelector('input[name="_csrf"]').value
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                // Update Preview immediately
+                preview.src = data.url;
+                hiddenInput.value = data.url;
+                statusMsg.classList.add('hidden');
+            } else {
+                alert('Upload failed');
+                statusMsg.innerText = 'Error';
+                statusMsg.classList.add('text-red-500');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Upload error');
+        } finally {
+            preview.style.opacity = '1';
+        }
+    }
+</script>

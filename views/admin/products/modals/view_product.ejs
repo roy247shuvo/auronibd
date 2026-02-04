@@ -1,0 +1,143 @@
+<div class="h-full flex flex-col bg-white">
+    <div class="bg-white px-8 py-5 border-b border-gray-100 flex justify-between items-start sticky top-0 z-10 shadow-sm">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight"><%= p.name %></h1>
+            <div class="flex items-center space-x-3 mt-2">
+                <span class="font-mono text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-md border border-gray-200 font-medium"><%= p.sku %></span>
+                <% if(p.sales_channel === 'pos') { %>
+                    <span class="text-[10px] font-bold uppercase bg-orange-100 text-orange-700 px-2 py-1 rounded border border-orange-200">POS Only</span>
+                <% } else if(p.sales_channel === 'online') { %>
+                    <span class="text-[10px] font-bold uppercase bg-blue-100 text-blue-700 px-2 py-1 rounded border border-blue-200">Online</span>
+                <% } else { %>
+                    <span class="text-[10px] font-bold uppercase bg-purple-100 text-purple-700 px-2 py-1 rounded border border-purple-200">Both Channels</span>
+                <% } %>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <div class="text-right bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+                <span class="block text-3xl font-bold <%= totalStock < 5 ? 'text-red-600' : 'text-green-600' %>"><%= totalStock %></span>
+                <span class="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Total Stock</span>
+            </div>
+
+            <% if (can('prod_list', 'write')) { %>
+            <button onclick="openEditModal(<%= p.id %>)" class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-black transition shadow-lg flex items-center">
+                <span class="material-icons-outlined text-sm mr-2">edit</span> Edit
+            </button>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-2">
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Product Description</h4>
+                <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-gray-700 text-sm leading-relaxed">
+                    <%= p.description || 'No description provided for this product.' %>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Pricing Overview</h4>
+                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                    
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-500">Selling (MRP)</span>
+                        <span class="font-bold text-red-500 line-through text-lg">৳<%= p.sale_price %></span>
+                    </div>
+
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-500">Discounted</span>
+                        <span class="font-bold text-green-600 text-xl">৳<%= p.regular_price %></span>
+                    </div>
+
+                    <div class="border-t border-dashed border-gray-200 my-2"></div>
+                    
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-400">Buying Price</span>
+                        <span class="font-mono text-gray-700 font-bold">৳<%= p.cost_price %></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Variant Images</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <% for (const [color, imgs] of Object.entries(groupedImages)) { %>
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <h5 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                            <span class="material-icons-outlined text-base mr-2 text-gray-400">palette</span> <%= color %>
+                        </h5>
+                        <div class="grid grid-cols-3 gap-2">
+                            <% imgs.forEach(url => { %>
+                                <div class="aspect-square rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm group cursor-zoom-in" 
+                                     onclick="openLightbox('<%= url %>')"> <img src="<%= url %>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                                </div>
+                            <% }) %>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <div>
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Inventory Matrix</h4>
+            <div class="overflow-hidden border border-gray-200 rounded-xl shadow-sm">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-900 text-white text-xs uppercase font-bold tracking-wider">
+                        <tr>
+                            <th class="px-6 py-4">Variant</th>
+                            <th class="px-6 py-4">SKU</th>
+                            <th class="px-6 py-4 text-center">Selling (MRP)</th>
+                            <th class="px-6 py-4 text-center">Discounted</th>
+                            <th class="px-6 py-4 text-center">Buying</th>
+                            <th class="px-6 py-4 text-center">Stock</th>
+                            <th class="px-6 py-4 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                        <% variants.forEach(v => { 
+                            const isOutOfStock = v.stock_quantity <= 0;
+                        %>
+                            <tr class="transition border-b border-gray-50 last:border-0 <%= isOutOfStock ? 'bg-gray-100 opacity-60' : 'hover:bg-gray-50' %>">
+                                <td class="px-6 py-4 font-bold text-gray-800">
+                                    <%= v.color %> <span class="text-gray-300 mx-1">/</span> <%= v.size %>
+                                </td>
+                                <td class="px-6 py-4 font-mono text-xs text-gray-500 bg-gray-50 rounded-md w-max"><%= v.sku %></td>
+                                
+                                <td class="px-6 py-4 text-center text-red-500 line-through">
+                                    <%= v.price %>
+                                </td>
+                                
+                                <td class="px-6 py-4 text-center font-bold text-green-600 text-base">
+                                    <%= v.compare_price %>
+                                </td>
+                                
+                                <td class="px-6 py-4 text-center text-gray-600 font-medium">
+                                    <%= v.cost_price %>
+                                </td>
+
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold <%= v.stock_quantity < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' %>">
+                                        <%= v.stock_quantity %>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <% if(v.stock_quantity > 0) { %>
+                                        <span class="text-xs font-bold text-green-600 flex items-center justify-end"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>In Stock</span>
+                                    <% } else { %>
+                                        <span class="text-xs font-bold text-gray-400 flex items-center justify-end"><span class="w-2 h-2 rounded-full bg-gray-300 mr-2"></span>Out of Stock</span>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>

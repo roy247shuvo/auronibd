@@ -1,0 +1,340 @@
+<div class="max-w-6xl mx-auto" x-data="{ currentTab: '<%= currentTab %>' }">
+    
+    <% if (!can('acc_transfers', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to create transfers.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">View & Transfers</h1>
+            <p class="text-sm text-gray-500">Monitor balances, history, and detailed ledger</p>
+        </div>
+        
+        <div class="bg-white border border-gray-200 p-1 rounded-lg flex items-center shadow-sm overflow-x-auto">
+            <a href="/admin/accounts/transfers?tab=view_accounts" 
+               :class="currentTab === 'view_accounts' ? 'bg-black text-white shadow' : 'text-gray-500 hover:text-black'"
+               class="px-5 py-2.5 text-sm font-bold rounded-md transition duration-200 whitespace-nowrap">
+                View Accounts
+            </a>
+            <a href="/admin/accounts/transfers?tab=transfers" 
+               :class="currentTab === 'transfers' ? 'bg-black text-white shadow' : 'text-gray-500 hover:text-black'"
+               class="px-5 py-2.5 text-sm font-bold rounded-md transition duration-200 whitespace-nowrap">
+                Transfers
+            </a>
+            <a href="/admin/accounts/transfers?tab=transactions" 
+               :class="currentTab === 'transactions' ? 'bg-black text-white shadow' : 'text-gray-500 hover:text-black'"
+               class="px-5 py-2.5 text-sm font-bold rounded-md transition duration-200 whitespace-nowrap flex items-center gap-2">
+                <span class="material-icons-outlined text-sm">receipt_long</span> Transactions
+            </a>
+        </div>
+    </div>
+
+    <div x-show="currentTab === 'view_accounts'" 
+         x-transition:enter="transition ease-out duration-300">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <% accounts.forEach(acc => { %>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-between h-40 relative overflow-hidden group hover:border-black transition">
+                <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition">
+                    <i class="fas <%= acc.bank_name === 'Cash' ? 'fa-coins' : (acc.bank_name === 'Mobile Banking' ? 'fa-mobile-alt' : 'fa-university') %> text-9xl"></i>
+                </div>
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1"><%= acc.bank_name %></p>
+                        <h3 class="text-lg font-bold text-gray-900"><%= acc.account_name %></h3>
+                        <p class="text-xs text-gray-500 font-mono mt-0.5"><%= acc.account_number %></p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-gray-50 text-gray-600">
+                        <span class="material-icons-outlined">account_balance_wallet</span>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-3xl font-bold text-gray-900 tracking-tight">৳ <%= acc.current_balance %></p>
+                </div>
+            </div>
+            <% }) %>
+        </div>
+    </div>
+
+    <div x-show="currentTab === 'transfers'" style="display: none;">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                    <span class="material-icons-outlined text-gray-400">history</span> Transfer History
+                </h3>
+                <% if (can('acc_transfers', 'write')) { %>
+                <button onclick="openModal()" class="bg-black text-white px-4 py-2 rounded-lg font-bold text-xs uppercase hover:bg-gray-800 transition flex items-center gap-2 shadow-lg">
+                    <span class="material-icons-outlined text-sm">swap_horiz</span> New Transfer
+                </button>
+                <% } %>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase font-bold border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-4">Date</th>
+                            <th class="px-6 py-4">From</th>
+                            <th class="px-6 py-4 text-center"><span class="material-icons-outlined text-xs">arrow_forward</span></th>
+                            <th class="px-6 py-4">To</th>
+                            <th class="px-6 py-4 text-right">Amount</th>
+                            <th class="px-6 py-4">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm">
+                        <% transfers.forEach(t => { %>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 font-medium text-gray-600"><%= new Date(t.transfer_date).toLocaleDateString() %></td>
+                            <td class="px-6 py-4 font-bold text-gray-800"><%= t.from_name %></td>
+                            <td class="px-6 py-4 text-center opacity-30"><span class="material-icons-outlined text-sm">arrow_right_alt</span></td>
+                            <td class="px-6 py-4 font-bold text-gray-800"><%= t.to_name %></td>
+                            <td class="px-6 py-4 text-right font-bold">৳ <%= t.amount %></td>
+                            <td class="px-6 py-4 text-xs text-gray-500"><%= t.note || '-' %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="currentTab === 'transactions'" style="display: none;">
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            
+            <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50">
+                <form action="/admin/accounts/transfers" method="GET" class="flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <input type="hidden" name="tab" value="transactions">
+                    
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <div class="relative">
+                            <input type="text" name="q" value="<%= typeof filters !== 'undefined' && filters.q ? filters.q : '' %>" 
+                                   placeholder="Search Trx, Order, PO..." 
+                                   class="pl-8 pr-3 py-1.5 border border-gray-200 rounded-md text-sm focus:border-black outline-none w-48 shadow-sm">
+                            <span class="material-icons-outlined absolute left-2 top-2 text-gray-400 text-xs">search</span>
+                        </div>
+
+                        <span class="material-icons-outlined text-gray-400">filter_list</span>
+                        <select name="type" onchange="this.form.submit()" class="border border-gray-200 rounded-md text-sm px-3 py-1.5 focus:border-black outline-none cursor-pointer">
+                            <option value="both" <%= filters.type === 'both' ? 'selected' : '' %>>All Transactions</option>
+                            <option value="credit" <%= filters.type === 'credit' ? 'selected' : '' %>>Credit (In)</option>
+                            <option value="debit" <%= filters.type === 'debit' ? 'selected' : '' %>>Debit (Out)</option>
+                        </select>
+                        
+                        <select name="range" onchange="this.form.submit()" class="border border-gray-200 rounded-md text-sm px-3 py-1.5 focus:border-black outline-none cursor-pointer">
+                            <option value="today" <%= filters.range === 'today' ? 'selected' : '' %>>Today</option>
+                            <option value="yesterday" <%= filters.range === 'yesterday' ? 'selected' : '' %>>Yesterday</option>
+                            <option value="last_7_days" <%= filters.range === 'last_7_days' ? 'selected' : '' %>>Last 7 Days</option>
+                            <option value="this_month" <%= filters.range === 'this_month' ? 'selected' : '' %>>This Month</option>
+                            <option value="all_time" <%= filters.range === 'all_time' ? 'selected' : '' %>>All Time</option>
+                        </select>
+                    </div>
+
+                    <div class="text-xs font-bold text-gray-500 uppercase">
+                        Showing <%= transactions.length %> records
+                    </div>
+                </form>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-white border-b border-gray-100 text-xs text-gray-500 uppercase font-bold">
+                        <tr>
+                            <th class="px-6 py-4">Date</th>
+                            <th class="px-6 py-4">Account</th>
+                            <th class="px-6 py-4">Description / Type</th>
+                            <th class="px-6 py-4 text-right">Debit (Out)</th>
+                            <th class="px-6 py-4 text-right">Credit (In)</th>
+                            <th class="px-6 py-4 text-right">User</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm">
+                        <% if (transactions.length === 0) { %>
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+                                    <span class="material-icons-outlined text-4xl mb-2 opacity-30">receipt_long</span>
+                                    <p>No transactions found for this filter.</p>
+                                </td>
+                            </tr>
+                        <% } %>
+
+                        <% transactions.forEach(trx => { %>
+                        <tr class="hover:bg-gray-50 transition group">
+                            <td class="px-6 py-4 font-mono text-gray-600 text-xs">
+                                <%= new Date(trx.t_date).toLocaleDateString() %>
+                            </td>
+                            <td class="px-6 py-4 font-bold text-gray-800">
+                                <%= trx.account_name %>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <% if (trx.type === 'vendor_payment') { %>
+                                        <span class="w-6 h-6 rounded bg-orange-50 text-orange-600 flex items-center justify-center">
+                                            <span class="material-icons-outlined text-[14px]">shopping_cart</span>
+                                        </span>
+                                    <% } else if (trx.type === 'transfer_out') { %>
+                                        <span class="w-6 h-6 rounded bg-red-50 text-red-600 flex items-center justify-center">
+                                            <span class="material-icons-outlined text-[14px]">arrow_outward</span>
+                                        </span>
+                                    <% } else { %>
+                                        <span class="w-6 h-6 rounded bg-green-50 text-green-600 flex items-center justify-center">
+                                            <span class="material-icons-outlined text-[14px]">arrow_downward</span>
+                                        </span>
+                                    <% } %>
+                                    
+                                    <div>
+                                        <span class="block text-xs font-bold text-gray-700 capitalize">
+                                            <%= trx.type.replace('_', ' ') %>
+                                            
+                                            <% if(trx.po_number) { %>
+                                                <a href="#" onclick="openViewPO('<%= trx.po_id %>'); return false;" class="text-blue-600 hover:underline ml-1">
+                                                    #<%= trx.po_number %>
+                                                </a>
+                                            <% } %>
+                                        </span>
+
+                                        <span class="block text-[10px] text-gray-400">
+                                        <%= trx.note %>
+                                        
+                                        <% if(trx.nb_trx_id && trx.nb_trx_id !== 'Not Available') { %>
+                                            <span class="ml-1 bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 font-mono border border-blue-100 font-bold">
+                                                <%= trx.nb_trx_id %>
+                                            </span>
+                                        <% } %>
+
+                                        <% if(trx.trx_id) { %>
+                                            <span class="ml-1 bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-mono border border-gray-200">
+                                                Ref: <%= trx.trx_id %>
+                                            </span>
+                                        <% } %>
+
+                                        <% if(trx.order_number) { %>
+                                            <a href="/admin/orders/web-orders?q=<%= trx.order_number %>" class="ml-1 text-green-600 hover:underline font-bold">
+                                                [Order: <%= trx.order_number %>]
+                                            </a>
+                                        <% } %>
+                                    </span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-right">
+                                <% if (trx.direction === 'debit') { %>
+                                    <span class="font-bold text-red-600">- ৳<%= trx.amount %></span>
+                                <% } else { %>
+                                    <span class="text-gray-200">-</span>
+                                <% } %>
+                            </td>
+
+                            <td class="px-6 py-4 text-right">
+                                <% if (trx.direction === 'credit') { %>
+                                    <span class="font-bold text-green-600">+ ৳<%= trx.amount %></span>
+                                <% } else { %>
+                                    <span class="text-gray-200">-</span>
+                                <% } %>
+                            </td>
+
+                            <td class="px-6 py-4 text-right text-xs text-gray-400 uppercase">
+                                <%= trx.created_by || 'System' %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+
+            <% if (pagination.total > 1) { %>
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50">
+                <span class="text-xs text-gray-500">Page <%= pagination.current %> of <%= pagination.total %></span>
+                <div class="flex gap-2">
+                    <% if (pagination.current > 1) { %>
+                        <a href="/admin/accounts/transfers?tab=transactions&type=<%= filters.type %>&range=<%= filters.range %>&page=<%= pagination.current - 1 %>" class="px-3 py-1 bg-white border border-gray-200 rounded text-xs font-bold hover:bg-gray-100">Prev</a>
+                    <% } %>
+                    <% if (pagination.current < pagination.total) { %>
+                        <a href="/admin/accounts/transfers?tab=transactions&type=<%= filters.type %>&range=<%= filters.range %>&page=<%= pagination.current + 1 %>" class="px-3 py-1 bg-white border border-gray-200 rounded text-xs font-bold hover:bg-gray-100">Next</a>
+                    <% } %>
+                </div>
+            </div>
+            <% } %>
+        </div>
+    </div>
+
+</div>
+
+<div id="transferModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+        <form action="/admin/accounts/transfers/add" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
+            <div class="bg-white px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-900">New Transfer</h3>
+                <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-500">
+                    <span class="material-icons-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">From</label>
+                        <select name="from_account_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500" <%= can('acc_transfers', 'write') ? '' : 'disabled' %>>
+                            <% accounts.forEach(acc => { %>
+                                <option value="<%= acc.id %>"><%= acc.account_name %> (৳<%= acc.current_balance %>)</option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">To</label>
+                        <select name="to_account_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500" <%= can('acc_transfers', 'write') ? '' : 'disabled' %>>
+                            <% accounts.forEach(acc => { %>
+                                <option value="<%= acc.id %>"><%= acc.account_name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Amount</label>
+                    <input type="number" name="amount" required min="1" step="0.01" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none font-bold disabled:bg-gray-100 disabled:text-gray-500" <%= can('acc_transfers', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
+                    <input type="date" name="transfer_date" required value="<%= new Date().toISOString().split('T')[0] %>" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none disabled:bg-gray-100 disabled:text-gray-500" <%= can('acc_transfers', 'write') ? '' : 'disabled' %>>
+                </div>
+                
+                <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Transaction ID (Optional)</label>
+                        <input type="text" name="trx_id" placeholder="Bank/Mobile Trx ID" 
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none font-mono disabled:bg-gray-100 disabled:text-gray-500" <%= can('acc_transfers', 'write') ? '' : 'disabled' %>>
+                    </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Note</label>
+                    <input type="text" name="note" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none disabled:bg-gray-100 disabled:text-gray-500" <%= can('acc_transfers', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-500 font-bold text-sm">Cancel</button>
+                <% if (can('acc_transfers', 'write')) { %>
+                <button type="submit" class="bg-black text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-gray-800">Confirm</button>
+                <% } %>
+            </div>
+        </form>
+    </div>
+</div>
+<%- include('../orders/modals/view_po_details') %>
+
+<script>
+    function openModal() { document.getElementById('transferModal').classList.remove('hidden'); }
+    function closeModal() { document.getElementById('transferModal').classList.add('hidden'); }
+</script>

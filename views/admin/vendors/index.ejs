@@ -1,0 +1,204 @@
+<div class="p-6">
+    <% if (!can('vend_list', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage vendors.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Vendors</h1>
+            <p class="text-sm text-gray-500">Manage suppliers and purchase orders</p>
+        </div>
+        
+        <div class="flex gap-2 w-full md:w-auto">
+            <form action="/admin/vendors" method="GET" class="relative flex-1 md:w-64">
+                <span class="material-icons-outlined absolute left-3 top-2.5 text-gray-400">search</span>
+                <input type="text" name="search" placeholder="Search name, code..." 
+                       class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-black transition">
+            </form>
+            
+            <% if (can('vend_list', 'write')) { %>
+            <button onclick="openModal('createVendorModal')" class="bg-black text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-800 transition shadow-lg">
+                <span class="material-icons-outlined">add</span>
+                New Vendor
+            </button>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Vendor Info</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Contact</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Total POs</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Balance</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                <% vendors.forEach(vendor => { %>
+                <tr class="hover:bg-gray-50 transition group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm border border-blue-100">
+                                <%= vendor.name.substring(0,2).toUpperCase() %>
+                            </div>
+                            <div>
+                                <div class="font-bold text-gray-900"><%= vendor.name %></div>
+                                <div class="text-xs text-gray-500 font-mono"><%= vendor.id %></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-600 flex items-center gap-2">
+                            <span class="material-icons-outlined text-[14px] text-gray-400">phone</span>
+                            <%= vendor.phone %>
+                        </div>
+                        <% if(vendor.address) { %>
+                        <div class="text-xs text-gray-400 mt-1 truncate max-w-[200px]"><%= vendor.address %></div>
+                        <% } %>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold"><%= vendor.po_count %></span>
+                    </td>
+                    
+                    <td class="px-6 py-4 text-right">
+                        <% if(vendor.balance < 0) { %>
+                            <span class="font-mono font-bold text-red-600" title="We owe them">
+                                Due: <%= Math.abs(vendor.balance) %>
+                            </span>
+                        <% } else if(vendor.balance > 0) { %>
+                            <span class="font-mono font-bold text-green-600" title="We paid extra">
+                                Adv: +<%= vendor.balance %>
+                            </span>
+                        <% } else { %>
+                            <span class="text-gray-400 font-mono">-</span>
+                        <% } %>
+                    </td>
+
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <a href="/admin/vendors/details/<%= vendor.id %>" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded tooltip" title="View Details">
+                                <span class="material-icons-outlined text-lg">visibility</span>
+                            </a>
+                            <a href="/admin/vendors/history/<%= vendor.id %>" class="p-1.5 text-purple-600 hover:bg-purple-50 rounded tooltip" title="Purchase History">
+                                <span class="material-icons-outlined text-lg">receipt_long</span>
+                            </a>
+                            
+                            <% if (can('vend_list', 'write')) { %>
+                            <button onclick="editVendor('<%= JSON.stringify(vendor) %>')" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded tooltip" title="Edit">
+                                <span class="material-icons-outlined text-lg">edit</span>
+                            </button>
+                            <% } %>
+
+                            <% if (can('vend_list', 'delete')) { %>
+                            <a href="/admin/vendors/delete/<%= vendor.id %>" onclick="return confirm('Delete this vendor?')" class="p-1.5 text-red-500 hover:bg-red-50 rounded tooltip">
+                                <span class="material-icons-outlined text-lg">delete</span>
+                            </a>
+                            <% } %>
+                        </div>
+                    </td>
+                </tr>
+                <% }) %>
+                <% if(vendors.length === 0) { %>
+                <tr>
+                    <td colspan="5" class="px-6 py-10 text-center text-gray-400 italic">No vendors found</td>
+                </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="createVendorModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-lg text-gray-900" id="modalTitle">Add New Vendor</h3>
+            <button onclick="closeModal('createVendorModal')" class="text-gray-400 hover:text-red-500">
+                <span class="material-icons-outlined">close</span>
+            </button>
+        </div>
+        
+        <form action="/admin/vendors/create" method="POST" id="vendorForm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="id" id="editId">
+            
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Vendor Name *</label>
+                    <input type="text" name="name" id="inputName" required 
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:border-black focus:ring-0 disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('vend_list', 'write') ? '' : 'disabled' %>>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Phone *</label>
+                        <input type="text" name="phone" id="inputPhone" required 
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:border-black focus:ring-0 disabled:bg-gray-100 disabled:text-gray-500"
+                               <%= can('vend_list', 'write') ? '' : 'disabled' %>>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
+                        <input type="email" name="email" id="inputEmail" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:border-black focus:ring-0">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Address *</label>
+                    <textarea name="address" id="inputAddress" rows="3" required class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:border-black focus:ring-0"></textarea>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                <% if (can('vend_list', 'write')) { %>
+                <button type="submit" class="bg-black text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition">Save Vendor</button>
+                <% } %>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        // Reset form for create
+        document.getElementById('vendorForm').action = '/admin/vendors/create';
+        document.getElementById('modalTitle').innerText = 'Add New Vendor';
+        document.getElementById('editId').value = '';
+        document.getElementById('inputName').value = '';
+        document.getElementById('inputPhone').value = '';
+        document.getElementById('inputEmail').value = '';
+        document.getElementById('inputAddress').value = '';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function editVendor(vendorStr) {
+        const vendor = JSON.parse(vendorStr);
+        openModal('createVendorModal');
+        
+        // Populate form
+        document.getElementById('vendorForm').action = '/admin/vendors/update';
+        document.getElementById('modalTitle').innerText = 'Edit Vendor';
+        document.getElementById('editId').value = vendor.id;
+        document.getElementById('inputName').value = vendor.name;
+        document.getElementById('inputPhone').value = vendor.phone;
+        document.getElementById('inputEmail').value = vendor.email || ''; // Handle null email
+        document.getElementById('inputAddress').value = vendor.address;
+    }
+</script>

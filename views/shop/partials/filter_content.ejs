@@ -1,0 +1,91 @@
+<div class="space-y-6">
+    
+    <% if(brands.length > 0) { %>
+    <div x-data="{ open: true }">
+        <button @click="open = !open" class="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest mb-3 hover:text-brand-gold transition-colors">
+            Designers <span class="material-icons-outlined text-xs text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" class="space-y-2" x-collapse>
+            <% brands.forEach(b => { %>
+                <label class="flex items-center space-x-3 cursor-pointer group">
+                    <input type="checkbox" value="<%= b.id %>" x-model="filters.brands" @change="fetchProducts(true)" 
+                           class="w-3.5 h-3.5 border-gray-300 rounded-sm text-black focus:ring-0 focus:ring-offset-0 cursor-pointer">
+                    <span class="text-xs text-gray-500 group-hover:text-black transition-colors"><%= b.name %></span>
+                </label>
+            <% }) %>
+        </div>
+    </div>
+    <div class="h-px bg-gray-50"></div>
+    <% } %>
+
+    <% if(categories.length > 0) { %>
+    <div x-data="{ open: true }">
+        <button @click="open = !open" class="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest mb-3 hover:text-brand-gold transition-colors">
+            Categories <span class="material-icons-outlined text-xs text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" class="space-y-2" x-collapse>
+            <% categories.forEach(c => { %>
+                <label class="flex items-center space-x-3 cursor-pointer group">
+                    <input type="checkbox" value="<%= c.id %>" x-model="filters.categories" @change="fetchProducts(true)" 
+                           class="w-3.5 h-3.5 border-gray-300 rounded-sm text-black focus:ring-0 focus:ring-offset-0 cursor-pointer">
+                    <span class="text-xs text-gray-500 group-hover:text-black transition-colors"><%= c.name %></span>
+                </label>
+            <% }) %>
+        </div>
+    </div>
+    <div class="h-px bg-gray-50"></div>
+    <% } %>
+
+    <% if(fabrics.length > 0) { %>
+    <div x-data="{ open: false }">
+        <button @click="open = !open" class="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest mb-3 hover:text-brand-gold transition-colors">
+            Fabric <span class="material-icons-outlined text-xs text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" class="space-y-2" x-collapse>
+            <% fabrics.forEach(f => { %>
+                <label class="flex items-center space-x-3 cursor-pointer group">
+                    <input type="checkbox" value="<%= f.id %>" x-model="filters.fabrics" @change="fetchProducts(true)" 
+                           class="w-3.5 h-3.5 border-gray-300 rounded-sm text-black focus:ring-0 focus:ring-offset-0 cursor-pointer">
+                    <span class="text-xs text-gray-500 group-hover:text-black transition-colors"><%= f.name %></span>
+                </label>
+            <% }) %>
+        </div>
+    </div>
+    <div class="h-px bg-gray-50"></div>
+    <% } %>
+
+    <% if(work_types.length > 0) { %>
+    <div x-data="{ open: false }">
+        <button @click="open = !open" class="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest mb-3 hover:text-brand-gold transition-colors">
+            Work Type <span class="material-icons-outlined text-xs text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" class="space-y-2" x-collapse>
+            <% work_types.forEach(w => { %>
+                <label class="flex items-center space-x-3 cursor-pointer group">
+                    <input type="checkbox" value="<%= w.id %>" x-model="filters.work_types" @change="fetchProducts(true)" 
+                           class="w-3.5 h-3.5 border-gray-300 rounded-sm text-black focus:ring-0 focus:ring-offset-0 cursor-pointer">
+                    <span class="text-xs text-gray-500 group-hover:text-black transition-colors"><%= w.name %></span>
+                </label>
+            <% }) %>
+        </div>
+    </div>
+    <div class="h-px bg-gray-50"></div>
+    <% } %>
+
+    <% if(colors.length > 0) { %>
+    <div x-data="{ open: true }">
+        <button @click="open = !open" class="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest mb-3 hover:text-brand-gold transition-colors">
+            Colors <span class="material-icons-outlined text-xs text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" class="flex flex-wrap gap-2" x-collapse>
+            <% colors.forEach(c => { %>
+                <label class="cursor-pointer relative group">
+                    <input type="checkbox" value="<%= c.name %>" x-model="filters.colors" @change="fetchProducts(true)" class="peer sr-only">
+                    <div class="w-5 h-5 rounded-full border border-gray-200 peer-checked:ring-1 peer-checked:ring-offset-1 peer-checked:ring-black peer-checked:scale-110 transition-all shadow-sm group-hover:scale-110" 
+                         style="background-color: <%= c.hex_code %>" title="<%= c.name %>"></div>
+                </label>
+            <% }) %>
+        </div>
+    </div>
+    <% } %>
+</div>

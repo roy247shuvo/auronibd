@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Niche Boutique</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <style>
+        /* Custom Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        /* Input Focus Micro-interaction */
+        .input-group:focus-within .input-icon {
+            color: #ef4444; /* Red-500 */
+            transform: scale(1.1);
+        }
+        .input-group:focus-within input {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+        }
+
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(to right, #111827, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-200 h-screen flex items-center justify-center overflow-hidden relative">
+
+    <div class="absolute top-0 left-0 w-96 h-96 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style="animation-delay: 0s;"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style="animation-delay: 2s;"></div>
+
+    <div class="bg-white/80 backdrop-blur-lg p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/50 relative z-10 transition-all duration-300 hover:shadow-3xl">
+        
+        <div class="flex flex-col items-center mb-8">
+            <img src="https://res.cloudinary.com/deyae37hu/image/upload/v1769007427/niche_boutique_products/logo-1769007426174.webp" 
+                 class="w-32 h-auto object-contain mb-4 drop-shadow-lg hover:scale-105 transition-transform duration-500">
+            <h2 class="text-3xl font-extrabold text-center text-gradient">Welcome Back</h2>
+            <p class="text-sm text-center text-gray-500 mt-2">Sign in to manage your empire</p>
+        </div>
+
+        <% if (locals.error) { %>
+            <div class="bg-red-50 text-red-600 text-sm p-4 rounded-xl mb-6 flex items-center justify-center font-bold border border-red-100 animate-pulse">
+                <span class="material-icons-outlined text-lg mr-2">error_outline</span>
+                <%= error %>
+            </div>
+        <% } %>
+
+        <form action="/login" method="POST" class="space-y-6">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
+            <div class="input-group">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1 tracking-wider">Email / Phone / User ID</label>
+                <div class="relative group">
+                    <span class="material-icons-outlined absolute left-4 top-3.5 text-gray-400 transition-all duration-300 input-icon">person</span>
+                    <input type="text" name="login_id" required 
+                           class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 pl-12 pr-4 text-gray-800 font-medium outline-none transition-all duration-300 placeholder-gray-400 group-hover:bg-white" 
+                           placeholder="Enter your ID">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1 tracking-wider">Password</label>
+                <div class="relative group">
+                    <span class="material-icons-outlined absolute left-4 top-3.5 text-gray-400 transition-all duration-300 input-icon">lock</span>
+                    
+                    <input type="password" name="password" id="passwordInput" required 
+                           class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 pl-12 pr-12 text-gray-800 font-medium outline-none transition-all duration-300 placeholder-gray-400 group-hover:bg-white" 
+                           placeholder="••••••••">
+                    
+                    <button type="button" onclick="togglePassword()" 
+                            class="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none">
+                        <span class="material-icons-outlined" id="eyeIcon">visibility</span>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black hover:shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-95 transition-all duration-300 flex items-center justify-center group overflow-hidden relative">
+                <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                <span class="mr-2">Sign In</span>
+                <span class="material-icons-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </button>
+        </form>
+
+        <p class="text-xs text-center text-gray-400 mt-8 opacity-70 hover:opacity-100 transition-opacity cursor-default">
+            &copy; <%= new Date().getFullYear() %> Niche Boutique
+        </p>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('passwordInput');
+            const icon = document.getElementById('eyeIcon');
+            
+            if (input.type === "password") {
+                input.type = "text";
+                icon.innerText = "visibility_off";
+                // Micro animation
+                icon.style.transform = "scale(1.2)";
+                setTimeout(() => icon.style.transform = "scale(1)", 200);
+            } else {
+                input.type = "password";
+                icon.innerText = "visibility";
+                icon.style.transform = "scale(1.2)";
+                setTimeout(() => icon.style.transform = "scale(1)", 200);
+            }
+        }
+    </script>
+
+    <style>
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</body>
+</html>

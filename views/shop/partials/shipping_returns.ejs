@@ -1,0 +1,22 @@
+<div class="border-t border-gray-100 mt-8">
+    <div x-data="{ open: false }" class="border-b border-gray-100">
+        <button @click="open = !open" class="flex justify-between w-full py-4 text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors">
+            <span>Shipping & Returns</span>
+            <span class="material-icons-outlined text-sm transition-transform duration-300" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" x-collapse class="pb-6 text-sm text-gray-500 leading-relaxed space-y-2">
+            <p><strong>Shipping:</strong> We offer free standard shipping on all orders over TK. 5000. Orders are processed within 1-2 business days.</p>
+            <p><strong>Returns:</strong> We accept returns for unworn items with tags attached within 14 days of delivery. Sale items are final sale.</p>
+        </div>
+    </div>
+    
+    <div x-data="{ open: false }" class="border-b border-gray-100">
+        <button @click="open = !open" class="flex justify-between w-full py-4 text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors">
+            <span>Care Instructions</span>
+            <span class="material-icons-outlined text-sm transition-transform duration-300" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" x-collapse class="pb-6 text-sm text-gray-500 leading-relaxed">
+            <p>Dry clean only. Do not bleach. Iron on low heat if necessary.</p>
+        </div>
+    </div>
+</div>

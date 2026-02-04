@@ -1,0 +1,347 @@
+<header x-data="{ mobileOpen: false, searchOpen: false }" 
+        class="fixed top-0 left-0 w-full z-50 bg-white border-b border-gray-100 shadow-sm transition-all duration-300">
+    
+    <div class="max-w-[1800px] mx-auto px-6 h-24 flex items-center justify-between">
+        
+        <div class="flex-shrink-0 mr-12">
+            <a href="/" class="block group">
+                <img src="https://res.cloudinary.com/deyae37hu/image/upload/v1769007427/niche_boutique_products/logo-1769007426174.webp" 
+                     class="h-16 w-auto object-contain transition-transform duration-500 group-hover:scale-105">
+            </a>
+        </div>
+
+        <nav class="hidden lg:flex items-center space-x-8 flex-grow">
+            
+            <a href="/" class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors">Home</a>
+            <a href="/shop" class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors">Shop</a>
+
+            <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
+                    Categories
+                    <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
+                </button>
+                <div x-show="open" x-cloak 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
+                    <% categories.forEach(c => { %>
+                        <a href="/shop?category=<%= c.id %>" class="text-sm text-gray-600 hover:text-brand-gold hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
+                            <%= c.name %>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
+                    Colors
+                    <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
+                </button>
+                <div x-show="open" x-cloak 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute top-full left-0 w-56 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
+                    <% colors.forEach(c => { %>
+                        <a href="/shop?color=<%= c.name %>" class="flex items-center space-x-3 group/color hover:pl-2 transition-all">
+                            <span class="w-3 h-3 rounded-full border border-gray-200" style="background-color: <%= c.hex_code %>;"></span>
+                            <span class="text-xs text-gray-600 group-hover/color:text-brand-gold transition-colors"><%= c.name %></span>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
+                    Brands
+                    <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
+                </button>
+                <div x-show="open" x-cloak 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
+                    <% brands.forEach(b => { %>
+                        <a href="/shop?brand=<%= b.id %>" class="text-sm text-gray-600 hover:text-brand-gold hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
+                            <%= b.name %>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
+                    Collections
+                    <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
+                </button>
+                <div x-show="open" x-cloak 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
+                    <% collections.forEach(c => { %>
+                        <a href="/shop?collection=<%= c.id %>" class="text-sm text-gray-600 hover:text-brand-gold hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
+                            <%= c.name %>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex items-center space-x-6">
+            <button 
+                @click="searchOpen = true; $nextTick(() => $refs.searchInput.focus())" 
+                class="hover:text-brand-gold transition-colors p-2">
+                <span class="material-icons-outlined">search</span>
+            </button>
+            
+            <div x-show="searchOpen" x-cloak 
+                 @keydown.escape.window="searchOpen = false"
+                 class="absolute top-0 left-0 w-full h-screen bg-white/95 backdrop-blur-md z-[100]"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 -translate-y-4"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 -translate-y-4">
+            
+                <div class="max-w-3xl mx-auto px-6 pt-8 md:pt-16 relative" 
+                     x-data="{ 
+                         query: '', 
+                         results: [], 
+                         loading: false,
+                         performSearch() {
+                             if(this.query.length < 2) { this.results = []; return; }
+                             this.loading = true;
+                             fetch(`/search/live?q=${this.query}`)
+                                .then(res => res.json())
+                                .then(data => { this.results = data; this.loading = false; });
+                         }
+                     }"
+                     @click.outside="searchOpen = false"> <div class="flex items-center gap-4 border-b-2 border-brand-black pb-2 relative">
+                        <span class="material-icons-outlined text-3xl text-gray-400">search</span>
+                        
+                        <form action="/search" method="GET" class="flex-grow">
+                            <input type="text" 
+                                   name="q" 
+                                   x-model="query"
+                                   @input.debounce.300ms="performSearch()"
+                                   x-ref="searchInput"
+                                   placeholder="Search products, brands..." 
+                                   class="w-full text-xl md:text-3xl font-serif border-none outline-none focus:ring-0 placeholder-gray-300 text-brand-black bg-transparent h-12 p-0"
+                                   autocomplete="off">
+                        </form>
+            
+                        <div x-show="loading" class="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-black absolute right-12"></div>
+            
+                        <button @click="searchOpen = false" class="text-gray-400 hover:text-black transition p-2">
+                            <span class="material-icons-outlined text-3xl">close</span>
+                        </button>
+                    </div>
+            
+                    <div x-show="query.length > 0" class="mt-6 space-y-2 overflow-y-auto max-h-[60vh]">
+                        
+                        <p x-show="!loading && results.length === 0 && query.length >= 2" class="text-gray-500 text-sm">
+                            No results found for "<span x-text="query"></span>"
+                        </p>
+            
+                        <template x-for="item in results" :key="item.id">
+                            <a :href="'/product/' + item.slug" class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition group">
+                                <div class="w-12 h-12 md:w-16 md:h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden border border-gray-100">
+                                    <img :src="item.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                </div>
+                                
+                                <div>
+                                    <p class="text-xs text-gray-400 uppercase tracking-widest mb-0.5" x-text="item.brand_name"></p>
+                                    <h4 class="font-serif text-sm md:text-base text-gray-900 group-hover:text-brand-gold transition-colors" x-text="item.name"></h4>
+                                    <p class="text-xs font-bold text-black mt-1">
+                                        Tk. <span x-text="item.sale_price > 0 ? item.sale_price : item.regular_price"></span>
+                                    </p>
+                                </div>
+                            </a>
+                        </template>
+            
+                        <div x-show="results.length > 0" class="pt-4 border-t border-gray-100">
+                            <a :href="'/search?q=' + query" class="block text-center text-xs font-bold uppercase tracking-widest text-brand-black hover:text-brand-gold py-2">
+                                View all results
+                            </a>
+                        </div>
+                    </div>
+            
+                </div>
+            </div>
+            
+            <% if (locals.customer) { %>
+                <div class="relative group hidden lg:block" x-data="{ open: false }">
+                    <button @click="open = !open" @click.outside="open = false" class="hover:text-brand-gold transition-colors flex items-center p-2">
+                        <span class="material-icons-outlined">person</span>
+                    </button>
+                    
+                    <div x-show="open" x-cloak 
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 translate-y-2"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="absolute top-full right-0 w-64 bg-white shadow-xl border border-gray-100 p-6 z-50 rounded-sm">
+                        
+                        <% 
+                            const deskGreetings = [
+                                "Hello Beautiful 🌸",
+                                "Welcome Back ✨",
+                                "Hi Lovely 🌷",
+                                "Good to see you 🌼",
+                                "Hello Friend 👋",
+                                "Shine Bright ☀️"
+                            ];
+                            const deskGreeting = deskGreetings[Math.floor(Math.random() * deskGreetings.length)];
+                        %>
+                        <div class="text-center">
+                            <p class="font-serif text-xl text-brand-black mb-1"><%= deskGreeting %></p>
+                            <p class="text-sm text-gray-500 mb-4">
+                                Logged in as <br>
+                                <span class="font-bold text-brand-gold"><%= (customer.full_name && customer.full_name.trim() !== '') ? customer.full_name : 'User' %></span>
+                            </p>
+                            
+                            <a href="/account" class="block w-full border border-gray-200 text-center text-xs font-bold uppercase tracking-widest py-3 hover:bg-black hover:text-white transition mb-2">
+                                My Account
+                            </a>
+                            <a href="/auth/logout" class="block text-xs text-red-500 hover:text-red-700 underline">
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <% } else { %>
+                <button @click="$dispatch('open-login')" class="hidden lg:block hover:text-brand-gold transition-colors">
+                    <span class="material-icons-outlined">person_outline</span>
+                </button>
+            <% } %>
+
+            <div x-data="{ count: 0, updateBadge() { fetch('/cart/api').then(r=>r.json()).then(d=>this.count=d.count) } }"
+                 x-init="updateBadge()" 
+                 @cart-updated.window="updateBadge()"
+                 class="relative">
+                 
+                 <button @click.prevent="$dispatch('open-cart')" class="relative hover:text-brand-gold transition-colors group cursor-pointer flex items-center">
+                    <span class="material-icons-outlined">shopping_bag</span>
+                    
+                    <template x-if="count > 0">
+                         <span class="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#800000] text-[9px] font-bold text-white shadow-sm" 
+                              x-text="count">
+                        </span>
+                    </template>
+                </button>
+            </div>
+            
+            <button @click="mobileOpen = true" class="lg:hidden p-2 ml-4">
+                <span class="material-icons-outlined">menu</span>
+            </button>
+        </div>
+    </div>
+
+    <div x-show="mobileOpen" x-cloak 
+         class="fixed inset-0 z-[60] bg-white flex flex-col p-6 overflow-y-auto"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="-translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition ease-in duration-300"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="-translate-x-full">
+         
+        <div class="flex justify-between items-center mb-8">
+            <span class="font-serif text-2xl">Menu</span>
+            <button @click="mobileOpen = false"><span class="material-icons-outlined text-3xl">close</span></button>
+        </div>
+
+        <div class="space-y-6 flex flex-col">
+            <a href="/" class="text-xl font-serif">Home</a>
+            <a href="/shop" class="text-xl font-serif">Shop</a>
+            
+            <div x-data="{ open: false }">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-serif">
+                    Brands <span class="material-icons-outlined" :class="{'rotate-180': open}">expand_more</span>
+                </button>
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l border-gray-100 ml-1">
+                    <% brands.forEach(b => { %>
+                        <a href="/shop?brand=<%= b.id %>" class="text-gray-500 py-1"><%= b.name %></a>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div x-data="{ open: false }">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-serif">
+                    Categories <span class="material-icons-outlined" :class="{'rotate-180': open}">expand_more</span>
+                </button>
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l border-gray-100 ml-1">
+                    <% categories.forEach(c => { %>
+                        <a href="/shop?category=<%= c.id %>" class="text-gray-500 py-1"><%= c.name %></a>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div x-data="{ open: false }">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-serif">
+                    Collections <span class="material-icons-outlined" :class="{'rotate-180': open}">expand_more</span>
+                </button>
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l border-gray-100 ml-1">
+                    <% collections.forEach(c => { %>
+                        <a href="/shop?collection=<%= c.id %>" class="text-gray-500 py-1"><%= c.name %></a>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-8 border-t border-gray-100">
+                <% if (locals.customer) { %>
+                    <% 
+                        const greetings = [
+                            "Hello Beautiful 🌸",
+                            "Welcome Back ✨",
+                            "Hi Lovely 🌷",
+                            "Good to see you 🌼",
+                            "Hello Friend 👋",
+                            "Shine Bright ☀️"
+                        ];
+                        const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+                    %>
+                    <div class="space-y-4">
+                        <div class="text-center mb-6">
+                            <p class="font-serif text-xl text-brand-black mb-1"><%= randomGreeting %></p>
+                            <p class="text-sm text-gray-500">
+                                Signed in as <span class="font-bold text-brand-gold"><%= (customer.full_name && customer.full_name.trim() !== '') ? customer.full_name : 'User' %></span>
+                            </p>
+                        </div>
+
+                        <a href="/account" class="flex items-center space-x-3 text-lg font-serif hover:text-brand-gold transition-colors">
+                            <span class="material-icons-outlined text-gray-400">person</span>
+                            <span>My Account</span>
+                        </a>
+
+                        <a href="/auth/logout" class="flex items-center space-x-3 text-lg font-serif text-red-500 hover:text-red-600 transition-colors pt-4">
+                            <span class="material-icons-outlined">logout</span>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                <% } else { %>
+                    <% 
+                        const guestGreetings = [
+                            "Welcome Lovely 🌸",
+                            "Hello there 👋",
+                            "Welcome to Niche ✨",
+                            "Discover Style 🌼"
+                        ];
+                        const randomGuestGreeting = guestGreetings[Math.floor(Math.random() * guestGreetings.length)];
+                    %>
+                    <div class="text-center">
+                        <p class="font-serif text-2xl text-brand-black mb-6"><%= randomGuestGreeting %></p>
+                        
+                        <button @click="mobileOpen = false; $dispatch('open-login')" 
+                            class="flex items-center justify-center space-x-2 bg-black text-white px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-brand-gold transition-colors w-full rounded-sm">
+                            <span class="material-icons-outlined text-lg">login</span>
+                            <span>Login / Register</span>
+                        </button>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</header>

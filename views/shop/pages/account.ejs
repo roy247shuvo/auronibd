@@ -1,0 +1,227 @@
+<div class="max-w-7xl mx-auto px-6 pt-32 pb-20 min-h-screen" 
+     x-data="{ tab: 'orders', filter: 'all' }">
+
+    <% if (typeof success !== 'undefined' && success) { %>
+        <div class="mb-8 bg-green-50 text-green-800 px-4 py-3 rounded-lg border border-green-200 flex items-center gap-2">
+            <span class="material-icons-outlined">check_circle</span>
+            <%= success %>
+        </div>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="mb-8 bg-red-50 text-red-800 px-4 py-3 rounded-lg border border-red-200 flex items-center gap-2">
+            <span class="material-icons-outlined">error</span>
+            <%= error %>
+        </div>
+    <% } %>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <div class="col-span-1 space-y-6">
+            
+            <div class="bg-white border border-gray-100 rounded-2xl p-6 text-center shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-20 
+                    <%= level === 'VIP' ? 'bg-gradient-to-r from-gray-900 to-black' : 
+                       (level === 'Platinum' ? 'bg-gradient-to-r from-slate-300 to-slate-400' : 
+                       (level === 'Gold' ? 'bg-gradient-to-r from-yellow-200 to-yellow-400' : 
+                       (level === 'Silver' ? 'bg-gradient-to-r from-gray-100 to-gray-300' : 'bg-gray-50'))) %>">
+                </div>
+
+                <div class="relative z-10 w-24 h-24 mx-auto bg-white rounded-full p-1 shadow-lg -mt-2">
+                    <div class="w-full h-full rounded-full overflow-hidden bg-gray-100">
+                        <% if (customer.photo_url) { %>
+                            <img src="<%= customer.photo_url %>" class="w-full h-full object-cover">
+                        <% } else { %>
+                            <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                <span class="material-icons-outlined text-4xl">person</span>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h2 class="font-serif text-xl font-bold"><%= customer.full_name || customer.name %></h2>
+                    <p class="text-sm text-gray-500 mb-2"><%= customer.phone %></p>
+                    
+                    <div class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest
+                        <%= level === 'VIP' ? 'bg-black text-white' : 
+                           (level === 'Platinum' ? 'bg-slate-200 text-slate-800' : 
+                           (level === 'Gold' ? 'bg-yellow-100 text-yellow-800' : 
+                           (level === 'Silver' ? 'bg-gray-100 text-gray-600' : 'bg-orange-50 text-orange-800'))) %>">
+                        <span class="material-icons-outlined text-[14px]">
+                            <%= level === 'VIP' ? 'diamond' : (level === 'Gold' ? 'stars' : 'verified') %>
+                        </span>
+                        <%= level %> Member
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                <nav class="flex flex-col">
+                    <button @click="tab = 'orders'; filter = 'all'" 
+                            :class="tab === 'orders' && filter === 'all' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'"
+                            class="flex items-center justify-between px-6 py-4 text-sm font-bold uppercase tracking-wide transition-all text-left">
+                        <div class="flex items-center gap-3">
+                            <span class="material-icons-outlined">shopping_bag</span>
+                            All Orders
+                        </div>
+                        <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs"><%= orders.length %></span>
+                    </button>
+
+                    <button @click="tab = 'orders'; filter = 'pending'" 
+                            :class="tab === 'orders' && filter === 'pending' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'"
+                            class="flex items-center justify-between px-6 py-4 text-sm font-bold uppercase tracking-wide transition-all text-left border-t border-gray-50">
+                        <div class="flex items-center gap-3">
+                            <span class="material-icons-outlined">pending_actions</span>
+                            Pending Orders
+                        </div>
+                    </button>
+
+                    <button @click="tab = 'orders'; filter = 'completed'" 
+                            :class="tab === 'orders' && filter === 'completed' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'"
+                            class="flex items-center justify-between px-6 py-4 text-sm font-bold uppercase tracking-wide transition-all text-left border-t border-gray-50">
+                        <div class="flex items-center gap-3">
+                            <span class="material-icons-outlined">task_alt</span>
+                            Completed Orders
+                        </div>
+                    </button>
+
+                    <button @click="tab = 'settings'" 
+                            :class="tab === 'settings' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'"
+                            class="flex items-center justify-between px-6 py-4 text-sm font-bold uppercase tracking-wide transition-all text-left border-t border-gray-50">
+                        <div class="flex items-center gap-3">
+                            <span class="material-icons-outlined">settings</span>
+                            Account Settings
+                        </div>
+                    </button>
+
+                    <a href="/customer/logout" class="flex items-center gap-3 px-6 py-4 text-sm font-bold uppercase tracking-wide text-red-500 hover:bg-red-50 transition-all border-t border-gray-50">
+                        <span class="material-icons-outlined">logout</span>
+                        Logout
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <div class="col-span-1 lg:col-span-3">
+            
+            <div x-show="tab === 'orders'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2">
+                <h1 class="font-serif text-3xl mb-8" x-text="filter === 'all' ? 'Order History' : (filter === 'pending' ? 'Pending Orders' : 'Completed Orders')"></h1>
+
+                <% if (orders.length === 0) { %>
+                    <div class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                        <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                            <span class="material-icons-outlined text-3xl">shopping_bag</span>
+                        </div>
+                        <p class="text-gray-500 mb-4">You haven't placed any orders yet.</p>
+                        <a href="/shop" class="inline-block bg-black text-white px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-gray-800">Start Shopping</a>
+                    </div>
+                <% } else { %>
+                    <div class="space-y-6">
+                        <% orders.forEach(order => { 
+                            // Determine status category for filtering
+                            let isCompleted = ['delivered', 'cancelled', 'returned', 'failed'].includes(order.status.toLowerCase());
+                            let statusType = isCompleted ? 'completed' : 'pending';
+                        %>
+                            <div x-show="filter === 'all' || filter === '<%= statusType %>'" 
+                                 class="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-lg transition duration-300 group">
+                                
+                                <div class="flex flex-wrap justify-between items-start mb-6 gap-4">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg
+                                            <%= order.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' %>">
+                                            #<%= order.order_number.slice(-2) %>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-lg">Order #<%= order.order_number %></h3>
+                                            <p class="text-xs text-gray-500 font-mono"><%= new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-right">
+                                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-2
+                                            <%= order.status === 'delivered' ? 'bg-green-100 text-green-700' : 
+                                               (order.status === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-700') %>">
+                                            <%= order.status %>
+                                        </span>
+                                        <p class="font-serif font-bold text-xl">Tk. <%= order.total_amount %></p>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
+                                    <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                                        <% if(order.items && order.items.length > 0) { %>
+                                            <% order.items.forEach(item => { %>
+                                                <div class="w-12 h-12 bg-white rounded border border-gray-200 flex-shrink-0 overflow-hidden relative" title="<%= item.product_name %>">
+                                                    <% if(item.image) { %>
+                                                        <img src="<%= item.image %>" class="w-full h-full object-cover">
+                                                    <% } else { %>
+                                                        <span class="flex w-full h-full items-center justify-center text-xs text-gray-300">Img</span>
+                                                    <% } %>
+                                                    <div class="absolute bottom-0 right-0 bg-black text-white text-[8px] px-1 font-bold">x<%= item.quantity %></div>
+                                                </div>
+                                            <% }) %>
+                                        <% } else { %>
+                                            <span class="text-xs text-gray-400 italic">No items details available</span>
+                                        <% } %>
+                                    </div>
+                                    
+                                    </div>
+                            </div>
+                        <% }) %>
+                        
+                        <div x-show="(filter === 'pending' && $el.parentElement.querySelectorAll('[x-show*=\'pending\'][style*=\'display: none\']').length === <%= orders.filter(o => !['delivered','cancelled','returned','failed'].includes(o.status.toLowerCase())).length %>) 
+                                    || (filter === 'completed' && $el.parentElement.querySelectorAll('[x-show*=\'completed\'][style*=\'display: none\']').length === <%= orders.filter(o => ['delivered','cancelled','returned','failed'].includes(o.status.toLowerCase())).length %>)" 
+                             class="text-center py-12 text-gray-400 italic hidden">
+                            No orders found in this category.
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+
+            <div x-show="tab === 'settings'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2">
+                <h1 class="font-serif text-3xl mb-8">Account Settings</h1>
+                
+                <div class="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
+                    <form action="/customer/update-profile" method="POST" class="space-y-6">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Full Name</label>
+                                <input type="text" name="full_name" value="<%= customer.full_name || customer.name %>" required
+                                    class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-black transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Phone Number</label>
+                                <input type="tel" name="phone" value="<%= customer.phone %>" required
+                                    class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-black transition">
+                                <p class="text-[10px] text-gray-400 mt-1">Used for login and order tracking.</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Shipping Address</label>
+                            <textarea name="address" rows="3" placeholder="Enter your full address"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-black transition"><%= customer.address %></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">City</label>
+                                <input type="text" name="city" value="<%= customer.city %>" placeholder="Dhaka"
+                                    class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-black transition">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100 flex justify-end">
+                            <button type="submit" class="bg-black text-white px-8 py-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition shadow-lg transform active:scale-95">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

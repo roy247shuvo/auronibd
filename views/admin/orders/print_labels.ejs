@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Print Labels</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #e5e5e5; -webkit-print-color-adjust: exact; }
+
+        .page {
+            background: white;
+            margin: 20px auto;
+            page-break-after: always;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+
+        /* --- SIZES --- */
+        .size-3x4 { width: 3in; height: 4in; padding: 0.15in; }
+        .size-5x6 { width: 5in; height: 6in; padding: 0.25in; }
+
+        /* --- HEADER --- */
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        .size-3x4 .shop-logo { height: 25px; object-fit: contain; margin-bottom: 2px; }
+        .size-5x6 .shop-logo { height: 40px; margin-bottom: 5px; }
+        .shop-info { font-size: 8px; color: #000; line-height: 1.2; font-weight: 600; }
+
+        /* --- ORDER ID & BARCODE --- */
+        .order-section { text-align: center; margin-bottom: 5px; }
+        .order-id { font-size: 12px; font-weight: 800; margin-bottom: 1px; }
+        .barcode { width: 90% !important; height: 30px !important; margin: 0 auto; display: block; }
+
+        /* --- CUSTOMER --- */
+        .customer-box {
+            border-left: 3px solid #000;
+            padding-left: 6px;
+            margin-bottom: 5px;
+        }
+        .cust-label { font-size: 7px; text-transform: uppercase; color: #666; font-weight: bold; }
+        .cust-name { font-size: 10px; font-weight: 700; margin-bottom: 1px; }
+        /* Full Address Style */
+        .cust-addr { font-size: 9px; line-height: 1.2; margin-bottom: 2px; color: #000; }
+        .cust-phone { font-size: 10px; font-weight: 700; }
+
+        /* --- ITEMS LIST --- */
+        .items-container {
+            flex-grow: 1;
+            margin-bottom: 5px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8px;
+        }
+        .items-table th {
+            text-align: left;
+            border-bottom: 1px solid #000;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding-bottom: 2px;
+        }
+        .items-table td {
+            vertical-align: top;
+            padding: 3px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .item-sn { width: 15px; font-weight: bold; color: #666; }
+        .item-name { font-weight: 700; font-size: 9px; line-height: 1.2; margin-bottom: 1px; }
+        .item-sku { font-size: 7px; color: #444; font-family: monospace; font-weight: 600; }
+        .item-price { text-align: right; font-weight: bold; width: 45px; }
+
+        /* --- FINANCIALS --- */
+        .financials {
+            background: #f4f4f4;
+            border-top: 2px solid #000;
+            padding: 5px;
+            font-size: 9px;
+            margin-bottom: 5px;
+        }
+        .fin-row { display: flex; justify-content: space-between; margin-bottom: 1px; }
+        .fin-total { font-weight: bold; }
+        .fin-paid { color: #666; }
+        .fin-cod { font-weight: 800; font-size: 11px; margin-top: 2px; padding-top: 2px; border-top: 1px solid #ccc; }
+
+        /* --- STEADFAST ID BOX --- */
+        .steadfast-box {
+            border: 3px solid #000;
+            padding: 4px;
+            text-align: center;
+            background: white;
+        }
+        .sf-label {
+            display: block;
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+        .sf-id {
+            display: block;
+            font-size: 14px;
+            font-weight: 900;
+            font-family: monospace;
+            line-height: 1;
+        }
+
+        @media print {
+            body { background: none; }
+            .page { margin: 0; border: none; }
+            @page { margin: 0; size: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<% orders.forEach(order => { %>
+    <% 
+       const total = parseFloat(order.total_amount) || 0;
+       const paid = parseFloat(order.paid_amount) || 0;
+       const cod = Math.max(0, total - paid); 
+    %>
+
+    <div class="page size-<%= size %>">
+        
+        <div class="header">
+            <% if(shop.shop_logo) { %>
+                <img src="<%= shop.shop_logo %>" class="shop-logo">
+            <% } else { %>
+                <div style="font-weight:800; font-size:14px;"><%= shop.shop_name || 'Niche Boutique' %></div>
+            <% } %>
+            <div class="shop-info">
+                <%= shop.shop_address || '' %>
+                <% if(shop.shop_phone) { %><br>Tel: <%= shop.shop_phone %><% } %>
+            </div>
+        </div>
+
+        <div class="order-section">
+            <div class="order-id">Order #<%= order.order_number %></div>
+            <svg class="barcode"
+                 jsbarcode-value="<%= order.order_number %>"
+                 jsbarcode-displayValue="false"
+                 jsbarcode-height="30"
+                 jsbarcode-margin="0">
+            </svg>
+        </div>
+
+        <div class="customer-box">
+            <div class="cust-label">Deliver To:</div>
+            <div class="cust-name"><%= order.guest_name %></div>
+            <div class="cust-addr"><%= order.shipping_address || '' %></div>
+            <div class="cust-phone"><%= order.guest_phone %></div>
+        </div>
+
+        <div class="items-container">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="item-sn">#</th>
+                        <th>Item Details</th>
+                        <th style="text-align:right;">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if(order.items && order.items.length > 0) { %>
+                        <% order.items.forEach((item, index) => { %>
+                            <tr>
+                                <td class="item-sn"><%= index + 1 %></td>
+                                <td class="item-details">
+                                    <div class="item-name">
+                                        <%= item.product_name %>
+                                        <% if(item.color) { %> - <%= item.color %> <% } %>
+                                        <% if(item.size) { %> - <%= item.size %> <% } %>
+                                    </div>
+                                    <div class="item-sku">SKU: <%= item.sku %> <span style="margin-left:4px;">(x<%= item.quantity %>)</span></div>
+                                </td>
+                                <td class="item-price"><%= item.compare_price || item.price %></td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr><td colspan="3" style="text-align:center;">No items found</td></tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="financials">
+            <div class="fin-row fin-total">
+                <span>Total Amount:</span>
+                <span><%= total %></span>
+            </div>
+            <div class="fin-row fin-paid">
+                <span>Paid:</span>
+                <span>-<%= paid %></span>
+            </div>
+            <div class="fin-row fin-cod">
+                <span>COD AMOUNT:</span>
+                <span>TK. <%= cod %></span>
+            </div>
+        </div>
+
+        <div class="steadfast-box">
+            <span class="sf-label">Steadfast ID</span>
+            <span class="sf-id"><%= order.courier_consignment_id || 'N/A' %></span>
+        </div>
+
+    </div>
+<% }) %>
+
+<script>
+    JsBarcode(".barcode").init();
+    window.onload = () => { window.print(); }
+</script>
+
+</body>
+</html>

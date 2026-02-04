@@ -1,0 +1,157 @@
+<div class="p-6">
+    
+    <% if (!can('prod_po', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage purchase orders.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
+        
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Purchase Orders</h1>
+            <p class="text-sm text-gray-500">Manage incoming stock and payments</p>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
+            
+            <form action="/admin/purchase-orders" method="GET" class="flex flex-1 md:flex-none gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
+                
+                <div class="relative flex-1 md:w-48">
+                    <span class="material-icons-outlined absolute left-2 top-2 text-gray-400 text-[18px]">search</span>
+                    <input type="text" name="q" value="<%= query.q || '' %>" placeholder="PO Number..." 
+                           class="w-full pl-8 pr-3 py-1.5 text-sm outline-none rounded-md text-gray-700 placeholder-gray-400">
+                </div>
+
+                <div class="border-l border-gray-200 pl-2">
+                    <select name="vendor" class="py-1.5 pl-2 pr-8 text-sm outline-none bg-transparent text-gray-600 font-medium cursor-pointer hover:text-black">
+                        <option value="">All Vendors</option>
+                        <% vendors.forEach(v => { %>
+                            <option value="<%= v.id %>" <%= query.vendor == v.id ? 'selected' : '' %>><%= v.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 rounded-md transition">
+                    <span class="material-icons-outlined text-[18px] pt-1">arrow_forward</span>
+                </button>
+                
+                <% if(query.q || query.vendor) { %>
+                    <a href="/admin/purchase-orders" class="flex items-center justify-center px-2 text-red-500 hover:bg-red-50 rounded-md" title="Clear Filters">
+                        <span class="material-icons-outlined text-[18px]">close</span>
+                    </a>
+                <% } %>
+            </form>
+
+            <% if (can('prod_po', 'write')) { %>
+            <button onclick="openPOCreator()" class="bg-black text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition shadow-lg whitespace-nowrap">
+                <span class="material-icons-outlined text-sm">add</span>
+                Create New PO
+            </button>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">PO Number</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Vendor</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Status</th>
+                    
+                    <th class="px-6 py-4 text-xs font-bold text-gray-900 uppercase text-right">Amount</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-900 uppercase text-right">Paid</th>
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Remaining</th>
+                    
+                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                <% orders.forEach(po => { 
+                   const remaining = po.total_amount - po.paid_amount;
+                %>
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-gray-900"><%= po.po_number %></div>
+                        <div class="text-xs text-gray-400"><%= new Date(po.created_at).toLocaleDateString() %></div>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-gray-700"><%= po.vendor_name %></td>
+                    <td class="px-6 py-4 text-center">
+                        <% if(po.status === 'received') { %>
+                             <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">Received</span>
+                        <% } else { %>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold uppercase">Pending</span>
+                        <% } %>
+                    </td>
+                    
+                    <td class="px-6 py-4 text-right font-mono font-bold text-black">TK. <%= po.total_amount %></td>
+                    <td class="px-6 py-4 text-right font-mono font-bold text-black">TK. <%= po.paid_amount %></td>
+                    
+                    <td class="px-6 py-4 text-right font-mono font-bold <%= remaining > 0 ? 'text-red-600' : 'text-green-600' %>">
+                        TK. <%= remaining.toFixed(2) %>
+                    </td>
+
+                    <td class="px-6 py-4 text-center flex items-center justify-center gap-2">
+                        <button onclick="openViewPO('<%= po.id %>')" class="w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-black transition" title="View Details">
+                            <span class="material-icons-outlined text-sm">visibility</span>
+                        </button>
+
+                        <% if (can('prod_po', 'write')) { %>
+                            <% if(remaining > 0) { %>
+                            <button onclick="openPaymentModal('existing', { id: <%= po.id %>, total: <%= po.total_amount %>, paid: <%= po.paid_amount %> })" 
+                                    class="w-8 h-8 rounded hover:bg-green-50 flex items-center justify-center text-green-600 hover:text-green-800 transition border border-transparent hover:border-green-200" title="Add Payment">
+                                <span class="material-icons-outlined text-sm">payments</span>
+                            </button>
+                            <% } %>
+
+                            <% if(po.status === 'pending') { %>
+                                <button onclick="receivePO('<%= po.id %>')" class="w-8 h-8 rounded hover:bg-blue-50 flex items-center justify-center text-blue-600 hover:text-blue-800 transition border border-transparent hover:border-blue-200" title="Mark Received">
+                                     <span class="material-icons-outlined text-sm">inventory</span>
+                                </button>
+                            <% } %>
+                        <% } %>
+                    </td>
+                </tr>
+                <% }) %>
+                
+                <% if(orders.length === 0) { %>
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-400">
+                            <span class="material-icons-outlined text-4xl mb-2 opacity-50">search_off</span>
+                            <p>No purchase orders found matching your search.</p>
+                        </td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<%- include('./modals/create_po') %>
+<%- include('./modals/payment_modal') %>
+<%- include('./modals/view_po_details') %>
+
+<script>
+    async function receivePO(id) {
+         if(!confirm('Are you sure you received these items? This will add stock to inventory batches.')) return;
+         try {
+            const res = await fetch(`/admin/purchase-orders/receive/${id}`, { 
+                method: 'POST',
+                headers: { 'CSRF-Token': '<%= csrfToken %>' }
+            });
+            const data = await res.json();
+            if(data.success) location.reload();
+            else alert(data.error);
+        } catch(err) { alert('Error receiving PO'); }
+    }
+</script>

@@ -1,0 +1,380 @@
+<div class="max-w-[1800px] mx-auto px-6 pt-32 lg:pt-40 pb-20"
+     x-data="productPage()"
+     x-init="initProduct()">
+
+    <nav class="flex text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mb-6 lg:mb-8 space-x-2 relative z-10">
+        <a href="/" class="hover:text-black">Home</a>
+        <span>/</span>
+        <a href="/shop?category=<%= product.category_id %>" class="hover:text-black"><%= product.category_name %></a>
+        <span>/</span>
+        <span class="text-black truncate max-w-[150px]"><%= product.name %></span>
+    </nav>
+
+    <div class="lg:hidden mb-8">
+        <h1 class="font-serif text-3xl italic text-gray-900 mb-2"><%= product.name %></h1>
+        
+        <div class="flex items-center text-xl mb-4">
+            <template x-if="currentVariant && currentVariant.compare_price && (currentVariant.compare_price < currentVariant.price)">
+                <span class="text-gray-400 line-through text-lg mr-2" x-text="'TK. ' + currentVariant.price"></span>
+            </template>
+            <span class="font-bold" 
+                  :class="(currentVariant && currentVariant.compare_price && currentVariant.compare_price < currentVariant.price) ? 'text-red-600' : 'text-black'"
+                  x-text="'TK. ' + (currentVariant ? (currentVariant.compare_price || currentVariant.price) : '<%= minPrice %>')">
+            </span>
+        </div>
+
+        <div class="mb-6 p-3 bg-gray-50 border border-gray-100 rounded-sm" x-show="currentVariant">
+            <div class="flex justify-between items-center mb-2" x-show="currentVariant.stock_quantity > 0">
+                 <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">SKU: <span x-text="currentVariant ? currentVariant.sku : '<%= product.sku %>'"></span></span>
+            </div>
+
+            <template x-if="currentVariant && currentVariant.stock_quantity > 0 && currentVariant.stock_quantity < 5">
+                <div class="flex items-center space-x-2 text-[#800000]">
+                    <span class="material-icons-outlined text-sm animate-bounce">local_fire_department</span>
+                    <span class="font-bold text-xs uppercase tracking-widest">
+                        Hurry! Only <span x-text="currentVariant.stock_quantity"></span> Left
+                    </span>
+                </div>
+            </template>
+
+            <template x-if="currentVariant && currentVariant.stock_quantity >= 5">
+                 <span class="text-green-700 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1">
+                    <span class="material-icons-outlined text-sm">check_circle</span> Available in stock ready to ship
+                 </span>
+            </template>
+            
+            <template x-if="currentVariant && currentVariant.stock_quantity <= 0">
+                 <div class="text-center py-2 bg-red-50 border border-red-100 rounded-sm">
+                    <span class="block text-[#800000] font-bold text-xs uppercase tracking-widest mb-1">You missed it!</span>
+                    <p class="text-[10px] text-gray-500 leading-tight">
+                        This item has been sold few moments ago.<br>
+                        <span class="font-bold text-black">Don't miss the other color or size.</span>
+                    </p>
+                 </div>
+            </template>
+        </div>
+
+        <div class="prose prose-sm text-gray-600 leading-relaxed text-sm">
+            <p><%- product.description.replace(/\n/g, '<br>') %></p>
+        </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-8 lg:gap-20">
+        
+        <div class="w-full lg:w-3/5 lg:sticky lg:top-32 lg:h-fit">
+            
+            <div class="hidden lg:grid grid-cols-2 gap-2">
+                <template x-for="(img, index) in currentImages" :key="index">
+                    <div class="relative aspect-[3/4] bg-gray-50 group overflow-hidden cursor-zoom-in">
+                        <img :src="img.image_url" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    </div>
+                </template>
+            </div>
+
+            <div class="lg:hidden relative aspect-[3/4] bg-gray-50 group overflow-hidden" x-data="{ mobileIndex: 0 }">
+                <template x-for="(img, index) in currentImages" :key="index">
+                    <div class="absolute inset-0 transition-opacity duration-300"
+                         x-show="mobileIndex === index"
+                         x-transition:enter="opacity-0" x-transition:enter-end="opacity-100"
+                         x-transition:leave="opacity-100" x-transition:leave-end="opacity-0">
+                        <img :src="img.image_url" class="w-full h-full object-cover">
+                    </div>
+                </template>
+
+                <button @click="mobileIndex = (mobileIndex === 0) ? currentImages.length - 1 : mobileIndex - 1" 
+                        class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-lg text-black hover:bg-black hover:text-white transition-all z-10"
+                        x-show="currentImages.length > 1">
+                    <span class="material-icons-outlined">chevron_left</span>
+                </button>
+
+                <button @click="mobileIndex = (mobileIndex === currentImages.length - 1) ? 0 : mobileIndex + 1" 
+                        class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-lg text-black hover:bg-black hover:text-white transition-all z-10"
+                        x-show="currentImages.length > 1">
+                    <span class="material-icons-outlined">chevron_right</span>
+                </button>
+
+                <div class="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
+                    <template x-for="(img, index) in currentImages" :key="index">
+                        <div class="h-1.5 rounded-full transition-all duration-300 bg-white shadow-sm"
+                             :class="mobileIndex === index ? 'w-6 bg-opacity-100' : 'w-1.5 bg-opacity-50'"></div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full lg:w-2/5 flex flex-col space-y-8">
+            
+            <div class="hidden lg:block">
+                <h1 class="font-serif text-3xl md:text-4xl italic text-gray-900 mb-4"><%= product.name %></h1>
+                
+                <div class="flex items-center text-xl">
+                    <template x-if="currentVariant && currentVariant.compare_price && (currentVariant.compare_price < currentVariant.price)">
+                        <span class="text-gray-400 line-through text-lg mr-2" x-text="'TK. ' + currentVariant.price"></span>
+                    </template>
+                    <span class="font-bold" 
+                          :class="(currentVariant && currentVariant.compare_price && currentVariant.compare_price < currentVariant.price) ? 'text-red-600' : 'text-black'"
+                          x-text="'TK. ' + (currentVariant ? (currentVariant.compare_price || currentVariant.price) : '<%= minPrice %>')">
+                    </span>
+                </div>
+            </div>
+
+            <div class="hidden lg:block prose prose-sm text-gray-600 leading-relaxed">
+                <p><%- product.description.replace(/\n/g, '<br>') %></p>
+            </div>
+
+            <div class="border border-gray-200 bg-gray-50/50 p-6">
+                <div class="space-y-3 text-sm">
+                    <% if(product.brand_logo) { %>
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-bold uppercase tracking-widest text-[10px] text-gray-500">Brand</span>
+                        <img src="<%= product.brand_logo %>" alt="<%= product.brand_name %>" class="h-6 w-auto object-contain grayscale opacity-80 mix-blend-multiply">
+                    </div>
+                    <% } %>
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-bold uppercase tracking-widest text-[10px] text-gray-500">Category</span>
+                        <span class="text-gray-900"><%= product.category_name %></span>
+                    </div>
+                    <% if(product.type_name) { %>
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-bold uppercase tracking-widest text-[10px] text-gray-500">Type</span>
+                        <span class="text-gray-900"><%= product.type_name %></span>
+                    </div>
+                    <% } %>
+                    <% if(product.fabric_name) { %>
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-bold uppercase tracking-widest text-[10px] text-gray-500">Fabric</span>
+                        <span class="text-gray-900"><%= product.fabric_name %></span>
+                    </div>
+                    <% } %>
+                    <% if(product.work_type_name) { %>
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-bold uppercase tracking-widest text-[10px] text-gray-500">Work Type</span>
+                        <span class="text-gray-900"><%= product.work_type_name %></span>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <% if(productData.hasVariants) { %>
+            
+            <div class="mt-6 border-l-2 border-gray-100 pl-4 py-2" x-show="currentVariant">
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-2" x-show="currentVariant.stock_quantity > 0">
+                    SKU: <span x-text="currentVariant ? currentVariant.sku : '<%= product.sku %>'"></span>
+                </p>
+
+                <div class="flex items-center space-x-3">
+                    <template x-if="currentVariant && currentVariant.stock_quantity > 0 && currentVariant.stock_quantity < 5">
+                        <div class="flex items-center space-x-2 text-[#800000] animate-pulse">
+                            <span class="relative flex h-3 w-3">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-3 w-3 bg-[#800000]"></span>
+                            </span>
+                            <span class="font-bold text-sm uppercase tracking-widest">
+                                Hurry! Only <span x-text="currentVariant.stock_quantity" class="text-lg"></span> Left
+                            </span>
+                        </div>
+                    </template>
+
+                    <template x-if="currentVariant && currentVariant.stock_quantity >= 5">
+                        <div class="flex items-center space-x-2 text-green-700">
+                            <span class="material-icons-outlined text-sm">inventory_2</span>
+                            <span class="font-bold text-[10px] uppercase tracking-widest">
+                                Available in stock ready to ship
+                            </span>
+                        </div>
+                    </template>
+
+                    <template x-if="currentVariant && currentVariant.stock_quantity <= 0">
+                        <div class="bg-gray-50 p-4 border border-gray-200 rounded-sm w-full">
+                            <div class="flex items-center text-red-600 space-x-2 mb-2">
+                                <span class="material-icons-outlined">highlight_off</span>
+                                <span class="font-bold text-xs uppercase tracking-widest">Sold Out</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500">
+                                This item has been sold few moments ago. You missed it.<br>
+                                <span class="font-bold text-gray-900">Don't miss the other color or size.</span>
+                            </p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="space-y-6 pt-6">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-widest text-gray-900 block mb-3">Color: <span x-text="selectedColorName" class="font-normal text-gray-500"></span></span>
+                    <div class="flex flex-wrap gap-3">
+                        <template x-for="color in productData.colors" :key="color.name">
+                            <button @click="selectColor(color)" 
+                                    class="w-10 h-10 rounded-full border-2 transition-all relative flex items-center justify-center"
+                                    :class="selectedColorName === color.name ? 'border-black ring-1 ring-black ring-offset-2' : 'border-gray-200 hover:border-gray-400'">
+                                <span class="w-8 h-8 rounded-full border border-black/10" :style="'background-color: ' + color.hex"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold uppercase tracking-widest text-gray-900">Size: <span x-text="selectedSizeName" class="font-normal text-gray-500"></span></span>
+                        <button @click="showSizeChart = true" class="text-[10px] uppercase font-bold text-gray-400 hover:text-black underline decoration-gray-300 underline-offset-4">Size Guide</button>
+                    </div>
+                    
+                    <div class="grid grid-cols-4 gap-2">
+                        <template x-for="v in availableSizes" :key="v.id">
+                            <button @click="selectSize(v)"
+                                    :disabled="v.stock_quantity <= 0"
+                                    class="py-3 border text-sm font-bold uppercase tracking-widest transition-all"
+                                    :class="{
+                                        'bg-black text-white border-black': selectedVariantId === v.id,
+                                        'bg-white text-gray-900 border-gray-200 hover:border-black': selectedVariantId !== v.id && v.stock_quantity > 0,
+                                        'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed decoration-slice line-through': v.stock_quantity <= 0
+                                    }">
+                                <span x-text="v.size"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+
+            <div class="flex flex-col gap-4 pt-4">
+                <button @click="addToCart()" 
+                        class="w-full py-4 bg-black text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg">
+                    <span>Add to Bag</span>
+                    <span class="material-icons-outlined text-sm">shopping_bag</span>
+                </button>
+
+                <button @click="buyNow()" 
+                        class="group relative w-full py-4 bg-white text-black border border-black text-xs font-bold uppercase tracking-[0.2em] overflow-hidden transition-all hover:text-white">
+                    <div class="absolute inset-0 w-0 bg-black transition-all duration-[250ms] ease-out group-hover:w-full"></div>
+                    <span class="relative flex items-center justify-center gap-2">
+                        <span>Order Now</span>
+                        <span class="material-icons-outlined text-sm">arrow_forward</span>
+                    </span>
+                </button>
+            </div>
+
+            <%- include('partials/shipping_returns') %>
+
+        </div>
+    </div>
+
+    <% if(related.length > 0) { %>
+    <div class="mt-20 lg:mt-32 border-t border-gray-100 pt-16">
+        <h2 class="font-serif text-2xl lg:text-3xl italic text-center mb-8 lg:mb-12">You May Also Like</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            <% related.forEach(p => { %>
+                <a href="/product/<%= p.slug %>" class="group block">
+                    <div class="aspect-[2/3] bg-gray-50 mb-3 overflow-hidden rounded-sm">
+                        <img src="<%= p.cover_image %>" class="w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105 ease-out">
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[9px] uppercase tracking-widest text-gray-400 mb-1"><%= p.brand_name %></div>
+                        <h3 class="font-serif text-sm group-hover:text-brand-gold transition-colors truncate"><%= p.name %></h3>
+                        
+                        <p class="text-xs font-bold mt-1">TK. <%= p.compare_price || p.price %></p>
+                    </div>
+                </a>
+            <% }) %>
+        </div>
+    </div>
+    <% } %>
+
+    <%- include('partials/size_guide') %>
+
+</div>
+
+<script>
+    const rawProductData = <%- JSON.stringify(productData) %>;
+
+    function productPage() {
+        return {
+            productData: rawProductData,
+            
+            currentImages: [],
+            availableSizes: [],
+            
+            selectedColorName: '',
+            selectedSizeName: '',
+            selectedVariantId: null,
+            currentVariant: null,
+
+            showSizeChart: false,
+
+            initProduct() {
+                if (this.productData.colors.length > 0) {
+                    this.selectColor(this.productData.colors[0]);
+                }
+            },
+
+            selectColor(colorObj) {
+                this.selectedColorName = colorObj.name;
+                this.currentImages = colorObj.images;
+                this.availableSizes = colorObj.variants;
+
+                const sizeStillAvailable = this.availableSizes.find(v => v.id === this.selectedVariantId);
+                // IF logic: Pick a size that has stock if possible, otherwise first size
+                if (!sizeStillAvailable && this.availableSizes.length > 0) {
+                    const inStock = this.availableSizes.find(v => v.stock_quantity > 0);
+                    // If everything is sold out (inStock is undefined), pick the first one anyway so "Sold Out" message shows
+                    this.selectSize(inStock || this.availableSizes[0]);
+                }
+            },
+
+            selectSize(variant) {
+                // If you want to disable clicking sold out sizes, keep this. 
+                // But to show the "Sold Out" message, we might want to allow clicking them?
+                // For now, let's keep it clickable ONLY via selectColor auto-selection, or remove this line to make manual selection possible
+                // if (variant.stock_quantity <= 0) return; 
+                
+                // Allow selection even if stock is 0 so users see the message
+                this.selectedVariantId = variant.id;
+                this.selectedSizeName = variant.size;
+                this.currentVariant = variant;
+            },
+
+            addToCart() {
+                if (!this.selectedVariantId) {
+                    alert("STOP: You have not selected a size yet!");
+                    return;
+                }
+                
+                if (this.currentVariant && this.currentVariant.stock_quantity <= 0) {
+                    alert("Sorry, this item is sold out.");
+                    return;
+                }
+            
+                // DEBUG ALERT: Uncomment this if you want to see what ID is being sent
+                // alert("Sending Variant ID: " + this.selectedVariantId);
+            
+                fetch('/cart/add', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // <--- ADD THIS
+                    },
+                    body: JSON.stringify({ variantId: this.selectedVariantId, quantity: 1 })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Server responded!
+                    if (data.success) {
+                        // Success: Trigger sidebar
+                        window.dispatchEvent(new CustomEvent('cart-updated'));
+                    } else {
+                        // Failure: Show the error message from the server
+                        alert("SERVER ERROR: " + (data.message || "Unknown Error"));
+                    }
+                })
+                .catch(error => {
+                    alert("NETWORK ERROR: " + error);
+                });
+            },
+
+            buyNow() {
+                this.addToCart();
+                window.location.href = '/checkout';
+            }
+        }
+    }
+</script>

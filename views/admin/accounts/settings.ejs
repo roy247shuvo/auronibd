@@ -1,0 +1,276 @@
+<div class="max-w-6xl mx-auto" x-data="{ activeTab: 'accounts' }">
+    
+    <% if (!can('acc_settings', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage accounts or fees.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Account Settings</h1>
+            <p class="text-sm text-gray-500">Manage cash, banks & payment gateway fees</p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div class="bg-white border border-gray-200 p-1 rounded-lg flex items-center shadow-sm">
+                </div>
+
+            <% if (can('acc_settings', 'write')) { %>
+            <button x-show="activeTab === 'accounts'" onclick="openModal('add')" class="bg-black text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition flex items-center gap-2 shadow-lg">
+                <span class="material-icons-outlined text-sm">add</span> New Account
+            </button>
+            <% } %>
+        </div>
+    </div>
+
+    <div x-show="activeTab === 'accounts'" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-bold">
+                        <th class="px-6 py-4">Account Details</th>
+                        <th class="px-6 py-4">Type</th>
+                        <th class="px-6 py-4 text-right">Current Balance</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    <% accounts.forEach(acc => { %>
+                    <tr class="hover:bg-gray-50/50 transition group">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-sm border border-gray-100
+                                    <%= acc.bank_name === 'Cash' ? 'bg-green-50 text-green-600' : 
+                                       (acc.bank_name === 'Mobile Banking' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-600') %>">
+                                    <% if(acc.bank_name === 'Cash') { %>
+                                        <span class="material-icons-outlined text-lg">payments</span>
+                                    <% } else if(acc.bank_name === 'Mobile Banking') { %>
+                                        <span class="material-icons-outlined text-lg">smartphone</span>
+                                    <% } else { %>
+                                        <span class="material-icons-outlined text-lg">account_balance</span>
+                                    <% } %>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800 text-sm"><%= acc.account_name %></h4>
+                                    <p class="text-xs text-gray-500 font-mono"><%= acc.account_number %></p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-xs font-bold px-2 py-1 rounded-md border
+                                <%= acc.bank_name === 'Cash' ? 'bg-green-50 text-green-700 border-green-100' : 
+                                   (acc.bank_name === 'Mobile Banking' ? 'bg-pink-50 text-pink-700 border-pink-100' : 'bg-blue-50 text-blue-700 border-blue-100') %>">
+                                <%= acc.bank_name %>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <span class="font-bold text-gray-900">৳ <%= acc.current_balance %></span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <% if (can('acc_settings', 'write')) { %>
+                            <div class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
+                                <button onclick="openModal('edit', <%= JSON.stringify(acc) %>)" 
+                                        class="w-8 h-8 rounded-full bg-gray-100 hover:bg-blue-50 text-gray-500 hover:text-blue-600 flex items-center justify-center transition">
+                                    <span class="material-icons-outlined text-[16px]">edit</span>
+                                </button>
+                                <form action="/admin/accounts/settings/delete/<%= acc.id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this account?');">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button type="submit" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 flex items-center justify-center transition">
+                                        <span class="material-icons-outlined text-[16px]">delete</span>
+                                    </button>
+                                </form>
+                            </div>
+                            <% } %>
+                        </td>
+                    </tr>
+                    <% }) %>
+                    <% if(accounts.length === 0) { %>
+                        <tr><td colspan="4" class="px-6 py-12 text-center text-gray-400">No accounts found.</td></tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div x-show="activeTab === 'gateway'" x-transition class="hidden" :class="{ 'hidden': activeTab !== 'gateway' }">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden max-w-4xl mx-auto">
+            <div class="px-8 py-6 border-b border-gray-100 bg-gray-50/50">
+                <h2 class="text-lg font-bold text-gray-900">Gateway Fee Settings</h2>
+                <p class="text-xs text-gray-500 mt-1">Define the % fee deducted by the provider for each account.</p>
+            </div>
+            
+            <form action="/admin/accounts/gateway-fees/update" method="POST" class="p-0">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-bold border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4">Account Name</th>
+                                <th class="px-6 py-4">Type</th>
+                                <th class="px-6 py-4 text-right">Fee Percentage (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            <% accounts.forEach(acc => { %>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 font-bold text-gray-700">
+                                    <%= acc.account_name %>
+                                    <div class="text-xs text-gray-400 font-normal"><%= acc.account_number %></div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500"><%= acc.bank_name %></td>
+                                <td class="px-6 py-3 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <input type="number" step="0.01" min="0" 
+                                               name="fees[<%= acc.id %>]" 
+                                               value="<%= acc.gateway_fee || 0 %>" 
+                                               class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-right font-mono font-bold focus:ring-2 focus:ring-black outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                                               <%= can('acc_settings', 'write') ? '' : 'disabled' %>>
+                                        <span class="text-gray-400 font-bold">%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="px-8 py-6 bg-gray-50 border-t border-gray-100 flex justify-end">
+                    <% if (can('acc_settings', 'write')) { %>
+                    <button type="submit" class="bg-black text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-800 shadow-lg transition-all">
+                        Update All Fees
+                    </button>
+                    <% } %>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<div id="accountModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+
+    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-100">
+            
+            <form id="accountForm" action="/admin/accounts/settings/add" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="id" id="editAccountId">
+
+                <div class="bg-white px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900" id="modalTitle">New Account</h3>
+                    <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-500">
+                        <span class="material-icons-outlined">close</span>
+                    </button>
+                </div>
+
+                <div class="px-6 py-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Account Name</label>
+                        <input type="text" name="account_name" id="accName" required placeholder="e.g. Bkash Personal" 
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none transition disabled:bg-gray-100 disabled:text-gray-500" 
+                               <%= can('acc_settings', 'write') ? '' : 'disabled' %>>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Account Number / Details</label>
+                        <input type="text" name="account_number" id="accNumber" placeholder="e.g. 017XXXXXXXX" 
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none transition disabled:bg-gray-100 disabled:text-gray-500"
+                               <%= can('acc_settings', 'write') ? '' : 'disabled' %>>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Bank / Type</label>
+                        <select name="bank_name" id="accType" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none bg-white transition disabled:bg-gray-100 disabled:text-gray-500" 
+                                <%= can('acc_settings', 'write') ? '' : 'disabled' %>>
+                            <option value="Mobile Banking">Mobile Banking (Bkash/Nagad)</option>
+                            <option value="Bank">Bank Account</option>
+                            <option value="Cash">Cash / Drawer</option>
+                        </select>
+                    </div>
+
+                    <div id="initialBalanceField">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Initial Balance</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">৳</span>
+                            <input type="number" name="initial_balance" value="0" step="0.01"
+                                   class="w-full pl-8 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black outline-none font-bold transition disabled:bg-gray-100 disabled:text-gray-500"
+                                   <%= can('acc_settings', 'write') ? '' : 'disabled' %>>
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1">Starting balance for this account.</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3">
+                    <% if (can('acc_settings', 'write')) { %>
+                    <button type="submit" id="submitBtn" class="bg-black text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow">
+                        Create Account
+                    </button>
+                    <% } %>
+                    <button type="button" onclick="closeModal()" class="bg-white text-gray-700 border border-gray-200 px-5 py-2 rounded-lg font-bold text-sm hover:bg-gray-50 transition">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('accountModal');
+    const form = document.getElementById('accountForm');
+    const title = document.getElementById('modalTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Fields
+    const accName = document.getElementById('accName');
+    const accNumber = document.getElementById('accNumber');
+    const accType = document.getElementById('accType');
+    const initialBalanceField = document.getElementById('initialBalanceField');
+    const editAccountId = document.getElementById('editAccountId');
+
+    function openModal(mode, data = null) {
+        modal.classList.remove('hidden');
+        
+        if (mode === 'add') {
+            // Setup for Add
+            form.action = '/admin/accounts/settings/add';
+            title.innerText = 'New Account';
+            submitBtn.innerText = 'Create Account';
+            
+            // Clear fields
+            accName.value = '';
+            accNumber.value = '';
+            accType.value = 'Mobile Banking';
+            initialBalanceField.classList.remove('hidden'); // Show Balance
+            editAccountId.value = '';
+            
+        } else if (mode === 'edit') {
+            // Setup for Edit
+            form.action = '/admin/accounts/settings/edit';
+            title.innerText = 'Edit Account';
+            submitBtn.innerText = 'Save Changes';
+            
+            // Fill fields
+            accName.value = data.account_name;
+            accNumber.value = data.account_number;
+            accType.value = data.bank_name;
+            initialBalanceField.classList.add('hidden'); // Hide Balance (Prevent editing balance directly here)
+            editAccountId.value = data.id;
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+</script>

@@ -1,0 +1,446 @@
+<div id="newOrderModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm transition-opacity">
+    <div class="bg-white w-full max-w-5xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col transform transition-transform scale-100">
+        
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div>
+                <h3 class="font-bold text-lg text-gray-900" id="modalTitle">Create New Order</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Enter details to generate a manual order.</p>
+            </div>
+            <button onclick="document.getElementById('newOrderModal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 transition">
+                <span class="material-icons-outlined text-lg">close</span>
+            </button>
+        </div>
+
+        <form action="/admin/orders/create-order" method="POST" class="flex-1 overflow-hidden flex flex-col" id="createOrderForm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="cart_items" id="cartItemsInput">
+
+            <div class="flex-1 overflow-y-auto bg-gray-50/50 p-6">
+                <% if (!can('orders_web', 'write')) { %>
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <span class="material-icons-outlined text-yellow-400">lock</span>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                <span class="font-bold">View Only Mode:</span> You do not have permission to create orders.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <div class="grid grid-cols-12 gap-6 h-full">
+                    
+                    <div class="col-span-12 lg:col-span-7 space-y-6">
+                        
+                        <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden group">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Customer Information</h4>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Phone Number <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500 text-sm font-bold">+88</span>
+                                        </div>
+                                        <input type="text" name="phone" id="phoneInput" required placeholder="017xxxxxxxx" maxlength="11"
+                                            class="w-full pl-12 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-black focus:bg-white focus:ring-0 transition disabled:bg-gray-100 disabled:text-gray-500"
+                                            oninput="validatePhone(this)"
+                                            onblur="checkCustomer(this.value)"
+                                            <%= can('orders_web', 'write') ? '' : 'disabled' %>>
+                                        
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none" id="phoneStatusIcon" style="display:none;">
+                                            <span class="material-icons-outlined text-green-500 text-lg">check_circle</span>
+                                        </div>
+                                    </div>
+                                    <p id="phoneMsg" class="text-[10px] mt-1.5 font-medium"></p>
+                                </div>
+
+                                <div id="customerStats" class="hidden bg-blue-50 border border-blue-100 rounded p-3 flex items-center justify-between text-blue-800">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-icons-outlined text-lg">history</span>
+                                        <span class="text-xs font-bold">Existing Customer</span>
+                                    </div>
+                                    <div class="text-right text-xs">
+                                        <div class="font-bold"><span id="statsCount">0</span> Delivered Orders</div>
+                                        <div class="opacity-75">Lifetime Value: TK. <span id="statsLtv">0</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="col-span-2 md:col-span-1">
+                                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Full Name <span class="text-red-500">*</span></label>
+                                        <input type="text" name="name" id="nameInput" required 
+                                               class="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                                    </div>
+                                    <div class="col-span-2 md:col-span-1">
+                                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Area</label>
+                                        <select name="delivery_area" class="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" onchange="updateTotals()">
+                                            <option value="inside">Inside Dhaka (70 TK)</option>
+                                            <option value="outside">Outside Dhaka (130 TK)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Address <span class="text-red-500">*</span></label>
+                                        <input type="text" name="address" id="addressInput" required placeholder="House, Road, Area..."
+                                               class="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Order Source & Status</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Source</label>
+                                    <select name="order_source" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                                        <option value="website">Website</option>
+                                        <option value="messenger">Messenger</option>
+                                        <option value="whatsapp">WhatsApp</option>
+                                        <option value="phone">Phone Call</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Order Comments</label>
+                                    
+                                    <div id="noteHistory" class="w-full border border-gray-200 bg-gray-50 rounded p-2 text-[10px] text-gray-600 mb-2 h-24 overflow-y-auto whitespace-pre-wrap hidden"></div>
+                                    
+                                    <textarea name="new_admin_note" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" placeholder="Add a new comment..."></textarea>
+                                </div>
+                            </div>
+                            
+                            <div id="confirmationSection" class="mt-4 bg-yellow-50 border border-yellow-200 rounded p-3 flex items-center justify-between">
+                                <span class="text-xs font-bold text-yellow-800 uppercase">Order Confirmed?</span>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="is_confirmed" value="yes" class="text-black focus:ring-black">
+                                        <span class="text-xs font-bold text-gray-700">Yes</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="is_confirmed" value="no" checked class="text-black focus:ring-black">
+                                        <span class="text-xs font-bold text-gray-700">No (Hold)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="col-span-12 lg:col-span-5 space-y-4">
+                        
+                        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-visible z-50">
+                            <div class="p-3 border-b border-gray-100 bg-gray-50 rounded-t-lg">
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Search Products</label>
+                                <div class="relative">
+                                    <input type="text" id="productSearch" placeholder="SKU or Name..." 
+                                           class="w-full border border-gray-300 rounded pl-9 pr-3 py-2 text-sm focus:border-black focus:ring-0 disabled:bg-gray-100 disabled:text-gray-500"
+                                           autocomplete="off" <%= can('orders_web', 'write') ? '' : 'disabled' %>>
+                                    <span class="material-icons-outlined absolute left-2.5 top-2 text-gray-400 text-lg">search</span>
+                                    
+                                    <div id="searchResults" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 shadow-2xl rounded-md max-h-80 overflow-y-auto z-[100]"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-0 max-h-[220px] overflow-y-auto bg-white min-h-[150px]">
+                                <table class="w-full text-left">
+                                    <thead class="bg-gray-50 sticky top-0 z-10">
+                                        <tr class="text-[10px] text-gray-400 uppercase">
+                                            <th class="pl-4 py-2 font-bold">Item</th>
+                                            <th class="py-2 font-bold">Qty</th>
+                                            <th class="pr-4 py-2 text-right font-bold">Price</th>
+                                            <th class="w-8"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cartTableBody">
+                                        </tbody>
+                                </table>
+                                <div id="emptyCartMsg" class="flex flex-col items-center justify-center h-32 text-gray-300">
+                                    <span class="material-icons-outlined text-3xl mb-1">shopping_basket</span>
+                                    <span class="text-xs">Cart is empty</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-4">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payment Details</h4>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Discount</label>
+                                    <div class="relative">
+                                        <input type="number" name="discount_amount" id="discountInput" value="0" min="0" oninput="updateTotals()"
+                                               class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:border-black text-right pr-6">
+                                        <span class="absolute right-2 top-1.5 text-xs text-gray-400">TK</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Advance Paid</label>
+                                    <div class="relative">
+                                        <input type="number" name="advance_payment" id="advanceInput" value="0" min="0" oninput="updateTotals()"
+                                               class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:border-black text-right pr-6">
+                                        <span class="absolute right-2 top-1.5 text-xs text-gray-400">TK</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-dashed border-gray-200">
+
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between text-gray-500">
+                                    <span>Subtotal</span>
+                                    <span class="font-mono">TK. <span id="displaySubtotal">0</span></span>
+                                </div>
+                                <div class="flex justify-between text-gray-500">
+                                    <span>Delivery</span>
+                                    <span class="font-mono">TK. <span id="displayDelivery">70</span></span>
+                                </div>
+                                <div class="flex justify-between text-red-500" id="rowDiscount" style="display:none;">
+                                    <span>Discount</span>
+                                    <span class="font-mono">- TK. <span id="displayDiscount">0</span></span>
+                                </div>
+                                
+                                <div class="flex justify-between items-center pt-3 border-t border-gray-100 mt-2">
+                                    <span class="font-bold text-gray-900 text-base">Total Amount</span>
+                                    <span class="font-bold text-gray-900 text-xl font-mono">TK. <span id="displayTotal">0</span></span>
+                                </div>
+
+                                <div class="flex justify-between items-center text-xs mt-1">
+                                    <span class="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded">Paid: <span id="displayPaid">0</span></span>
+                                    <span class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">Due: <span id="displayDue">0</span></span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
+                <button type="button" onclick="document.getElementById('newOrderModal').classList.add('hidden')" class="px-5 py-2.5 text-xs font-bold text-gray-500 uppercase hover:text-black transition">Cancel</button>
+                <% if (can('orders_web', 'write')) { %>
+                <button type="button" onclick="submitOrder()" class="px-8 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded shadow-lg hover:bg-gray-800 transition transform hover:-translate-y-0.5">
+                    Create Order
+                </button>
+                <% } %>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let cart = [];
+
+    // --- 1. Phone Validation & Customer Check ---
+    function validatePhone(input) {
+        const val = input.value.replace(/[^0-9]/g, '');
+        input.value = val;
+        
+        const msg = document.getElementById('phoneMsg');
+        const icon = document.getElementById('phoneStatusIcon');
+
+        if (val.length === 0) {
+            msg.innerText = '';
+            input.classList.remove('border-red-500', 'bg-red-50', 'border-green-500', 'bg-green-50');
+            icon.style.display = 'none';
+        } else if (!val.startsWith('01')) {
+            msg.innerText = 'Must start with 01';
+            msg.className = 'text-[10px] mt-1.5 font-bold text-red-600';
+            input.classList.add('border-red-500', 'bg-red-50');
+            icon.style.display = 'none';
+        } else if (val.length < 11) {
+            msg.innerText = `Typing... ${val.length}/11`;
+            msg.className = 'text-[10px] mt-1.5 font-bold text-orange-500';
+            input.classList.remove('border-red-500', 'bg-red-50');
+            icon.style.display = 'none';
+        } else if (val.length === 11) {
+            msg.innerText = 'Valid Number';
+            msg.className = 'text-[10px] mt-1.5 font-bold text-green-600';
+            input.classList.add('border-green-500', 'bg-green-50');
+            icon.style.display = 'flex';
+        }
+    }
+
+    async function checkCustomer(phone) {
+        if(phone.length !== 11 || !phone.startsWith('01')) return;
+        
+        const res = await fetch(`/admin/orders/check-customer?phone=${phone}`);
+        const data = await res.json();
+        
+        if (data.found) {
+            // Prefill
+            document.getElementById('nameInput').value = data.customer.full_name;
+            document.getElementById('addressInput').value = data.customer.address;
+            
+            // Show Stats
+            document.getElementById('customerStats').classList.remove('hidden');
+            document.getElementById('statsCount').innerText = data.stats.count;
+            document.getElementById('statsLtv').innerText = data.stats.ltv;
+        } else {
+            document.getElementById('customerStats').classList.add('hidden');
+        }
+    }
+    
+    // --- 2. Product Search (Updated Template) ---
+    const searchInput = document.getElementById('productSearch');
+    const resultsBox = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', async (e) => {
+        const query = e.target.value;
+        if(query.length < 2) { resultsBox.classList.add('hidden'); return; }
+
+        const res = await fetch(`/admin/orders/search-products?q=${query}`);
+        const products = await res.json();
+
+        resultsBox.innerHTML = products.map(p => {
+            const isOutOfStock = p.stock_quantity <= 0;
+            // Use compare_price if available, otherwise sale_price
+            const displayPrice = p.compare_price > 0 ? p.compare_price : p.sale_price;
+
+            return `
+            <div ${isOutOfStock ? '' : `onclick='addToCart(${JSON.stringify({ ...p, price: displayPrice }).replace(/'/g, "&#39;")})'`} 
+                 class="p-3 border-b border-gray-100 last:border-0 flex items-center gap-3 transition-colors 
+                 ${isOutOfStock ? 'opacity-60 bg-gray-50 cursor-not-allowed' : 'hover:bg-blue-50 cursor-pointer bg-white'}">
+                
+                <div class="relative w-10 h-12 flex-shrink-0 border border-gray-200 rounded-sm overflow-hidden">
+                    <img src="${p.image || '/uploads/placeholder.jpg'}" class="w-full h-full object-cover ${isOutOfStock ? 'grayscale' : ''}">
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs font-bold text-gray-800 truncate">${p.product_name}</div>
+                    <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
+                        <span class="font-mono bg-gray-100 px-1 rounded text-gray-600">${p.sku}</span>
+                        ${p.size ? `<span class="border border-gray-200 px-1 rounded">${p.size}</span>` : ''}
+                        ${p.color ? `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full border border-gray-300" style="background-color:${p.color}"></span> ${p.color}</span>` : ''}
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <div class="text-xs font-bold text-black font-mono">TK.${displayPrice}</div>
+                    <div class="text-[9px] ${isOutOfStock ? 'text-red-500 font-bold' : 'text-green-600'}">
+                        ${isOutOfStock ? 'Out' : p.stock_quantity + ' Left'}
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+        
+        resultsBox.classList.remove('hidden');
+    });
+
+    // Close search on outside click
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.classList.add('hidden');
+        }
+    });
+
+    // --- 3. Cart Logic ---
+    window.addToCart = (product) => {
+        const existing = cart.find(item => item.variant_id === product.variant_id);
+        if(existing) {
+            existing.quantity++;
+        } else {
+            cart.push({
+                product_id: product.product_id,
+                variant_id: product.variant_id,
+                product_name: product.product_name,
+                sku: product.sku,
+                size: product.size,
+                color: product.color,
+                image: product.image,
+                price: product.price, // Already set to compare_price/regular in search
+                quantity: 1
+            });
+        }
+        renderCart();
+        resultsBox.classList.add('hidden');
+        searchInput.value = '';
+        searchInput.focus();
+    };
+
+    window.removeFromCart = (index) => {
+        cart.splice(index, 1);
+        renderCart();
+    };
+
+    function renderCart() {
+        const tbody = document.getElementById('cartTableBody');
+        const emptyMsg = document.getElementById('emptyCartMsg');
+        
+        if(cart.length === 0) {
+            tbody.innerHTML = '';
+            emptyMsg.style.display = 'flex';
+        } else {
+            emptyMsg.style.display = 'none';
+            tbody.innerHTML = cart.map((item, i) => `
+                <tr class="border-b border-gray-50 last:border-0 group hover:bg-gray-50 transition">
+                    <td class="pl-4 py-2">
+                        <div class="flex items-center gap-3">
+                            <img src="${item.image || '/uploads/placeholder.jpg'}" class="w-8 h-10 object-cover rounded border border-gray-200">
+                            <div>
+                                <div class="text-xs font-bold text-gray-800 line-clamp-1 w-32">${item.product_name}</div>
+                                <div class="text-[9px] text-gray-400 mt-0.5">
+                                    ${item.color ? item.color + ' / ' : ''}${item.size}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-2">
+                        <input type="number" min="1" value="${item.quantity}" 
+                               onchange="updateQty(${i}, this.value)"
+                               class="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:border-black focus:ring-0">
+                    </td>
+                    <td class="pr-4 py-2 text-right">
+                        <div class="text-xs font-bold text-gray-900 font-mono">TK.${item.price * item.quantity}</div>
+                        <div class="text-[9px] text-gray-400">@${item.price}</div>
+                    </td>
+                    <td class="py-2 text-center">
+                        <button onclick="removeFromCart(${i})" class="text-gray-300 hover:text-red-500 transition">
+                            <span class="material-icons-outlined text-sm">close</span>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        updateTotals();
+    }
+
+    window.updateQty = (index, qty) => {
+        cart[index].quantity = parseInt(qty);
+        renderCart(); // Re-render to update line totals
+    };
+
+    function updateTotals() {
+        const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        const deliveryRate = document.querySelector('select[name="delivery_area"]').value === 'inside' ? 70 : 130;
+        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+        const advance = parseFloat(document.getElementById('advanceInput').value) || 0;
+        
+        const total = subtotal + deliveryRate - discount;
+        const due = total - advance;
+
+        document.getElementById('displaySubtotal').innerText = subtotal;
+        document.getElementById('displayDelivery').innerText = deliveryRate;
+        document.getElementById('displayDiscount').innerText = discount;
+        document.getElementById('displayTotal').innerText = total;
+        document.getElementById('displayPaid').innerText = advance;
+        document.getElementById('displayDue').innerText = due;
+
+        document.getElementById('rowDiscount').style.display = discount > 0 ? 'flex' : 'none';
+    }
+
+    function submitOrder() {
+        if(cart.length === 0) return alert('Please add at least one product.');
+        
+        const phone = document.getElementById('phoneInput').value;
+        if(phone.length !== 11 || !phone.startsWith('01')) return alert('Please enter a valid BD phone number.');
+
+        document.getElementById('cartItemsInput').value = JSON.stringify(cart);
+        document.getElementById('createOrderForm').submit();
+    }
+</script>

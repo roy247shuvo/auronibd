@@ -1,0 +1,74 @@
+<div class="p-6">
+    <% if (!can('camp_subs', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage subscribers.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <span class="material-icons-outlined text-gray-400">contacts</span>
+                Subscribers
+            </h1>
+            <p class="text-xs text-gray-500 mt-1">Manage phone numbers collected from the website footer.</p>
+        </div>
+        
+        <div class="bg-black text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg">
+            <%= subscribers.length %> Active Subscribers
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-w-4xl">
+        <% if (subscribers.length === 0) { %>
+            <div class="p-10 text-center text-gray-500">
+                <span class="material-icons-outlined text-4xl mb-2 opacity-50">phonelink_erase</span>
+                <p>No subscribers yet.</p>
+            </div>
+        <% } else { %>
+            <table class="min-w-full text-sm text-left">
+                <thead class="text-xs text-gray-500 uppercase bg-gray-50/80 border-b border-gray-100">
+                    <tr>
+                        <th class="px-6 py-4 font-bold tracking-wider">Date Joined</th>
+                        <th class="px-6 py-4 font-bold tracking-wider">Phone Number</th>
+                        <th class="px-6 py-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    <% subscribers.forEach(sub => { %>
+                    <tr class="group hover:bg-gray-50/80 transition-colors">
+                        <td class="px-6 py-4 font-mono text-gray-500">
+                            <%= new Date(sub.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                            <span class="text-xs text-gray-300 ml-1"><%= new Date(sub.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="font-bold text-gray-900 font-mono tracking-wide text-base"><%= sub.phone %></span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <% if (can('camp_subs', 'write')) { %>
+                            <form action="/admin/campaigns/subscribers/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete this subscriber?');">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                
+                                <input type="hidden" name="id" value="<%= sub.id %>">
+                                <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors" title="Delete">
+                                    <span class="material-icons-outlined text-lg">delete</span>
+                                </button>
+                            </form>
+                            <% } %>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        <% } %>
+    </div>
+</div>

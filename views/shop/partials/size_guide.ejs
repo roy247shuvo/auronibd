@@ -1,0 +1,35 @@
+<div x-show="showSizeChart" style="display: none;" class="relative z-50">
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="showSizeChart = false"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white p-8 max-w-lg w-full shadow-2xl relative">
+            <button @click="showSizeChart = false" class="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors">
+                <span class="material-icons-outlined">close</span>
+            </button>
+            
+            <h3 class="font-serif text-2xl mb-6 text-center italic">Size Guide</h3>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="bg-gray-50 font-bold uppercase text-[10px] tracking-widest text-gray-500">
+                        <tr>
+                            <th class="p-4 border-b border-gray-100">Size</th>
+                            <th class="p-4 border-b border-gray-100">Bust</th>
+                            <th class="p-4 border-b border-gray-100">Waist</th>
+                            <th class="p-4 border-b border-gray-100">Hips</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-gray-600">
+                        <tr><td class="p-4 font-bold text-black">S</td><td class="p-4">34"</td><td class="p-4">26"</td><td class="p-4">36"</td></tr>
+                        <tr><td class="p-4 font-bold text-black">M</td><td class="p-4">36"</td><td class="p-4">28"</td><td class="p-4">38"</td></tr>
+                        <tr><td class="p-4 font-bold text-black">L</td><td class="p-4">38"</td><td class="p-4">30"</td><td class="p-4">40"</td></tr>
+                        <tr><td class="p-4 font-bold text-black">XL</td><td class="p-4">40"</td><td class="p-4">32"</td><td class="p-4">42"</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-6 text-[10px] text-gray-400 text-center uppercase tracking-widest">
+                Measurements in Inches
+            </div>
+        </div>
+    </div>
+</div>

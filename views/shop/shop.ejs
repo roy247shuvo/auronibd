@@ -1,0 +1,278 @@
+<div class="max-w-[1800px] mx-auto px-6 pt-32 pb-20" 
+     x-data="shopApp()" 
+     x-init="init()">
+
+    <div class="lg:hidden flex items-center justify-between mb-8 sticky top-[70px] z-30 bg-white/95 backdrop-blur py-4 border-b border-gray-100 transition-all">
+        <h1 class="font-serif text-xl italic text-gray-900 truncate max-w-[60%]" x-text="pageTitle"><%= pageTitle %></h1>
+        <button @click="mobileFiltersOpen = true" class="flex items-center space-x-2 bg-black text-white px-5 py-2 text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg hover:bg-gray-800 transition">
+            <span class="material-icons-outlined text-sm">tune</span>
+            <span>Filter</span>
+        </button>
+    </div>
+
+    <div class="hidden lg:block text-center mb-16">
+        <h1 class="font-serif text-4xl md:text-5xl italic text-gray-900 mb-4" x-text="pageTitle"><%= pageTitle %></h1>
+        <div class="h-0.5 w-12 bg-black mx-auto"></div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-12">
+        
+        <aside class="hidden lg:block w-64 flex-shrink-0 h-[calc(100vh-150px)] sticky top-32 overflow-y-auto custom-scrollbar pr-4">
+            <div class="flex items-center justify-between mb-8 pb-2 border-b border-gray-100">
+                <span class="font-serif text-lg italic text-black">Refine By</span>
+                <button @click="resetFilters()" class="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">Clear</button>
+            </div>
+            <%- include('partials/filter_content') %>
+        </aside>
+
+        <div x-show="mobileFiltersOpen" style="display: none;" class="relative z-[60]" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+            <div x-show="mobileFiltersOpen" 
+                 x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" 
+                 x-transition:leave="ease-in-out duration-500" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" 
+                 class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" @click="mobileFiltersOpen = false"></div>
+
+            <div class="fixed inset-0 overflow-hidden">
+                <div class="absolute inset-0 overflow-hidden">
+                    <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+                        <div x-show="mobileFiltersOpen" 
+                             x-transition:enter="transform transition ease-in-out duration-500" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" 
+                             x-transition:leave="transform transition ease-in-out duration-500" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" 
+                             class="pointer-events-auto w-screen max-w-xs">
+                            
+                            <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                                <div class="px-6 py-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                                    <h2 class="text-lg font-serif italic text-gray-900">Filters</h2>
+                                    <button @click="mobileFiltersOpen = false" class="text-gray-400 hover:text-black">
+                                        <span class="material-icons-outlined">close</span>
+                                    </button>
+                                </div>
+                                <div class="relative flex-1 px-6 py-6">
+                                    <%- include('partials/filter_content') %>
+                                </div>
+                                <div class="p-6 border-t border-gray-100 bg-gray-50 sticky bottom-0">
+                                    <button @click="mobileFiltersOpen = false" class="w-full bg-black text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition">
+                                        Show Results
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 min-h-[500px]">
+            
+            <div x-show="loading && products.length === 0" class="flex justify-center py-40">
+                <div class="flex flex-col items-center space-y-4">
+                    <div class="w-10 h-10 border-2 border-gray-200 border-t-black rounded-full animate-spin"></div>
+                </div>
+            </div>
+
+            <div x-show="!loading && products.length === 0" class="flex flex-col items-center justify-center py-32 text-center" style="display: none;">
+                <span class="material-icons-outlined text-4xl text-gray-200 mb-4">checkroom</span>
+                <h3 class="font-serif text-xl text-gray-900 italic">No products found</h3>
+                <p class="text-[10px] text-gray-400 mt-2 uppercase tracking-wide">Try adjusting your filters</p>
+                <button @click="resetFilters()" class="mt-6 border-b border-black text-[10px] font-bold uppercase pb-1 hover:text-gray-500 transition-colors">Clear Filters</button>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 md:gap-x-6 gap-y-12" x-show="products.length > 0" style="display: none;" :class="{ '!grid': products.length > 0 }">
+                <template x-for="product in products" :key="product.id">
+                    
+                    <div class="group relative flex flex-col select-none" 
+                         x-data="{ activeImage: 0, images: product.images }"
+                         @mouseleave="activeImage = 0" 
+                         @mousemove="
+                            if(images.length > 1) {
+                                // Robust Math for Scrubbing (Fixes Jumping)
+                                let rect = $el.getBoundingClientRect();
+                                let x = $event.clientX - rect.left; 
+                                let width = rect.width;
+                                let percentage = Math.max(0, Math.min(1, x / width));
+                                activeImage = Math.floor(percentage * images.length);
+                                activeImage = Math.min(activeImage, images.length - 1);
+                            }
+                         ">
+                        
+                        <div class="group relative flex flex-col select-none" 
+                         x-data="{ activeImage: 0, lockedIndex: 0, images: product.images }"
+                         @mouseleave="activeImage = lockedIndex" 
+                         @mousemove="
+                            if(images.length > 1) {
+                                let rect = $el.getBoundingClientRect();
+                                let x = $event.clientX - rect.left; 
+                                let width = rect.width;
+                                let percentage = Math.max(0, Math.min(1, x / width));
+                                activeImage = Math.floor(percentage * images.length);
+                                activeImage = Math.min(activeImage, images.length - 1);
+                            }
+                         ">
+                        
+                        <div class="block relative aspect-[2/3] bg-gray-50 mb-4 overflow-hidden rounded-sm">
+                            
+                            <a :href="'/product/' + product.slug" class="block w-full h-full cursor-pointer">
+                                <template x-if="images.length > 0">
+                                    <img :src="images[activeImage]" class="w-full h-full object-cover transition-none">
+                                </template>
+                                <template x-if="images.length === 0">
+                                    <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                        <span class="material-icons-outlined text-2xl">image_not_supported</span>
+                                    </div>
+                                </template>
+                            </a>
+
+                            <button class="absolute top-2 right-2 z-20 w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-110" 
+                                    title="View Product"
+                                    @click.stop="window.location.href = '/product/' + product.slug">
+                                <span class="material-icons-outlined text-sm md:text-base">shopping_bag</span>
+                            </button>
+                            
+                            <div class="absolute top-2 left-2 flex flex-col space-y-1 pointer-events-none z-10">
+                                <template x-if="product.compare_price && product.compare_price < product.price">
+                                    <span class="bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm">Sale</span>
+                                </template>
+                            </div>
+                            
+                            <button class="absolute bottom-0 left-0 w-full py-3 bg-[#800000]/85 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 z-20 
+                                           opacity-100 lg:translate-y-full lg:group-hover:translate-y-0 lg:group-hover:opacity-100"
+                                    @click.stop="window.location.href = '/product/' + product.slug">
+                                View Details
+                            </button>
+                            
+                            <template x-if="images.length > 1">
+                                <div class="absolute bottom-0 left-0 h-0.5 bg-black transition-all duration-75 opacity-0 group-hover:opacity-100 z-10"
+                                     :style="'width: ' + ((activeImage + 1) / images.length * 100) + '%'"></div>
+                            </template>
+                        </div>
+
+                        <div class="px-1 text-center">
+                            <div class="text-[9px] uppercase tracking-widest text-gray-400 mb-1" x-text="product.brand_name"></div>
+                            <a :href="'/product/' + product.slug" class="font-serif text-sm text-gray-900 hover:text-brand-gold transition-colors truncate block" x-text="product.name"></a>
+                            
+                            <div class="flex items-center justify-center space-x-2 mt-2">
+                                <template x-if="product.compare_price && product.compare_price < product.price">
+                                    <span class="text-gray-400 line-through text-[11px]" x-text="'TK. ' + product.price"></span>
+                                </template>
+                                
+                                <span class="font-bold text-xs" 
+                                      :class="(product.compare_price && product.compare_price < product.price) ? 'text-red-600' : 'text-black'"
+                                      x-text="'TK. ' + (product.compare_price && product.compare_price < product.price ? product.compare_price : product.price)">
+                                </span>
+                            </div>
+
+                            <div class="flex justify-center space-x-1 mt-2 h-3"> <template x-for="(color, index) in product.available_colors.slice(0, 5)">
+        
+                                    <button @click.prevent.stop="lockedIndex = index; activeImage = index"
+                                            class="w-3 h-3 rounded-full border border-gray-100 hover:scale-125 transition-transform focus:outline-none"
+                                            :class="lockedIndex === index ? 'ring-1 ring-black ring-offset-1' : ''"
+                                            :style="'background-color: ' + color.hex" 
+                                            :title="color.name">
+                                    </button>
+                                    
+                                </template>
+                            
+                                <template x-if="product.available_colors.length > 5">
+                                    <span class="text-[8px] text-gray-400 flex items-center">+</span>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+
+            <div class="mt-20 text-center border-t border-gray-100 pt-10" x-show="hasMore && !loading">
+                <button @click="loadMore()" class="border-b border-black pb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-gray-500 hover:border-gray-500 transition-all">
+                    Load More
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    function shopApp() {
+        return {
+            loading: false,
+            pageTitle: '<%= pageTitle %>', // Initialize with server value
+            mobileFiltersOpen: false,
+            products: [],
+            page: 1,
+            hasMore: true,
+            filters: {
+                brands: [],
+                categories: [],
+                fabrics: [],
+                work_types: [],
+                colors: [],
+                collections: []
+            },
+            init() {
+                // Initialize Filters from URL
+                const params = new URLSearchParams(window.location.search);
+                
+                if (params.has('brand')) this.filters.brands.push(params.get('brand'));
+                if (params.has('category')) this.filters.categories.push(params.get('category'));
+                if (params.has('color')) this.filters.colors.push(params.get('color'));
+                if (params.has('collection')) this.filters.collections.push(params.get('collection'));
+
+                this.fetchProducts();
+            },
+            async fetchProducts(reset = false) {
+                if (reset) {
+                    this.products = [];
+                    this.page = 1;
+                    this.hasMore = true;
+                }
+                
+                this.loading = true;
+                try {
+                    const response = await fetch('/shop/filter', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // <--- ADD THIS LINE
+                        },
+                        body: JSON.stringify({ ...this.filters, page: this.page })
+                    });
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    
+                    const data = await response.json();
+                    
+                    // Update Title Dynamically
+                    if (data.pageTitle) {
+                        this.pageTitle = data.pageTitle;
+                        document.title = data.pageTitle + " | Niche Boutique"; 
+                    }
+
+                    if (data.products.length < 9) {
+                        this.hasMore = false;
+                    }
+                    
+                    this.products = [...this.products, ...data.products];
+                    
+                } catch (error) {
+                    console.error("Error fetching products:", error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            loadMore() {
+                this.page++;
+                this.fetchProducts();
+            },
+            resetFilters() {
+                this.filters = { brands: [], categories: [], fabrics: [], work_types: [], colors: [], collections: [] };
+                // Update URL to remove query params
+                window.history.pushState({}, '', '/shop');
+                // Reset title visually via reload or just fetch all
+                // For simplicity, we just fetch all. The title won't update without a reload, but content will.
+                this.fetchProducts(true);
+            },
+            addToCart(id) {
+                alert("Product " + id + " added to bag!"); 
+            }
+        }
+    }
+</script>

@@ -1,0 +1,328 @@
+<div class="max-w-6xl mx-auto">
+    
+    <% if (!can('web_elements', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage hero slides.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Homepage Hero</h1>
+            <p class="text-sm text-gray-500">Manage main slider. 1920x1080 resolution recommended.</p>
+        </div>
+        <% if (can('web_elements', 'write')) { %>
+        <button onclick="openAddModal()" class="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-black transition shadow-lg flex items-center">
+            <span class="material-icons-outlined mr-2">add</span> Add New Slide
+        </button>
+        <% } %>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% lightboxes.forEach(l => { %>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group relative flex flex-col">
+                
+                <div class="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                    <% 
+                        let displayUrl = l.image_url;
+                        if(l.media_type === 'image' && l.crop_data) {
+                            try {
+                                const c = JSON.parse(l.crop_data);
+                                const parts = l.image_url.split('/upload/');
+                                if(parts.length === 2) {
+                                    displayUrl = `${parts[0]}/upload/x_${Math.round(c.x)},y_${Math.round(c.y)},w_${Math.round(c.width)},h_${Math.round(c.height)},c_crop/${parts[1]}`;
+                                }
+                            } catch(e) {}
+                        }
+                    %>
+
+                    <% if(l.media_type === 'video') { %>
+                        <video src="<%= l.image_url %>" class="w-full h-full object-cover" muted loop></video>
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <span class="material-icons-outlined text-white text-4xl drop-shadow-lg">play_circle</span>
+                        </div>
+                    <% } else { %>
+                        <img src="<%= displayUrl %>" class="w-full h-full object-cover">
+                    <% } %>
+                    
+                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition duration-300">
+                        
+                        <% if (can('web_elements', 'write')) { %>
+                        <button 
+                            data-slide="<%= JSON.stringify(l) %>" 
+                            onclick="openEditModal(this.dataset.slide)" 
+                            class="bg-white text-gray-800 p-2 rounded-full shadow-lg hover:scale-110 transition">
+                            <span class="material-icons-outlined">edit</span>
+                        </button>
+                        <% } %>
+                        
+                        <% if (can('web_elements', 'delete')) { %>
+                        <form action="/admin/website/elements/delete/<%= l.id %>" method="POST" class="inline" onsubmit="return confirm('Delete this slide?');">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="bg-red-600 text-white p-2 rounded-full shadow-lg hover:scale-110 transition flex items-center justify-center">
+                                <span class="material-icons-outlined">delete</span>
+                            </button>
+                        </form>
+                        <% } %>
+                    </div>
+                    
+                    <div class="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wide backdrop-blur-sm">
+                        <%= l.media_type %>
+                    </div>
+                </div>
+
+                <div class="p-4 flex-1 flex flex-col">
+                    <h3 class="font-bold text-gray-800 text-lg"><%= l.title || 'No Title' %></h3>
+                    <div class="mt-auto pt-3 flex justify-between items-center text-xs text-gray-500 border-t border-gray-50">
+                        <span class="bg-gray-100 px-2 py-1 rounded">Order: <%= l.sort_order %></span>
+                        <span class="truncate max-w-[150px]"><%= l.link || 'No Link' %></span>
+                    </div>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</div>
+
+<div id="addModal" class="fixed inset-0 z-40 hidden bg-gray-900/60 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 transform transition-all scale-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <h3 class="text-xl font-bold mb-6 text-gray-900" id="modalTitle">Add Hero Slide</h3>
+        
+        <form action="/admin/website/elements/save" method="POST" class="space-y-5" id="slideForm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="id" id="slideId">
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Media Source</label>
+                <div class="flex space-x-2">
+                    <input type="text" name="image_url" id="lightboxImgInput" required readonly placeholder="Select Image or Video..." class="flex-1 border border-gray-200 rounded-lg px-4 py-3 text-sm bg-gray-50 text-gray-500 cursor-not-allowed">
+                    <input type="hidden" name="media_type" id="mediaTypeInput" value="image">
+                    <input type="hidden" name="crop_data" id="cropDataInput">
+
+                    <% if (can('web_elements', 'write')) { %>
+                    <button type="button" onclick="openMediaModal()" class="bg-gray-200 px-4 py-3 rounded-lg text-sm font-bold hover:bg-gray-300 transition">Select</button>
+                    <% } %>
+                </div>
+            </div>
+
+            <div id="previewContainer" class="hidden w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative group">
+                <img id="imgPreview" class="w-full h-48 object-cover hidden">
+                <video id="videoPreview" class="w-full h-48 object-cover hidden" muted loop autoplay></video>
+                <button type="button" id="reCropBtn" onclick="reOpenCropper()" class="hidden absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-black transition flex items-center">
+                    <span class="material-icons-outlined text-sm mr-1">crop</span> Edit Crop
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
+                    <input type="text" name="title" id="inputTitle" placeholder="e.g. Eid Collection" 
+                           class="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-black transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('web_elements', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Button Text</label>
+                    <input type="text" name="button_text" id="inputButton" value="Shop Now" 
+                           class="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-black transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('web_elements', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Link URL</label>
+                    <input type="text" name="link" id="inputLink" placeholder="/shop" 
+                           class="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-black transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('web_elements', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Sort Order</label>
+                    <input type="number" name="sort_order" id="inputSort" value="0" 
+                           class="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-black transition disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('web_elements', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 pt-4">
+                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition">Cancel</button>
+                <% if (can('web_elements', 'write')) { %>
+                <button type="submit" class="flex-1 py-3 text-sm font-bold text-white bg-black rounded-xl hover:bg-gray-800 transition shadow-lg">Save Slide</button>
+                <% } %>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="cropperModal" class="fixed inset-0 z-[60] hidden bg-black bg-opacity-95 flex flex-col items-center justify-center p-4">
+    <div class="relative w-full max-w-5xl h-[70vh] bg-black rounded-lg overflow-hidden flex justify-center">
+        <img id="cropperImage" src="" class="max-w-full max-h-full block">
+    </div>
+    <div class="mt-6 flex flex-col items-center space-y-2">
+        <p class="text-white font-bold uppercase tracking-widest text-xs mb-2">Aspect Ratio: 16:9 (Desktop Hero)</p>
+        <div class="flex space-x-4">
+            <button onclick="closeCropper()" class="px-6 py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700 transition">Cancel</button>
+            <button onclick="saveCrop()" class="px-8 py-3 bg-white text-black rounded-lg font-bold hover:bg-gray-200 shadow-lg flex items-center">
+                <span class="material-icons-outlined mr-2">check</span> Save Viewport
+            </button>
+        </div>
+    </div>
+</div>
+
+<%- include('../modals/media_library') %>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+    let cropper;
+    let tempImageUrl = '';
+
+    // === 1. MODAL FUNCTIONS ===
+    
+    // Open for New Slide
+    function openAddModal() {
+        document.getElementById('slideForm').reset();
+        document.getElementById('slideId').value = '';
+        document.getElementById('modalTitle').innerText = 'Add Hero Slide';
+        
+        document.getElementById('previewContainer').classList.add('hidden');
+        document.getElementById('cropDataInput').value = '';
+        document.getElementById('mediaTypeInput').value = 'image';
+        
+        document.getElementById('addModal').classList.remove('hidden');
+    }
+
+    // Open for Edit Slide (FIXED)
+    function openEditModal(dataString) {
+        // dataString is now properly escaped by EJS via data-slide attribute
+        const slide = JSON.parse(dataString);
+        
+        // Populate Fields
+        document.getElementById('slideId').value = slide.id;
+        document.getElementById('modalTitle').innerText = 'Edit Hero Slide';
+        
+        document.getElementById('inputTitle').value = slide.title || '';
+        document.getElementById('inputButton').value = slide.button_text || 'Shop Now';
+        document.getElementById('inputLink').value = slide.link || '';
+        document.getElementById('inputSort').value = slide.sort_order || 0;
+        
+        // Populate Hidden Media Fields
+        document.getElementById('lightboxImgInput').value = slide.image_url;
+        document.getElementById('mediaTypeInput').value = slide.media_type;
+        document.getElementById('cropDataInput').value = slide.crop_data || '';
+
+        // Trigger Preview Logic manually
+        setMediaToForm(slide.image_url, slide.media_type);
+
+        document.getElementById('addModal').classList.remove('hidden');
+    }
+
+    // === 2. MEDIA LIBRARY INTEGRATION ===
+    function openMediaModal() {
+        // Set context to 'banner' for HD uploads
+        if(typeof setMediaContext === 'function') {
+            setMediaContext('banner');
+        }
+        document.getElementById('mediaModal').classList.remove('hidden');
+        switchTab('library');
+    }
+
+    function closeMediaModal() {
+        document.getElementById('mediaModal').classList.add('hidden');
+    }
+
+    // Handle Selection from Media Library
+    function handleMediaSelect(url) {
+        tempImageUrl = url;
+        closeMediaModal();
+
+        const isVideo = url.match(/\.(mp4|webm|mov)$/i);
+        
+        if (isVideo) {
+            setMediaToForm(url, 'video');
+        } else {
+            // Open Cropper for Images
+            openCropper(url);
+        }
+    }
+
+    // === 3. CROPPER LOGIC (16:9) ===
+    function openCropper(url) {
+        const cropperModal = document.getElementById('cropperModal');
+        const imageElement = document.getElementById('cropperImage');
+        imageElement.src = url;
+        cropperModal.classList.remove('hidden');
+
+        if (cropper) { cropper.destroy(); }
+
+        cropper = new Cropper(imageElement, {
+            viewMode: 1, 
+            dragMode: 'move', 
+            aspectRatio: 16 / 9, // Locked to Desktop Ratio
+            autoCropArea: 0.9,
+            responsive: true,
+            zoomable: true,
+        });
+    }
+
+    function closeCropper() {
+        document.getElementById('cropperModal').classList.add('hidden');
+        if (cropper) cropper.destroy();
+    }
+
+    function saveCrop() {
+        const data = cropper.getData(true); 
+        document.getElementById('cropDataInput').value = JSON.stringify(data);
+        setMediaToForm(tempImageUrl, 'image');
+        closeCropper();
+    }
+
+    function reOpenCropper() {
+        openCropper(document.getElementById('lightboxImgInput').value);
+    }
+
+    // === 4. PREVIEW LOGIC ===
+    function setMediaToForm(url, type) {
+        document.getElementById('lightboxImgInput').value = url;
+        document.getElementById('mediaTypeInput').value = type;
+
+        const previewContainer = document.getElementById('previewContainer');
+        const imgPreview = document.getElementById('imgPreview');
+        const videoPreview = document.getElementById('videoPreview');
+        const reCropBtn = document.getElementById('reCropBtn');
+
+        previewContainer.classList.remove('hidden');
+
+        if (type === 'video') {
+            videoPreview.src = url;
+            videoPreview.classList.remove('hidden');
+            imgPreview.classList.add('hidden');
+            reCropBtn.classList.add('hidden');
+            document.getElementById('cropDataInput').value = '';
+        } else {
+            // Preview with crop
+            let previewUrl = url;
+            const cropData = document.getElementById('cropDataInput').value;
+            if(cropData) {
+                try {
+                    const c = JSON.parse(cropData);
+                    const parts = url.split('/upload/');
+                    if(parts.length === 2) {
+                        previewUrl = `${parts[0]}/upload/x_${Math.round(c.x)},y_${Math.round(c.y)},w_${Math.round(c.width)},h_${Math.round(c.height)},c_crop/${parts[1]}`;
+                    }
+                } catch(e) {}
+            }
+            imgPreview.src = previewUrl;
+            imgPreview.classList.remove('hidden');
+            videoPreview.classList.add('hidden');
+            reCropBtn.classList.remove('hidden');
+        }
+    }
+</script>

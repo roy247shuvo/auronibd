@@ -1,0 +1,308 @@
+<div id="printBarcodeModal" class="fixed inset-0 z-[250] hidden bg-gray-900 bg-opacity-90 backdrop-blur-sm flex items-center justify-center">
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div>
+                <h3 class="text-lg font-bold text-gray-800">Print Barcodes</h3>
+                <p class="text-xs text-gray-500" id="printProductName">Loading...</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button id="btnPrintBatch" onclick="printSelected()" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-green-700 transition shadow-sm flex items-center">
+                    <span class="material-icons-outlined text-sm mr-2">print</span> Print Selected
+                </button>
+
+                <button id="btnToggleBatch" onclick="toggleBatchMode()" class="bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-black transition shadow-sm flex items-center">
+                    <span class="material-icons-outlined text-sm mr-2">checklist</span> Print Multiple
+                </button>
+
+                <button onclick="closePrintModal()" class="text-gray-400 hover:text-gray-600 ml-4">
+                    <span class="material-icons-outlined">close</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
+            <div id="batchHeader" class="hidden mb-4 px-4 flex items-center">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" onchange="toggleSelectAll(this)" class="w-5 h-5 rounded border-gray-300 text-gray-900 focus:ring-gray-900">
+                    <span class="text-sm font-bold text-gray-700">Select All Variants</span>
+                </label>
+            </div>
+
+            <div id="printVariantsList" class="space-y-3">
+                </div>
+        </div>
+
+        <div class="px-6 py-4 border-t border-gray-100 bg-white flex justify-end">
+            <button onclick="closePrintModal()" class="px-6 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="printArea" class="hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+<script>
+    let currentPrintProduct = null;
+    let isBatchMode = false;
+
+    // === 1. MODAL CONTROLS ===
+    async function openPrintModal(productId) {
+        document.getElementById('printBarcodeModal').classList.remove('hidden');
+        const container = document.getElementById('printVariantsList');
+        container.innerHTML = '<div class="text-center py-10"><span class="material-icons-outlined animate-spin text-gray-400 text-3xl">sync</span></div>';
+
+        // Reset Mode
+        isBatchMode = false;
+        updateBatchUI();
+
+        try {
+            const res = await fetch(`/admin/products/variants/json/${productId}`);
+            const data = await res.json();
+            
+            if(data.success) {
+                currentPrintProduct = data.product;
+                document.getElementById('printProductName').innerText = data.product.name;
+                renderPrintRows(data.product, data.variants, data.images);
+            }
+        } catch(err) {
+            console.error(err);
+            container.innerHTML = '<p class="text-red-500 text-center">Error loading variants.</p>';
+        }
+    }
+
+    function closePrintModal() {
+        document.getElementById('printBarcodeModal').classList.add('hidden');
+        const url = new URL(window.location);
+        if (url.searchParams.has('new_product_id')) {
+            url.searchParams.delete('new_product_id');
+            window.history.replaceState({}, document.title, url);
+        }
+    }
+
+    // === 2. RENDER LOGIC ===
+    function renderPrintRows(product, variants, images) {
+        const container = document.getElementById('printVariantsList');
+        container.innerHTML = '';
+
+        const getImg = (color) => {
+            const match = images.find(img => img.color_name === color);
+            return match ? match.image_url : (images[0]?.image_url || '');
+        };
+
+        variants.forEach(v => {
+            const imgUrl = getImg(v.color);
+            const row = `
+                <div class="variant-row bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between transition hover:border-gray-300">
+                    <div class="flex items-center space-x-4">
+                        
+                        <div class="batch-checkbox hidden">
+                            <input type="checkbox" 
+                                data-id="${v.id}"
+                                data-sku="${v.sku}"
+                                data-name="${product.name.replace(/'/g, "")}"
+                                data-price="${v.price}"
+                                data-compare="${v.compare_price}"
+                                class="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer">
+                        </div>
+
+                        <div class="h-12 w-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 flex-shrink-0">
+                            ${imgUrl ? `<img src="${imgUrl}" class="h-full w-full object-cover">` : '<span class="material-icons-outlined text-gray-300 p-3">image</span>'}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-sm">${v.color} / ${v.size}</h4>
+                            <div class="flex items-center space-x-2 text-xs text-gray-500 font-mono mt-0.5">
+                                <span class="bg-gray-100 px-1.5 py-0.5 rounded">SKU: ${v.sku}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase mb-1">Copies</label>
+                            <input type="number" id="qty-${v.id}" value="1" min="1" class="w-16 border border-gray-200 rounded px-2 py-1 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        
+                        <button onclick="printSingleVariant(${v.id}, '${v.sku}', '${product.name.replace(/'/g, "")}', '${v.price}', '${v.compare_price}')" 
+                            class="single-print-btn bg-blue-600 text-white h-full px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 transition flex items-center shadow-sm">
+                            <span class="material-icons-outlined mr-2">print</span> Print
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    // === 3. BATCH MODE LOGIC ===
+    function toggleBatchMode() {
+        isBatchMode = !isBatchMode;
+        updateBatchUI();
+    }
+
+    function updateBatchUI() {
+        const btnToggle = document.getElementById('btnToggleBatch');
+        const btnPrintBatch = document.getElementById('btnPrintBatch');
+        const batchHeader = document.getElementById('batchHeader');
+        
+        const checkboxes = document.querySelectorAll('.batch-checkbox');
+        const singleBtns = document.querySelectorAll('.single-print-btn');
+
+        if (isBatchMode) {
+            // Switch to Batch
+            btnToggle.innerHTML = '<span class="material-icons-outlined text-sm mr-2">arrow_back</span> Back to Single';
+            btnToggle.classList.replace('bg-gray-900', 'bg-gray-200');
+            btnToggle.classList.replace('text-white', 'text-gray-800');
+            
+            btnPrintBatch.classList.remove('hidden');
+            batchHeader.classList.remove('hidden');
+
+            checkboxes.forEach(el => el.classList.remove('hidden'));
+            singleBtns.forEach(el => el.classList.add('hidden'));
+        } else {
+            // Switch to Single
+            btnToggle.innerHTML = '<span class="material-icons-outlined text-sm mr-2">checklist</span> Print Multiple';
+            btnToggle.classList.replace('bg-gray-200', 'bg-gray-900');
+            btnToggle.classList.replace('text-gray-800', 'text-white');
+
+            btnPrintBatch.classList.add('hidden');
+            batchHeader.classList.add('hidden');
+
+            checkboxes.forEach(el => el.classList.add('hidden'));
+            singleBtns.forEach(el => el.classList.remove('hidden'));
+        }
+    }
+
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.batch-checkbox input');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+    }
+
+    // === 4. PRINTING LOGIC ===
+
+    // Wrapper for Single Print
+    function printSingleVariant(id, sku, name, mrp, discount) {
+        const qty = document.getElementById(`qty-${id}`).value;
+        generatePrintJob([{
+            id: id,
+            sku: sku,
+            name: name,
+            mrp: mrp,
+            discount: discount,
+            qty: qty
+        }]);
+    }
+
+    // Wrapper for Batch Print
+    function printSelected() {
+        const checkboxes = document.querySelectorAll('.batch-checkbox input:checked');
+        if (checkboxes.length === 0) {
+            alert("Please select at least one variant.");
+            return;
+        }
+
+        const items = [];
+        checkboxes.forEach(cb => {
+            const id = cb.getAttribute('data-id');
+            const qty = document.getElementById(`qty-${id}`).value;
+            items.push({
+                id: id,
+                sku: cb.getAttribute('data-sku'),
+                name: cb.getAttribute('data-name'),
+                mrp: cb.getAttribute('data-price'), // price is MRP
+                discount: cb.getAttribute('data-compare'), // compare_price is Discount
+                qty: qty
+            });
+        });
+
+        generatePrintJob(items);
+    }
+
+    // Core Printing Function
+    function generatePrintJob(items) {
+        const printArea = document.getElementById('printArea');
+        printArea.innerHTML = ''; 
+
+        // Get Label Size Preference
+        const size = localStorage.getItem('barcodeLabelSize') || '38x25';
+        let cssStyle = '';
+
+        if (size === '38x25') {
+            cssStyle = `@page { size: 38mm 25mm; margin: 0; } body { margin: 0; } .label { width: 38mm; height: 25mm; padding: 2px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-after: always; overflow: hidden; }`;
+        } else if (size === '50x30') {
+            cssStyle = `@page { size: 50mm 30mm; margin: 0; } body { margin: 0; } .label { width: 50mm; height: 30mm; padding: 3px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-after: always; overflow: hidden; }`;
+        } else {
+            cssStyle = `@page { size: 40mm 60mm; margin: 0; } body { margin: 0; } .label { width: 40mm; height: 60mm; padding: 5px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-after: always; overflow: hidden; }`;
+        }
+
+        // Generate Labels for all items
+        items.forEach(item => {
+            const finalPrice = (item.discount && parseFloat(item.discount) > 0) ? item.discount : item.mrp;
+            const hasDiscount = (item.discount && parseFloat(item.discount) < parseFloat(item.mrp));
+            const count = parseInt(item.qty) || 1;
+
+            for(let i=0; i<count; i++) {
+                const uniqueId = `bc-${item.id}-${i}-${Math.random().toString(36).substr(2, 5)}`;
+                const div = document.createElement('div');
+                div.className = 'label';
+                div.innerHTML = `
+                    <div style="font-size: 8px; font-weight: bold; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: sans-serif;">${item.name}</div>
+                    <div style="font-size: 7px; font-family: monospace; margin-bottom: 2px;">${item.sku}</div>
+                    <svg id="${uniqueId}" class="barcode"></svg>
+                    <div style="display: flex; gap: 5px; align-items: center; justify-content: center; font-family: sans-serif; margin-top: 1px;">
+                        ${hasDiscount ? `<span style="font-size: 8px; text-decoration: line-through; color: #555;">৳${item.mrp}</span>` : ''}
+                        <span style="font-size: 10px; font-weight: bold;">৳${finalPrice}</span>
+                    </div>
+                    <div style="font-size: 5px; font-family: sans-serif; margin-top: 2px; color: #666; text-align: center; width: 100%; letter-spacing: 0.2px;">
+                        Remove this label before gifting to someone
+                    </div>
+                `;
+                printArea.appendChild(div);
+                
+                JsBarcode("#"+uniqueId, item.sku, {
+                    format: "CODE128",
+                    width: 1,
+                    height: 25,
+                    displayValue: false,
+                    margin: 0
+                });
+            }
+        });
+
+        // Trigger Print via Hidden Iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+            <html>
+            <head>
+                <title>Print Barcodes</title>
+                <style>
+                    ${cssStyle}
+                    .label { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-after: always; }
+                </style>
+            </head>
+            <body>
+                ${printArea.innerHTML}
+            </body>
+            </html>
+        `);
+        doc.close();
+
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            iframe.contentWindow.print();
+            document.body.removeChild(iframe);
+        }, 500);
+    }
+</script>

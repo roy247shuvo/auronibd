@@ -1,0 +1,52 @@
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 transition hover:shadow-md">
+    <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-xl sticky top-0">
+        <div class="flex items-center">
+            <span class="material-icons-outlined text-gray-400 mr-2"><%= icon %></span>
+            <h3 class="font-bold text-gray-700"><%= title %></h3>
+            <% if (!can('prod_settings', 'write')) { %>
+                <span class="material-icons-outlined text-xs text-gray-400 ml-2" title="View Only">lock</span>
+            <% } %>
+        </div>
+        <% if (can('prod_settings', 'write')) { %>
+        <button onclick="openModal('<%= table %>', null)" class="text-red-600 hover:bg-red-50 p-2 rounded-lg transition flex items-center text-xs font-bold uppercase tracking-wider">
+            <span class="material-icons-outlined text-sm mr-1">add</span> Add
+        </button>
+        <% } %>
+    </div>
+
+    <div class="p-0 overflow-y-auto flex-1 custom-scrollbar">
+        <% if (items.length === 0) { %>
+            <div class="h-full flex flex-col items-center justify-center text-gray-300">
+                <span class="material-icons-outlined text-4xl mb-2">inbox</span>
+                <p class="text-xs">No items yet</p>
+            </div>
+        <% } %>
+
+        <% items.forEach(item => { %>
+            <div class="px-5 py-3 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50 transition group">
+                <div class="flex items-center">
+                    <% if (hasImage && item.logo_image) { %>
+                        <img src="<%= item.logo_image %>" class="w-8 h-8 rounded object-contain border border-gray-200 mr-3 bg-white">
+                    <% } %>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800"><%= item.name %></p>
+                        </div>
+                </div>
+                
+                <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition">
+                    <% if (can('prod_settings', 'write')) { %>
+                    <button onclick="openModal('<%= table %>', '<%= JSON.stringify(item) %>')" class="text-gray-400 hover:text-blue-600">
+                        <span class="material-icons-outlined text-sm">edit</span>
+                    </button>
+                    <% } %>
+
+                    <% if (can('prod_settings', 'delete')) { %>
+                    <button class="text-gray-300 hover:text-red-500">
+                        <span class="material-icons-outlined text-sm">delete</span>
+                    </button>
+                    <% } %>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</div>

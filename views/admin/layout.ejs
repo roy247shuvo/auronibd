@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Niche Boutique Admin</title>
+    
+    <link rel="icon" href="/uploads/nichefav.webp" type="image/webp">
+
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F9FAFB; }
+        
+        /* Smooth transitions for everything */
+        * { transition: all 0.2s ease-in-out; }
+        
+        /* Custom Scrollbar for Sidebar */
+        aside::-webkit-scrollbar { width: 4px; }
+        aside::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-gray-800 antialiased bg-gray-50">
+
+    <div id="mobileOverlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden transition-opacity duration-300"></div>
+
+    <%- include('partials/sidebar') %>
+
+    <div class="ml-0 md:ml-64 min-h-screen flex flex-col transition-all duration-300">
+        
+        <%- include('partials/header') %>
+
+        <main class="flex-1 p-4 md:p-8">
+            <%- body %> 
+        </main>
+
+        <%- include('partials/footer') %>
+    </div>
+
+    <script>
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('adminSidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            // Toggle sidebar visibility
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full'); // Open
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full'); // Close
+                overlay.classList.add('hidden');
+            }
+        }
+    </script>
+
+    <div id="toast" class="fixed top-5 right-5 z-[100] transform transition-all duration-300 translate-x-full opacity-0">
+        <div id="toast-content" class="flex items-center w-full max-w-xs p-4 bg-white rounded-lg shadow-2xl border-l-4">
+            <div class="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg" id="toast-icon-bg">
+                <span class="material-icons-outlined text-sm" id="toast-icon">check</span>
+            </div>
+            <div class="ml-3 text-sm font-normal text-gray-800" id="toast-message">Notification Content</div>
+            <button type="button" class="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg p-1.5 hover:bg-gray-100 inline-flex h-8 w-8" onclick="hideToast()">
+                <span class="material-icons-outlined">close</span>
+            </button>
+        </div>
+    </div>
+    
+
+    <script>
+        function showToast(type, message) {
+            const toast = document.getElementById('toast');
+            const content = document.getElementById('toast-content');
+            const iconBg = document.getElementById('toast-icon-bg');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+
+            // Set Content
+            msg.innerText = message;
+
+            // Set Style based on Type
+            if (type === 'success') {
+                content.className = "flex items-center w-full max-w-xs p-4 bg-white rounded-lg shadow-2xl border-l-4 border-green-500";
+                iconBg.className = "inline-flex items-center justify-center flex-shrink-0 w-8 h-8 text-green-500 bg-green-100 rounded-lg";
+                icon.innerText = "check_circle";
+            } else {
+                content.className = "flex items-center w-full max-w-xs p-4 bg-white rounded-lg shadow-2xl border-l-4 border-red-500";
+                iconBg.className = "inline-flex items-center justify-center flex-shrink-0 w-8 h-8 text-red-500 bg-red-100 rounded-lg";
+                icon.innerText = "error";
+            }
+
+            // Animate In
+            toast.classList.remove('translate-x-full', 'opacity-0');
+
+            // Auto Hide after 3 seconds
+            setTimeout(() => {
+                hideToast();
+            }, 3000);
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.add('translate-x-full', 'opacity-0');
+        }
+
+        // Check if server sent a toast (EJS Logic)
+        <% if (typeof toast !== 'undefined' && toast) { %>
+            showToast('<%= toast.type %>', '<%= toast.message %>');
+        <% } %>
+    </script>
+    
+    <%- include('partials/custom_alert') %>
+
+</body>
+</html>

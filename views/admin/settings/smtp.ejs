@@ -1,0 +1,139 @@
+<div class="max-w-4xl mx-auto" x-data="{ activeTab: 'smtp' }">
+    <% if (!can('site_settings', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to modify system configuration.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">SMTP, SMS & Login</h1>
+    </div>
+
+    <div class="flex border-b border-gray-200 mb-6 gap-8">
+        <button @click="activeTab = 'smtp'" 
+                :class="{ 'border-black text-black': activeTab === 'smtp', 'border-transparent text-gray-500 hover:text-gray-700': activeTab !== 'smtp' }"
+                class="pb-4 text-sm font-bold uppercase tracking-wider border-b-2 transition">
+            Email (SMTP)
+        </button>
+        <button @click="activeTab = 'sms'" 
+                :class="{ 'border-black text-black': activeTab === 'sms', 'border-transparent text-gray-500 hover:text-gray-700': activeTab !== 'sms' }"
+                class="pb-4 text-sm font-bold uppercase tracking-wider border-b-2 transition">
+            SMS Gateway
+        </button>
+        <button @click="activeTab = 'login'" 
+                :class="{ 'border-black text-black': activeTab === 'login', 'border-transparent text-gray-500 hover:text-gray-700': activeTab !== 'login' }"
+                class="pb-4 text-sm font-bold uppercase tracking-wider border-b-2 transition">
+            Firebase Login
+        </button>
+    </div>
+
+    <form action="/admin/settings/smtp" method="POST" class="space-y-6">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        
+        <div x-show="activeTab === 'smtp'" class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                <span class="material-icons-outlined text-blue-600">dns</span> Mail Server
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">SMTP Host</label>
+                    <input type="text" name="smtp_host" value="<%= setting.smtp_host || '' %>" placeholder="smtp.gmail.com" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Port</label>
+                    <input type="text" name="smtp_port" value="<%= setting.smtp_port || '587' %>" placeholder="587" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Username</label>
+                    <input type="text" name="smtp_user" value="<%= setting.smtp_user || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label>
+                    <input type="password" name="smtp_pass" value="<%= setting.smtp_pass || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="activeTab === 'sms'" class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                <span class="material-icons-outlined text-green-600">message</span> SMS Gateway
+            </h2>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">BulkSMSBD API Key</label>
+                <input type="text" name="sms_api_key" value="<%= setting.sms_api_key || '' %>" 
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                       <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+            </div>
+        </div>
+
+        <div x-show="activeTab === 'login'" class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                <span class="material-icons-outlined text-orange-500">local_fire_department</span> Firebase Config
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">API Key</label>
+                    <input type="text" name="firebase_api_key" value="<%= setting.firebase_api_key || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Auth Domain</label>
+                    <input type="text" name="firebase_auth_domain" value="<%= setting.firebase_auth_domain || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Project ID</label>
+                    <input type="text" name="firebase_project_id" value="<%= setting.firebase_project_id || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Storage Bucket</label>
+                    <input type="text" name="firebase_storage_bucket" value="<%= setting.firebase_storage_bucket || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Messaging Sender ID</label>
+                    <input type="text" name="firebase_messaging_sender_id" value="<%= setting.firebase_messaging_sender_id || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">App ID</label>
+                    <input type="text" name="firebase_app_id" value="<%= setting.firebase_app_id || '' %>" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black font-mono disabled:bg-gray-100 disabled:text-gray-500"
+                           <%= can('site_settings', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+            <div class="mt-4 p-4 bg-orange-50 border border-orange-100 rounded text-xs text-orange-800">
+                Go to <a href="https://console.firebase.google.com/" target="_blank" class="underline font-bold">Firebase Console</a> > Project Settings > General > "Your apps" to find these values.
+            </div>
+        </div>
+
+        <% if (can('site_settings', 'write')) { %>
+        <div class="flex justify-end">
+            <button type="submit" class="bg-black text-white px-8 py-3 rounded-xl font-bold uppercase tracking-wider text-sm shadow hover:bg-gray-800 transition">Save Settings</button>
+        </div>
+        <% } %>
+    </form>
+</div>

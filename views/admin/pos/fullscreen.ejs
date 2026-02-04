@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Full Screen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; background-color: #f3f4f6; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .method-btn.active { background-color: #111827; color: white; border-color: #111827; }
+    </style>
+</head>
+<body>
+
+<div class="h-screen w-screen flex flex-col">
+    
+    <% if (!can('pos_terminal', 'write')) { %>
+    <div class="bg-yellow-50 border-b border-yellow-400 p-2 text-center shadow-sm z-30">
+        <p class="text-sm text-yellow-800 font-bold flex justify-center items-center gap-2">
+            <span class="material-icons-outlined text-lg">lock</span> 
+            View Only Mode: Transactions cannot be processed.
+        </p>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center px-4 py-3 bg-white border-b border-gray-200 shrink-0 shadow-sm z-20">
+        <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <span class="material-icons-outlined text-red-600 text-3xl">point_of_sale</span>
+            POS Terminal
+        </h1>
+        
+        <div class="flex items-center gap-4">
+            <div class="flex bg-gray-100 p-1 rounded-lg">
+                <button onclick="switchWindow(1)" id="tab-1" class="px-6 py-2 bg-white text-gray-800 font-bold rounded shadow transition-all">Order 1</button>
+                <button onclick="switchWindow(2)" id="tab-2" class="px-6 py-2 text-gray-500 font-medium rounded hover:bg-white/50 transition-all">Order 2</button>
+            </div>
+            
+            <a href="/admin/pos" class="flex items-center text-gray-500 hover:text-red-600">
+                <span class="material-icons-outlined">logout</span>
+                <span class="ml-1 text-sm font-bold">Exit</span>
+            </a>
+            
+            <button onclick="toggleFullScreen()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200" title="Full Screen">
+                <span class="material-icons-outlined text-gray-600">fullscreen</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-1 flex overflow-hidden">
+        <div class="w-[70%] bg-white border-r border-gray-200 flex flex-col h-full z-10">
+            <div class="p-4 border-b border-gray-200 bg-gray-50 grid grid-cols-2 gap-4">
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-gray-400 material-icons-outlined">phone</span>
+                    <input type="text" id="cust-phone" placeholder="Customer Phone" 
+                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none font-bold text-lg disabled:bg-gray-100 disabled:text-gray-500" 
+                           onkeyup="debounceCustomer(this.value)"
+                           <%= can('pos_terminal', 'write') ? '' : 'disabled' %>>
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-gray-400 material-icons-outlined">person</span>
+                    <input type="text" id="cust-name-input" placeholder="Customer Name" 
+                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-lg disabled:bg-gray-100 disabled:text-gray-500" 
+                           oninput="updateCustName(this.value)"
+                           <%= can('pos_terminal', 'write') ? '' : 'disabled' %>>
+                </div>
+                
+                <div id="cust-info" class="col-span-2 hidden flex justify-between items-center px-3 py-2 bg-blue-50 border border-blue-100 rounded text-sm">
+                    <span class="text-blue-800 font-medium">Lifetime Value: <b id="cust-ltv">TK. 0</b></span>
+                    <button onclick="showHistory()" class="text-blue-600 font-bold hover:underline flex items-center">
+                        <span class="material-icons-outlined text-sm mr-1">history</span> View History
+                    </button>
+                </div>
+                <input type="hidden" id="cust-id">
+            </div>
+
+            <div class="px-4 py-3 bg-white border-b border-gray-200 flex text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <div class="w-16">Img</div>
+                <div class="w-24">SKU</div>
+                <div class="flex-1">Product Details</div>
+                <div class="w-32 text-center">Qty</div>
+                <div class="w-28 text-right">Price</div>
+                <div class="w-28 text-right">Total</div>
+                <div class="w-10"></div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-0" id="cart-container">
+                </div>
+
+            <div class="p-5 bg-gray-50 border-t border-gray-200">
+                <div class="flex justify-end gap-8 items-end">
+                    <div class="text-right space-y-1">
+                        <div class="text-gray-500 text-sm font-medium">Subtotal</div>
+                        <div class="text-gray-800 font-bold text-lg">TK. <span id="subtotal">0</span></div>
+                    </div>
+                    <div class="text-right space-y-1">
+                        <div class="text-gray-500 text-sm font-medium">Discount</div>
+                        <input type="number" id="discount-input" class="w-24 px-2 py-1 text-right border border-gray-300 rounded focus:ring-red-500 outline-none font-bold" placeholder="0" oninput="updateTotals()">
+                    </div>
+                    <div class="text-right pl-8 border-l border-gray-300">
+                        <div class="text-gray-500 text-sm font-bold uppercase">Grand Total</div>
+                        <div class="text-red-600 font-black text-3xl">TK. <span id="grand-total">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-[30%] flex flex-col h-full bg-gray-100 border-l border-gray-200">
+            <div class="p-4 bg-white border-b border-gray-200 shadow-sm z-10">
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-gray-400 material-icons-outlined">search</span>
+                    <input type="text" id="search-input" placeholder="Scan SKU / Search..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-lg shadow-sm" autofocus oninput="handleSearch(this.value)">
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-3" id="product-grid">
+                <% initialProducts.forEach(p => { %>
+                    <div class="bg-white rounded-xl p-2 shadow-sm hover:shadow-md cursor-pointer border border-transparent hover:border-red-500 flex items-center group transition-all" 
+                         onclick="openVariantModal(<%= p.id %>, '<%= p.name %>')">
+                        <div class="h-16 w-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                            <img src="<%= p.image %>" class="w-full h-full object-cover">
+                        </div>
+                        <div class="ml-3 flex-1 min-w-0">
+                            <h4 class="text-sm font-bold text-gray-800 truncate"><%= p.name %></h4>
+                            <span class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block"><%= p.variant_count %> Variations</span>
+                        </div>
+                        <span class="material-icons-outlined text-gray-300 group-hover:text-red-500">chevron_right</span>
+                    </div>
+                <% }) %>
+            </div>
+
+            <div class="p-4 bg-white border-t border-gray-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-20">
+                <% if (can('pos_terminal', 'write')) { %>
+                <button onclick="openPaymentModal()" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-xl hover:bg-black shadow-lg transform active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <span>PAY NOW</span>
+                    <span class="material-icons-outlined">arrow_forward</span>
+                </button>
+                <% } else { %>
+                <button disabled class="w-full bg-gray-300 text-gray-500 py-4 rounded-xl font-bold text-xl cursor-not-allowed flex items-center justify-center gap-2">
+                    <span>PAY NOW (LOCKED)</span>
+                    <span class="material-icons-outlined">lock</span>
+                </button>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="variant-modal" class="fixed inset-0 bg-black/60 z-[50] hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="p-5 border-b flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-xl text-gray-800" id="variant-modal-title">Select Variation</h3>
+            <button onclick="closeModal('variant-modal')" class="w-8 h-8 rounded-full bg-white border flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"><span class="material-icons-outlined">close</span></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100" id="variant-list"></div>
+    </div>
+</div>
+
+<div id="payment-modal" class="fixed inset-0 bg-black/70 z-[60] hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-100 transition-all">
+        <div class="bg-gray-900 text-white p-5 flex justify-between items-center">
+            <h3 class="font-bold text-xl">Complete Order</h3>
+            <button onclick="closeModal('payment-modal')" class="hover:text-red-400"><span class="material-icons-outlined">close</span></button>
+        </div>
+        <div class="p-8">
+            <div class="text-center mb-8 bg-gray-50 py-4 rounded-xl border border-gray-100">
+                <span class="text-gray-500 text-xs font-bold uppercase tracking-widest">Amount Due</span>
+                <div class="text-5xl font-black text-gray-900 mt-2">TK. <span id="pay-total">0</span></div>
+            </div>
+            <div class="grid grid-cols-4 gap-3 mb-8">
+                <button onclick="setMethod('cash')" class="method-btn active p-3 border-2 border-transparent rounded-xl bg-gray-100 hover:bg-gray-200 flex flex-col items-center gap-1 transition-all" data-method="cash"><span class="material-icons-outlined text-2xl">payments</span><span class="text-[10px] font-bold">CASH</span></button>
+                <button onclick="setMethod('card')" class="method-btn p-3 border-2 border-transparent rounded-xl bg-gray-100 hover:bg-gray-200 flex flex-col items-center gap-1 transition-all" data-method="card"><span class="material-icons-outlined text-2xl">credit_card</span><span class="text-[10px] font-bold">CARD</span></button>
+                <button onclick="setMethod('mfs')" class="method-btn p-3 border-2 border-transparent rounded-xl bg-gray-100 hover:bg-gray-200 flex flex-col items-center gap-1 transition-all" data-method="mfs"><span class="material-icons-outlined text-pink-600 text-2xl">smartphone</span><span class="text-[10px] font-bold">MFS</span></button>
+                <button onclick="setMethod('bank')" class="method-btn p-3 border-2 border-transparent rounded-xl bg-gray-100 hover:bg-gray-200 flex flex-col items-center gap-1 transition-all" data-method="bank"><span class="material-icons-outlined text-blue-600 text-2xl">account_balance</span><span class="text-[10px] font-bold">BANK</span></button>
+            </div>
+            <div id="input-cash" class="pay-section">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Cash Received</label>
+                <input type="number" id="amount-received" class="w-full pl-4 py-4 border-2 border-gray-200 rounded-xl text-2xl font-bold focus:border-gray-900 outline-none" placeholder="0" oninput="calcChange()">
+                <div class="mt-4 flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-100"><span class="text-green-700 font-bold">Change</span><span class="text-green-700 font-black text-2xl">TK. <span id="change-display">0</span></span></div>
+            </div>
+
+            <div id="input-card" class="pay-section hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Deposit to Bank</label>
+                    <select id="card-bank-id" class="w-full p-4 border-2 border-gray-200 rounded-xl bg-white outline-none focus:border-gray-900">
+                        <% banks.forEach(b => { %>
+                            <option value="<%= b.id %>"><%= b.bank_name %> - <%= b.account_number %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div>
+                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Transaction ID / Last 4 Digits</label>
+                     <input type="text" id="card-trx" class="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-gray-900" placeholder="Card Trx">
+                </div>
+            </div>
+
+            <div id="input-trx" class="pay-section hidden">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Transaction ID</label>
+                <input type="text" id="trx-id" class="w-full p-4 border-2 border-gray-200 rounded-xl text-lg outline-none focus:border-gray-900" placeholder="Enter TRX ID">
+            </div>
+            
+            <div id="input-mfs" class="pay-section hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Select MFS Account</label>
+                    <select id="mfs-id" class="w-full p-4 border-2 border-gray-200 rounded-xl bg-white outline-none focus:border-gray-900">
+                        <% mfs.forEach(m => { %>
+                            <option value="<%= m.id %>"><%= m.account_name %> (<%= m.account_number %>)</option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div>
+                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Transaction ID</label>
+                     <input type="text" id="mfs-trx" class="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-gray-900" placeholder="TrxID">
+                </div>
+            </div>
+            
+            <div id="input-bank" class="pay-section hidden space-y-4">
+                <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Select Bank</label><select id="bank-id" class="w-full p-4 border-2 border-gray-200 rounded-xl bg-white outline-none focus:border-gray-900"><% banks.forEach(b => { %><option value="<%= b.id %>"><%= b.bank_name %> - <%= b.account_number %></option><% }) %></select></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Note</label><input type="text" id="bank-ref" class="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-gray-900"></div>
+            </div>
+            <button onclick="submitOrder()" class="w-full mt-8 bg-red-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-red-700 shadow-lg transition-all">CONFIRM ORDER</button>
+        </div>
+    </div>
+</div>
+
+<div id="history-modal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center backdrop-blur-sm"><div class="bg-white rounded-xl w-full max-w-2xl p-6 relative shadow-2xl"><button onclick="closeModal('history-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><span class="material-icons-outlined">close</span></button><h3 class="font-bold text-xl mb-4 text-gray-800">Customer History</h3><div id="history-content" class="overflow-y-auto max-h-[400px]">Loading...</div></div></div>
+<div id="details-modal" class="fixed inset-0 bg-black/70 z-[70] hidden flex items-center justify-center backdrop-blur-sm"><div class="bg-white rounded-xl w-full max-w-lg overflow-hidden shadow-2xl"><div class="p-4 bg-gray-800 text-white flex justify-between items-center"><h3 class="font-bold">Order Details</h3><button onclick="closeModal('details-modal')" class="hover:text-red-400"><span class="material-icons-outlined">close</span></button></div><div id="detail-content" class="p-4 overflow-y-auto max-h-[500px] space-y-2"></div></div></div>
+
+<%- include('partials/receipt_modal') %>
+<%- include('../partials/custom_alert') %>
+
+<script>
+    // 1. FIXED: True Browser Fullscreen API
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`Error: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    }
+
+    let currentWindow = 1;
+    let orders = { 1: { items: [], customer: {}, discount: 0 }, 2: { items: [], customer: {}, discount: 0 } };
+    let currentMethod = 'cash';
+
+    function switchWindow(id) {
+        currentWindow = id;
+        document.querySelectorAll('button[id^="tab-"]').forEach(btn => {
+            btn.classList.remove('bg-white', 'text-gray-800', 'shadow');
+            btn.classList.add('text-gray-500', 'hover:bg-white/50');
+        });
+        const activeBtn = document.getElementById(`tab-${id}`);
+        activeBtn.classList.remove('text-gray-500', 'hover:bg-white/50');
+        activeBtn.classList.add('bg-white', 'text-gray-800', 'shadow');
+        renderCart();
+    }
+
+    // 2. FIXED: Search Logic (Clear input & Focus)
+    let searchTimeout;
+    function handleSearch(val) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            if(!val) return;
+            const res = await fetch(`/admin/pos/search?q=${encodeURIComponent(val.trim())}`);
+            const data = await res.json();
+            
+            // ALWAYS render the grid, never auto-add blindly
+            renderMainProductGrid(data);
+            
+        }, 200);
+    }
+
+    async function openVariantModal(productId, productName) {
+        document.getElementById('variant-modal-title').innerText = productName;
+        const list = document.getElementById('variant-list');
+        list.innerHTML = '<div class="text-center p-4">Loading...</div>';
+        document.getElementById('variant-modal').classList.remove('hidden');
+
+        try {
+            const res = await fetch(`/admin/pos/variants/${productId}`);
+            const variants = await res.json();
+            
+            list.innerHTML = '';
+            variants.forEach(v => {
+                const isOutOfStock = v.stock_quantity <= 0;
+                list.innerHTML += `
+                    <div class="flex items-center p-3 border rounded-lg bg-white mb-2 shadow-sm ${isOutOfStock ? 'opacity-60 grayscale bg-gray-50' : ''}">
+                        <img src="${v.image}" class="w-12 h-12 object-cover rounded bg-gray-100">
+                        <div class="ml-4 flex-1">
+                            <div class="font-bold text-gray-800">${v.size} / ${v.color}</div>
+                            <div class="text-xs text-gray-500 font-mono">SKU: ${v.sku}</div>
+                        </div>
+                        <div class="text-right mr-4">
+                            <div class="font-bold text-red-600 text-lg">TK. ${v.selling_price}</div>
+                            <div class="text-xs ${isOutOfStock ? 'text-red-500 font-bold' : 'text-green-600'}">Stock: ${v.stock_quantity}</div>
+                        </div>
+                        <button onclick='addToCart(${JSON.stringify(v)})' 
+                                ${isOutOfStock ? 'disabled' : ''} 
+                                <%= can('pos_terminal', 'write') ? '' : 'disabled style="opacity:0.5; cursor:not-allowed;"' %>
+                                class="px-5 py-2 bg-gray-900 text-white font-bold rounded hover:bg-black disabled:bg-gray-300">
+                            ADD
+                        </button>
+                    </div>
+                `;
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    async function addToCart(variant) {
+        if(variant.stock_quantity <= 0) return alert('Out of Stock!');
+
+        // 1. Reserve
+        const res = await fetch('/admin/pos/hold-stock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, // Add CSRF if available in this view
+            body: JSON.stringify({ 
+                product_id: variant.product_id, 
+                variant_id: variant.variant_id, 
+                quantity: 1 
+            })
+        });
+        const data = await res.json();
+        if (!data.success) return alert(data.message || 'Stock Reservation Failed');
+
+        const state = orders[currentWindow];
+        const existing = state.items.find(i => i.variant_id === variant.variant_id);
+        
+        if(existing) {
+            existing.quantity++;
+        } else {
+            state.items.push({ 
+                product_id: variant.product_id,
+                variant_id: variant.variant_id,
+                name: variant.name || variant.product_name, 
+                sku: variant.sku,
+                size: variant.size,
+                color: variant.color,
+                image: variant.image,
+                price: variant.selling_price,
+                quantity: 1,
+                max_stock: variant.stock_quantity
+            });
+        }
+        renderCart();
+        closeModal('variant-modal');
+    }
+
+    function renderCart() {
+        const state = orders[currentWindow];
+        const container = document.getElementById('cart-container');
+        
+        document.getElementById('cust-phone').value = state.customer.phone || '';
+        document.getElementById('cust-name-input').value = state.customer.full_name || ''; // FIXED: Use full_name
+        document.getElementById('discount-input').value = state.discount > 0 ? state.discount : '';
+        
+        if(state.customer.phone) {
+             document.getElementById('cust-info').classList.remove('hidden');
+             document.getElementById('cust-ltv').innerText = state.customer.ltv || 'TK. 0';
+             document.getElementById('cust-id').value = state.customer.id || '';
+        } else {
+            document.getElementById('cust-info').classList.add('hidden');
+        }
+
+        container.innerHTML = '';
+        if(state.items.length === 0) {
+            container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-gray-300"><span class="material-icons-outlined text-8xl mb-4">shopping_cart_checkout</span><p class="text-xl font-medium">Cart is Empty</p></div>`;
+        } else {
+            state.items.forEach(item => {
+                container.innerHTML += `
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center hover:bg-gray-50 transition-colors group">
+                        <div class="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                            <img src="${item.image}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="w-24 px-3 text-xs font-mono text-gray-500 truncate">${item.sku}</div>
+                        <div class="flex-1 px-3">
+                            <div class="text-sm font-bold text-gray-800 line-clamp-1">${item.name}</div>
+                            <div class="text-xs text-gray-500 mt-0.5 inline-block bg-gray-100 px-1.5 py-0.5 rounded">${item.color}</div>
+                            <div class="text-xs text-gray-500 mt-0.5 inline-block bg-gray-100 px-1.5 py-0.5 rounded">${item.size}</div>
+                        </div>
+                        <div class="w-32 flex justify-center items-center gap-2">
+                             <button onclick="updateQty(${item.variant_id}, -1)" class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-gray-600 font-bold hover:bg-gray-200 hover:text-red-600 transition-colors">-</button>
+                             <span class="font-bold text-lg w-8 text-center text-gray-800">${item.quantity}</span>
+                             <button onclick="updateQty(${item.variant_id}, 1)" class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-gray-600 font-bold hover:bg-gray-200 hover:text-green-600 transition-colors">+</button>
+                        </div>
+                        <div class="w-28 text-right text-gray-500 text-xs flex flex-col justify-center"><span>@ ${item.price}</span></div>
+                        <div class="w-28 text-right font-bold text-gray-800 text-lg">${item.price * item.quantity}</div>
+                        <div class="w-10 text-right">
+                            <button onclick="removeItem(${item.variant_id})" class="text-gray-300 hover:text-red-500 p-2"><span class="material-icons-outlined text-xl">delete</span></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        updateTotals();
+    }
+
+    async function updateQty(variantId, change) {
+        const state = orders[currentWindow];
+        const item = state.items.find(i => i.variant_id === variantId);
+        if(!item) return;
+
+        if (change === -1 && item.quantity <= 1) {
+            return removeItem(variantId);
+        }
+
+        const url = change === 1 ? '/admin/pos/hold-stock' : '/admin/pos/release-stock';
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                product_id: item.product_id, 
+                variant_id: item.variant_id, 
+                quantity: 1 
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            item.quantity += change;
+            renderCart();
+        } else {
+            alert('Stock update failed');
+        }
+    }
+
+    async function removeItem(variantId) {
+        const state = orders[currentWindow];
+        const item = state.items.find(i => i.variant_id === variantId);
+        if (!item) return;
+
+        await fetch('/admin/pos/release-stock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                product_id: item.product_id, 
+                variant_id: item.variant_id, 
+                quantity: item.quantity 
+            })
+        });
+
+        state.items = state.items.filter(i => i.variant_id !== variantId);
+        renderCart();
+    }
+
+    function updateTotals() {
+        const state = orders[currentWindow];
+        let subtotal = 0;
+        state.items.forEach(i => subtotal += (i.price * i.quantity));
+        state.discount = parseFloat(document.getElementById('discount-input').value) || 0;
+        const grandTotal = subtotal - state.discount;
+        document.getElementById('subtotal').innerText = subtotal;
+        document.getElementById('grand-total').innerText = grandTotal;
+        document.getElementById('pay-total').innerText = grandTotal;
+    }
+
+    function updateCustName(val) { orders[currentWindow].customer.full_name = val; }
+
+    function debounceCustomer(phone) {
+        const state = orders[currentWindow];
+        state.customer.phone = phone;
+        if(phone.length === 11) {
+            fetch(`/admin/pos/customer?phone=${phone}`)
+                .then(r => r.json())
+                .then(data => {
+                    if(data.found) {
+                        state.customer = { 
+                            ...state.customer, 
+                            ...data.customer, 
+                            ltv: data.stats.total, 
+                            id: data.customer.id 
+                        };
+                        renderCart();
+                    } else {
+                        state.customer.id = '';
+                        state.customer.ltv = 0;
+                        document.getElementById('cust-info').classList.add('hidden');
+                    }
+                });
+        }
+    }
+
+    function renderMainProductGrid(products) {
+        const grid = document.getElementById('product-grid');
+        grid.innerHTML = products.map(p => {
+            
+            // CASE 1: Specific Variant Result (Direct Add)
+            if (p.type === 'variant') {
+                const isOutOfStock = p.stock_quantity <= 0;
+                // Escape quotes for the JSON object
+                const safeObj = JSON.stringify(p).replace(/'/g, "&#39;");
+
+                return `
+                <div class="bg-white rounded-lg p-2 shadow-sm hover:shadow-md cursor-pointer border-l-4 border-blue-500 hover:bg-blue-50 flex items-center group transition-all" 
+                     onclick='addToCart(${safeObj})'>
+                    
+                    <div class="h-14 w-14 flex-shrink-0 bg-gray-100 rounded overflow-hidden relative">
+                        <img src="${p.image || '/uploads/placeholder.jpg'}" class="w-full h-full object-cover">
+                        ${isOutOfStock ? '<div class="absolute inset-0 bg-white/60 flex items-center justify-center text-[10px] font-bold text-red-600">OUT</div>' : ''}
+                    </div>
+                    
+                    <div class="ml-3 flex-1 min-w-0">
+                        <h4 class="text-sm font-bold text-gray-800 truncate">${p.name}</h4>
+                        <div class="flex gap-2 text-xs text-gray-600 mt-0.5">
+                            <span class="bg-gray-200 px-1 rounded font-bold">${p.size}</span>
+                            <span>${p.color}</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 font-mono mt-0.5">${p.sku}</div>
+                    </div>
+                    
+                    <div class="text-right">
+                        <div class="font-bold text-sm text-blue-700">TK.${p.selling_price}</div>
+                        <div class="text-[10px] font-bold ${isOutOfStock ? 'text-red-500' : 'text-green-600'}">
+                            ${isOutOfStock ? 'Out' : p.stock_quantity + ' Left'}
+                        </div>
+                    </div>
+                </div>`;
+            } 
+            
+            // CASE 2: Main Product Result (Open Selection Modal)
+            else {
+                return `
+                <div class="bg-white rounded-lg p-2 shadow-sm hover:shadow-md cursor-pointer border border-transparent hover:border-red-400 flex items-center group transition-all" 
+                     onclick="openVariantModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">
+                    <div class="h-14 w-14 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                        <img src="${p.image || '/uploads/placeholder.jpg'}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="ml-3 flex-1 min-w-0">
+                        <h4 class="text-sm font-bold text-gray-800 truncate">${p.name}</h4>
+                        <span class="text-xs text-blue-600 font-medium">${p.variant_count || 0} Variations</span>
+                    </div>
+                    <span class="material-icons-outlined text-gray-300">chevron_right</span>
+                </div>`;
+            }
+        }).join('');
+    }
+
+    // Modal Logic
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function openPaymentModal() {
+        // 1. Check Cart
+        if(orders[currentWindow].items.length === 0) return alert("Cart is Empty");
+
+        // 2. Check Phone Number (Required)
+        const phoneInput = document.getElementById('cust-phone').value.trim();
+        if (!phoneInput) {
+            document.getElementById('cust-phone').focus();
+            return alert("❌ Customer Phone Number is Required!");
+        }
+
+        // Update state
+        orders[currentWindow].customer.phone = phoneInput;
+
+        // 3. Open Modal
+        document.getElementById('payment-modal').classList.remove('hidden');
+        setMethod('cash');
+    }
+    function setMethod(method) {
+        currentMethod = method;
+        document.querySelectorAll('.method-btn').forEach(b => {
+            b.classList.remove('active', 'bg-gray-800', 'text-white');
+            b.classList.add('bg-gray-100');
+            if(b.dataset.method === method) {
+                b.classList.add('active');
+                b.classList.remove('bg-gray-100');
+            }
+        });
+        
+        document.querySelectorAll('.pay-section').forEach(d => d.classList.add('hidden'));
+        
+        if(method === 'cash') {
+            document.getElementById('input-cash').classList.remove('hidden');
+        } else if(method === 'bank') {
+            document.getElementById('input-bank').classList.remove('hidden');
+        } else if(method === 'mfs') {
+            document.getElementById('input-mfs').classList.remove('hidden');
+        } else if(method === 'card') {
+            // NEW: Show Card Section
+            document.getElementById('input-card').classList.remove('hidden');
+        } else {
+            document.getElementById('input-trx').classList.remove('hidden');
+        }
+    }
+    function calcChange() {
+        const total = parseFloat(document.getElementById('pay-total').innerText);
+        const given = parseFloat(document.getElementById('amount-received').value) || 0;
+        document.getElementById('change-display').innerText = Math.max(0, given - total);
+    }
+    function showHistory() {
+        const state = orders[currentWindow];
+        const id = state.customer.id || '';
+        const phone = state.customer.phone || '';
+        if(!id && !phone) return alert("Please enter phone number");
+        document.getElementById('history-modal').classList.remove('hidden');
+        fetch(`/admin/pos/customer-history?id=${id}&phone=${phone}`).then(r => r.text()).then(html => document.getElementById('history-content').innerHTML = html);
+    }
+    async function viewOrderDetails(orderId, orderNo) {
+        document.getElementById('detail-order-no').innerText = orderNo;
+        document.getElementById('details-modal').classList.remove('hidden');
+        const content = document.getElementById('detail-content');
+        content.innerHTML = '<div class="text-center p-4">Loading...</div>';
+        const res = await fetch(`/admin/pos/order-details/${orderId}`);
+        const items = await res.json();
+        content.innerHTML = items.map(i => `
+            <div class="flex items-center p-3 border-b bg-gray-50 rounded mb-2">
+                <img src="${i.image}" class="w-12 h-12 object-cover rounded bg-white border">
+                <div class="ml-3 flex-1">
+                    <div class="text-sm font-bold text-gray-800">${i.product_name}</div>
+                    <div class="text-xs text-gray-500">${i.color} | ${i.size}</div>
+                </div>
+                <div class="text-right text-sm">
+                    <div class="text-gray-600">${i.quantity} x ${i.price}</div>
+                    <div class="font-bold text-gray-800">${i.line_total}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    async function submitOrder() {
+        const state = orders[currentWindow];
+
+        // --- NEW: VALIDATION ---
+        const phoneVal = state.customer.phone || document.getElementById('cust-phone').value;
+        if (!phoneVal || phoneVal.trim() === '') {
+            return alert("❌ Customer Phone Number is Required!");
+        }
+        // -----------------------
+
+        const payload = {
+            customer_phone: phoneVal,
+            customer_name: state.customer.full_name || document.getElementById('cust-name-input').value,
+            // ...
+            items: JSON.stringify(state.items),
+            discount: state.discount,
+            payment_method: currentMethod,
+            amount_received: document.getElementById('amount-received').value,
+            
+            // UPDATED LOGIC: Handles Card TRX
+            trx_id: (currentMethod === 'bank') ? document.getElementById('bank-ref').value : 
+                    (currentMethod === 'mfs')  ? document.getElementById('mfs-trx').value :
+                    (currentMethod === 'card') ? document.getElementById('card-trx').value :
+                    document.getElementById('trx-id').value,
+            
+            // UPDATED LOGIC: Handles Card Bank ID
+            bank_id: (currentMethod === 'bank') ? document.getElementById('bank-id').value :
+                     (currentMethod === 'mfs')  ? document.getElementById('mfs-id').value : 
+                     (currentMethod === 'card') ? document.getElementById('card-bank-id').value : null
+        };
+        const res = await fetch('/admin/pos/submit', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if(data.success) {
+            // 1. Reset Cart & Close Payment Modal
+            orders[currentWindow] = { items: [], customer: {}, discount: 0 };
+            closeModal('payment-modal');
+            renderCart();
+
+            // 2. Open Receipt Modal
+            showReceiptModal(data.order_id);
+        } else {
+            alert(data.message);
+        }
+    }
+
+    // --- NEW: Receipt Functions ---
+    function showReceiptModal(orderId) {
+        const modal = document.getElementById('receipt-modal');
+        const frame = document.getElementById('receipt-frame');
+        const loading = document.getElementById('receipt-loading');
+        
+        modal.classList.remove('hidden');
+        loading.classList.remove('hidden'); 
+        
+        frame.src = `/admin/pos/receipt/${orderId}`;
+        
+        frame.onload = () => {
+            loading.classList.add('hidden');
+        };
+    }
+
+    function printReceipt() {
+        const frame = document.getElementById('receipt-frame');
+        if (frame.contentWindow) {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        }
+    }
+
+    window.addEventListener('beforeunload', function (e) {
+        const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
+        navigator.sendBeacon('/admin/pos/clear-holds', blob);
+    });
+</script>
+
+</body>
+</html>

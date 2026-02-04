@@ -1,0 +1,44 @@
+<div class="p-6">
+    <% if (!can('disc_credits', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage store credits.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Store Credits</h1>
+        <% if (can('disc_credits', 'write')) { %>
+        <button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-50 flex items-center gap-2">
+            <span class="material-icons-outlined text-sm">download</span> Export Report
+        </button>
+        <% } %>
+    </div>
+
+    <div class="flex border-b border-gray-200 mb-6">
+        <a href="/admin/discounts/credits" 
+           class="px-6 py-3 text-sm font-medium border-b-2 transition-colors <%= tab === 'list' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-700' %>">
+           Credit List
+        </a>
+        <a href="/admin/discounts/credits/usage" 
+           class="px-6 py-3 text-sm font-medium border-b-2 transition-colors <%= tab === 'usage' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-700' %>">
+           Usage History
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-8 text-center border border-gray-100 min-h-[400px] flex flex-col items-center justify-center">
+        <div class="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mb-4">
+            <span class="material-icons-outlined text-3xl text-purple-400">receipt_long</span>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900">No Transactions Yet</h3>
+        <p class="text-gray-500 mt-1">History of credit additions and deductions will show up here.</p>
+    </div>
+</div>

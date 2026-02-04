@@ -1,0 +1,245 @@
+<div class="max-w-7xl mx-auto">
+    <% if (!can('prod_collections', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to create or edit collections.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Collections</h1>
+            <p class="text-sm text-gray-500">Organize products into campaigns or groups.</p>
+        </div>
+        <% if (can('prod_collections', 'write')) { %>
+        <button onclick="openCollectionModal()" class="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-black transition shadow-lg flex items-center">
+            <span class="material-icons-outlined mr-2">add</span> Create Collection
+        </button>
+        <% } %>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% collections.forEach(c => { %>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group hover:shadow-md transition">
+                <div class="aspect-square bg-gray-100 relative">
+                    <% if(c.image_url) { %>
+                        <img src="<%= c.image_url %>" class="w-full h-full object-cover">
+                    <% } else { %>
+                        <div class="w-full h-full flex items-center justify-center text-gray-300">
+                            <span class="material-icons-outlined text-4xl">image</span>
+                        </div>
+                    <% } %>
+                    <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition flex space-x-1">
+                        <button onclick="openCollectionModal('<%= JSON.stringify(c) %>')" class="bg-white p-2 rounded-full shadow-md text-gray-600 hover:text-blue-600">
+                            <span class="material-icons-outlined text-sm">edit</span>
+                        </button>
+                        <% if (can('prod_collections', 'write')) { %>
+                        <form action="/admin/collections/delete/<%= c.id %>" method="POST" class="inline" onsubmit="return confirm('Delete this collection?');">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="bg-white p-2 rounded-full shadow-md text-gray-600 hover:text-red-600">
+                                <span class="material-icons-outlined text-sm">delete</span>
+                            </button>
+                        </form>
+                        <% } %>
+                    </div>
+                </div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <h3 class="font-bold text-lg text-gray-800"><%= c.name %></h3>
+                    <p class="text-xs text-gray-500 mb-4"><%= c.product_count %> Products</p>
+                    <a href="/admin/collections/manage/<%= c.id %>" class="mt-auto w-full bg-red-50 text-red-600 font-bold py-2 rounded-lg text-sm hover:bg-red-100 transition text-center flex items-center justify-center">
+                        <span class="material-icons-outlined text-sm mr-2">settings</span> Manage Products
+                    </a>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</div>
+
+<div id="collectionModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 transform scale-95 transition-all">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold" id="modalTitle">New Collection</h3>
+            <button onclick="closeCollectionModal()" class="text-gray-400 hover:text-gray-600"><span class="material-icons-outlined">close</span></button>
+        </div>
+        
+        <form action="/admin/collections/save" method="POST" class="space-y-4">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="id" id="collId">
+            <input type="hidden" name="existing_image" id="collImageInput">
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Collection Name</label>
+                <input type="text" name="name" id="collName" required class="w-full border border-gray-200 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_collections', 'write') ? '' : 'disabled' %>>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Cover Image</label>
+                
+                <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-white hover:border-gray-300 transition relative">
+                    
+                    <img id="collImagePreview" src="" class="aspect-square w-32 object-cover rounded-lg mb-3 hidden shadow-sm">
+                    
+                    <div id="collImagePlaceholder" class="text-center mb-2">
+                        <span class="material-icons-outlined text-4xl text-gray-300">add_photo_alternate</span>
+                        <p class="text-xs text-gray-400 mt-1">No image selected</p>
+                    </div>
+
+                    <% if (can('prod_collections', 'write')) { %>
+                    <button type="button" onclick="openMediaModal()" class="bg-white border border-gray-200 text-gray-700 font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:bg-gray-100 transition z-10">
+                        Choose from Library
+                    </button>
+                    <% } %>
+                </div>
+            </div>
+
+            <% if (can('prod_collections', 'write')) { %>
+            <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-black transition">Save Collection</button>
+            <% } %>
+        </form>
+    </div>
+</div>
+
+<%- include('../modals/media_library') %>
+
+<script>
+    // === 1. COLLECTION MODAL LOGIC ===
+    function openCollectionModal(data = null) {
+        const modal = document.getElementById('collectionModal');
+        const title = document.getElementById('modalTitle');
+        
+        // Reset Inputs
+        document.getElementById('collId').value = '';
+        document.getElementById('collName').value = '';
+        document.getElementById('collImageInput').value = '';
+        
+        // Reset Preview
+        document.getElementById('collImagePreview').src = '';
+        document.getElementById('collImagePreview').classList.add('hidden');
+        document.getElementById('collImagePlaceholder').classList.remove('hidden');
+
+        if (data) {
+            const c = JSON.parse(data);
+            document.getElementById('collId').value = c.id;
+            document.getElementById('collName').value = c.name;
+            
+            // Populate Image if exists
+            if(c.image_url) {
+                document.getElementById('collImageInput').value = c.image_url;
+                document.getElementById('collImagePreview').src = c.image_url;
+                document.getElementById('collImagePreview').classList.remove('hidden');
+                document.getElementById('collImagePlaceholder').classList.add('hidden');
+            }
+            title.innerText = 'Edit Collection';
+        } else {
+            title.innerText = 'New Collection';
+        }
+        modal.classList.remove('hidden');
+    }
+
+    function closeCollectionModal() {
+        document.getElementById('collectionModal').classList.add('hidden');
+    }
+
+    // === 2. MEDIA MODAL INTEGRATION ===
+    
+    // Open Modal
+    function openMediaModal() {
+        document.getElementById('mediaModal').classList.remove('hidden');
+        loadLibrary();
+    }
+
+    // Close Modal
+    function closeMediaModal() {
+        document.getElementById('mediaModal').classList.add('hidden');
+    }
+
+    // Switch Tabs (Required by Shared Modal HTML)
+    function switchTab(tab) {
+        document.getElementById('content-upload').classList.add('hidden');
+        document.getElementById('content-library').classList.add('hidden');
+        document.getElementById('tab-upload').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
+        document.getElementById('tab-library').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
+        
+        document.getElementById('content-' + tab).classList.remove('hidden');
+        document.getElementById('tab-' + tab).className = "flex-1 py-3 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white";
+        
+        if(tab === 'library') loadLibrary();
+    }
+
+    // [FIXED] Load Images for Collections
+    async function loadLibrary() {
+        const container = document.getElementById('content-library');
+        
+        // Show loading state
+        container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400"><span class="material-icons-outlined animate-spin text-3xl">sync</span><p>Loading...</p></div>';
+        
+        try {
+            const res = await fetch('/admin/media/list');
+            const data = await res.json();
+            
+            if(data.success && data.images.length > 0) {
+                // FIX: Removed the extra <div class="grid"> wrapper here
+                container.innerHTML = data.images.map(img => `
+                    <div onclick="selectFromLibrary('${img.image_url}')" class="aspect-square bg-white rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:border-red-500 hover:ring-2 hover:ring-red-100 transition group relative">
+                        <img src="${img.image_url}" class="w-full h-full object-cover">
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400"><p>No images found.</p></div>`;
+            }
+        } catch(err) {
+            console.error(err);
+            container.innerHTML = `<div class="col-span-full text-center text-red-400">Error loading library</div>`;
+        }
+    }
+
+    // Upload New Image (Standard Function Name)
+    async function handleFileUpload(input) {
+        if(!input.files || input.files.length === 0) return;
+        
+        const loader = document.getElementById('uploadLoader');
+        if(loader) loader.classList.remove('hidden');
+
+        const formData = new FormData();
+        formData.append('file', input.files[0]);
+
+        try {
+            const res = await fetch('/admin/media/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if(data.success) {
+                selectFromLibrary(data.url);
+                if(loader) loader.classList.add('hidden');
+                input.value = "";
+            } else {
+                alert('Upload failed');
+                if(loader) loader.classList.add('hidden');
+            }
+        } catch(err) {
+            console.error(err);
+            alert('Upload error');
+            if(loader) loader.classList.add('hidden');
+        }
+    }
+
+    // Select Image & Close Modal (Page Specific Logic)
+    function selectFromLibrary(url) {
+        // Update Collection Modal
+        document.getElementById('collImageInput').value = url;
+        document.getElementById('collImagePreview').src = url;
+        
+        // Show Preview / Hide Placeholder
+        document.getElementById('collImagePreview').classList.remove('hidden');
+        document.getElementById('collImagePlaceholder').classList.add('hidden');
+        
+        closeMediaModal();
+    }
+</script>

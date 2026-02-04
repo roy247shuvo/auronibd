@@ -1,0 +1,108 @@
+<div class="p-6" x-data="{ tab: 'printer' }">
+    <% if (!can('pos_settings', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You cannot modify POS configuration.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span class="material-icons-outlined text-gray-500">settings</span>
+                POS Configuration
+            </h2>
+            <p class="text-sm text-gray-500 mt-1">Manage terminal preferences and hardware</p>
+        </div>
+        <% if (can('pos_settings', 'write')) { %>
+        <button type="submit" form="posSettingsForm" class="bg-black text-white px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider hover:bg-gray-800 transition shadow-lg flex items-center gap-2">
+            <span class="material-icons-outlined text-sm">save</span>
+            Save Changes
+        </button>
+        <% } %>
+    </div>
+
+    <form id="posSettingsForm" action="/admin/pos/pos-setting" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            
+            <div class="w-full lg:w-64 flex-shrink-0 space-y-1">
+                <button type="button" @click="tab = 'basic'" 
+                        :class="tab === 'basic' ? 'bg-white text-red-600 shadow-sm border-gray-200' : 'text-gray-500 hover:bg-gray-100 border-transparent'"
+                        class="w-full flex items-center px-4 py-3 text-sm font-bold rounded-lg border transition-all">
+                    <span class="material-icons-outlined mr-3 text-[18px]">tune</span>
+                    Basic
+                </button>
+                <button type="button" @click="tab = 'printer'" 
+                        :class="tab === 'printer' ? 'bg-white text-red-600 shadow-sm border-gray-200' : 'text-gray-500 hover:bg-gray-100 border-transparent'"
+                        class="w-full flex items-center px-4 py-3 text-sm font-bold rounded-lg border transition-all">
+                    <span class="material-icons-outlined mr-3 text-[18px]">print</span>
+                    Receipt Printer
+                </button>
+            </div>
+
+            <div class="flex-1">
+                
+                <div x-show="tab === 'basic'" class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6">
+                    <div class="border-b border-gray-100 pb-4 mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">General POS Settings</h3>
+                        <p class="text-xs text-gray-400">Basic configuration for the terminal interface.</p>
+                    </div>
+                    
+                    <div class="text-center py-10 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                        <span class="material-icons-outlined text-4xl mb-2">construction</span>
+                        <p class="text-sm">General settings coming soon.</p>
+                    </div>
+                </div>
+
+                <div x-show="tab === 'printer'" class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6" style="display: none;">
+                    <div class="border-b border-gray-100 pb-4 mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">Printer Configuration</h3>
+                        <p class="text-xs text-gray-400">Set paper size and print preferences.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Paper Width</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="relative flex items-center p-4 border rounded-xl cursor-pointer transition-all hover:bg-gray-50"
+                                   :class="<%= settings.pos_paper_width %> == 78 ? 'border-red-500 ring-1 ring-red-500 bg-red-50/20' : 'border-gray-200'">
+                                <input type="radio" name="pos_paper_width" value="78" 
+                                       class="w-4 h-4 text-red-600 focus:ring-red-500 disabled:bg-gray-100" 
+                                       <%= settings.pos_paper_width == 78 ? 'checked' : '' %>
+                                       <%= can('pos_settings', 'write') ? '' : 'disabled' %>>
+                                <div class="ml-4">
+                                    <span class="block font-bold text-gray-800">78mm / 80mm (Standard)</span>
+                                    <span class="block text-xs text-gray-500 mt-0.5">Wide thermal paper, fits more details.</span>
+                                </div>
+                                <span class="material-icons-outlined absolute right-4 text-gray-300 text-3xl">receipt_long</span>
+                            </label>
+
+                            <label class="relative flex items-center p-4 border rounded-xl cursor-pointer transition-all hover:bg-gray-50"
+                                   :class="<%= settings.pos_paper_width %> == 56 ? 'border-red-500 ring-1 ring-red-500 bg-red-50/20' : 'border-gray-200'">
+                                <input type="radio" name="pos_paper_width" value="56" 
+                                       class="w-4 h-4 text-red-600 focus:ring-red-500 disabled:bg-gray-100" 
+                                       <%= settings.pos_paper_width == 56 ? 'checked' : '' %>
+                                       <%= can('pos_settings', 'write') ? '' : 'disabled' %>>
+                                <div class="ml-4">
+                                    <span class="block font-bold text-gray-800">56mm / 58mm (Small)</span>
+                                    <span class="block text-xs text-gray-500 mt-0.5">Compact thermal paper.</span>
+                                </div>
+                                <span class="material-icons-outlined absolute right-4 text-gray-300 text-3xl">receipt</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>

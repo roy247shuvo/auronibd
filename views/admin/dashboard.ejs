@@ -1,0 +1,262 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div class="max-w-7xl mx-auto">
+    
+    <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p class="text-sm text-gray-500 mt-1">Overview for <%= new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) %></p>
+        </div>
+        <div class="flex gap-2">
+            <% if (can('orders_web', 'read')) { %>
+                <a href="/admin/orders/web-orders" class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-50 transition">
+                    Manage Orders
+                </a>
+            <% } %>
+            
+            <% if (can('pos_terminal', 'read')) { %>
+                <a href="/admin/pos" class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition flex items-center gap-2">
+                    <span class="material-icons-outlined text-[18px]">point_of_sale</span> POS
+                </a>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 w-24 h-24 bg-red-50 rounded-full blur-2xl animate-pulse"></div>
+            <div class="flex justify-between items-start relative z-10">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Live On Site</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-2 flex items-center gap-2">
+                        <%= stats.online_users || 0 %>
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                    </h3>
+                </div>
+                <div class="p-3 bg-red-50 rounded-xl text-red-600">
+                    <span class="material-icons-outlined text-xl">public</span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">Active right now</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:-translate-y-1 transition-all duration-300">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Month Revenue</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-2">৳<%= stats.sales.toLocaleString() %></h3>
+                </div>
+                <div class="p-3 bg-green-50 rounded-xl text-green-600">
+                    <span class="material-icons-outlined text-xl">payments</span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">Gross sales this month</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:-translate-y-1 transition-all duration-300">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Orders</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-2"><%= stats.active_orders %></h3>
+                </div>
+                <div class="p-3 bg-blue-50 rounded-xl text-blue-600">
+                    <span class="material-icons-outlined text-xl">local_shipping</span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">Processing & Shipping</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:-translate-y-1 transition-all duration-300">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">New Customers</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-2"><%= stats.new_customers %></h3>
+                </div>
+                <div class="p-3 bg-purple-50 rounded-xl text-purple-600">
+                    <span class="material-icons-outlined text-xl">group_add</span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">Joined this month</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Sales Performance (30 Days)</h3>
+            <div class="h-80 w-full">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Recent Orders</h3>
+            <div class="space-y-4">
+                <% recentOrders.forEach(order => { %>
+                <div class="flex justify-between items-center pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-gray-900 text-sm">#<%= order.order_number %></span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase
+                                <%= order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                   order.status === 'delivered' ? 'bg-green-100 text-green-700' : 
+                                   order.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600' %>">
+                                <%= order.status %>
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5"><%= order.guest_name %></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-gray-900 text-sm">৳<%= order.total_amount %></p>
+                        <p class="text-[10px] text-gray-400"><%= new Date(order.created_at).toLocaleDateString() %></p>
+                    </div>
+                </div>
+                <% }); %>
+                
+                <% if(recentOrders.length === 0) { %>
+                    <div class="text-center py-8 text-gray-400 text-sm">No recent orders found.</div>
+                <% } %>
+            </div>
+            <a href="/admin/orders/web-orders" class="block text-center text-xs font-bold text-gray-500 hover:text-black mt-6 uppercase tracking-wider">View All Orders</a>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span class="material-icons-outlined text-blue-500">near_me</span> Live Visitor Map
+        </h3>
+        <div id="visitorMap" class="h-96 w-full rounded-xl z-0 bg-gray-50"></div>
+    </div>
+
+</div>
+
+<script>
+    // 1. CHART.JS CONFIG
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const labels = <%- chart.labels %>;
+    const data = <%- chart.data %>;
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sales (৳)',
+                data: data,
+                borderColor: '#111827',
+                backgroundColor: 'rgba(17, 24, 39, 0.05)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: '#111827',
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 14, weight: 'bold' },
+                    padding: 10,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { borderDash: [4, 4], color: '#f3f4f6' },
+                    ticks: { font: { size: 11 }, color: '#9ca3af' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11 }, color: '#9ca3af' }
+                }
+            }
+        }
+    });
+
+    // 2. LEAFLET MAP CONFIG
+    const mapData = <%- mapData %>; // Data from Controller
+
+    // Default to Dhaka, Bangladesh
+    const map = L.map('visitorMap').setView([23.6850, 90.3563], 7);
+
+    // Standard OpenStreetMap Tiles (Most Reliable)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Custom "Pulse" Icon
+    const userIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: "<div style='background-color:#ef4444; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);'></div>",
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+    });
+
+    // Plot Users on Map
+    if (mapData && mapData.length > 0) {
+        mapData.forEach(user => {
+            if(user.lat && user.lng) {
+                L.marker([user.lat, user.lng], { icon: userIcon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class='text-center'>
+                            <b class='text-red-600'>Active User</b><br>
+                            ${user.city || 'Unknown Location'}
+                        </div>
+                    `);
+            }
+        });
+    }
+
+    // [NEW] AUTO-REFRESH DASHBOARD (Every 10s)
+    setInterval(() => {
+        fetch('/admin/api/live-stats')
+            .then(res => res.json())
+            .then(data => {
+                // 1. Update Counter
+                const counterElement = document.querySelector('h3.text-3xl.flex.items-center');
+                if (counterElement) {
+                    // Keep the number, preserve the ping animation dot
+                    counterElement.innerHTML = `${data.count} 
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>`;
+                }
+
+                // 2. Update Map Markers
+                // Clear existing markers (except tiles)
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                // Add new markers
+                data.visitors.forEach(user => {
+                    if(user.lat && user.lng) {
+                        L.marker([user.lat, user.lng], { icon: userIcon })
+                            .addTo(map)
+                            .bindPopup(`<div class='text-center'><b class='text-red-600'>Active</b><br>${user.city || 'Unknown'}</div>`);
+                    }
+                });
+            })
+            .catch(err => console.error("Auto-refresh failed", err));
+    }, 10000); // 10 Seconds
+</script>

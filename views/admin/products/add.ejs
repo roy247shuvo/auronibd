@@ -1,0 +1,427 @@
+<% if (!can('prod_list', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to add new products.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+    
+    <form id="productForm" action="/admin/products/save" method="POST" class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        
+        <input type="hidden" name="image_map_json" id="imageMapInput">
+    
+        <div class="lg:col-span-2 space-y-6">
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">General Info</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Product Title</label>
+                        <input type="text" name="name" id="productName" required 
+                               class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                               <%= can('prod_list', 'write') ? '' : 'disabled' %>>
+                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label>
+                    <textarea name="description" rows="3" 
+                              class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                              <%= can('prod_list', 'write') ? '' : 'disabled' %>></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="col-span-2 lg:col-span-1">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Selling Price (MRP)</label>
+                    <input type="number" name="price" id="mainCompare" 
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-gray-100 disabled:text-gray-500" 
+                           placeholder="3000" <%= can('prod_list', 'write') ? '' : 'disabled' %>>
+                </div>
+                
+                <div class="col-span-2 lg:col-span-1">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Discounted Price</label>
+                    <input type="number" name="compare_price" id="mainPrice" required 
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-gray-100 disabled:text-gray-500" 
+                           placeholder="2500" <%= can('prod_list', 'write') ? '' : 'disabled' %>>
+                </div>
+
+                <div class="col-span-2 lg:col-span-1">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">SKU (Auto)</label>
+                    <input type="text" name="sku" id="mainSku" 
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono uppercase bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none disabled:text-gray-500"
+                           <%= can('prod_list', 'write') ? '' : 'disabled' %>>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-sm font-bold text-gray-900">Variants</h3>
+                <% if (can('prod_list', 'write')) { %>
+                <button type="button" onclick="generateVariants()" class="bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg uppercase tracking-wide hover:bg-black transition shadow-lg">
+                    Generate Table
+                </button>
+                <% } %>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="relative">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Add Colors</label>
+                    <button type="button" 
+                            onclick="<%= can('prod_list', 'write') ? 'toggleColorDropdown()' : '' %>" 
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-left flex justify-between items-center bg-white <%= can('prod_list', 'write') ? 'hover:border-gray-300' : 'cursor-not-allowed bg-gray-100' %> transition"
+                            <%= can('prod_list', 'write') ? '' : 'disabled' %>>
+                        <span class="text-gray-500">Select a color...</span>
+                        <span class="material-icons-outlined text-gray-400 text-[18px]">expand_more</span>
+                    </button>
+                    <div id="customColorMenu" class="absolute z-20 w-full bottom-full mb-1 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto hidden custom-scrollbar">
+                        <% colors.forEach(c => { %> 
+                            <div onclick="addColorTag('<%= c.name %>', '<%= c.shortcode %>', '<%= c.hex_code %>')" 
+                                 class="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0 transition group">
+                                <div class="w-6 h-6 rounded-full border border-gray-200 shadow-sm mr-3 group-hover:scale-110 transition" style="background-color: <%= c.hex_code %>;"></div>
+                                <span class="text-sm text-gray-700 font-medium"><%= c.name %></span>
+                            </div>
+                        <% }) %>
+                    </div>
+                    <div id="colorTags" class="flex flex-wrap gap-2 mt-3 min-h-[40px] p-2 bg-gray-50 rounded-lg border border-dashed border-gray-200 items-center"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Add Sizes</label>
+                    <select id="sizeDropdown" onchange="addTag('size')" 
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                            <%= can('prod_list', 'write') ? '' : 'disabled' %>>
+                        <option value="">Select a size...</option>
+                        <% sizes.forEach(s => { %> <option value="<%= s.name %>"><%= s.name %></option> <% }) %>
+                    </select>
+                    <div id="sizeTags" class="flex flex-wrap gap-2 mt-3 min-h-[40px] p-2 bg-gray-50 rounded-lg border border-dashed border-gray-200"></div>
+                </div>
+            </div>
+
+            <div id="variantTableContainer" class="hidden overflow-x-auto border border-gray-200 rounded-lg">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-gray-50 text-gray-500 uppercase font-bold border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3">Variant</th>
+                            <th class="px-4 py-3 w-28">Selling (MRP)</th>
+                            <th class="px-4 py-3 w-28">Discounted</th>
+                            <th class="px-4 py-3">SKU</th>
+                            <th class="px-4 py-3 w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="variantTableBody" class="divide-y divide-gray-100 bg-white"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="text-sm font-bold text-gray-900 mb-4">Product Images</h3>
+            <div id="imageManagerContainer" class="space-y-6">
+                <div class="image-section" data-color="General">
+                    <div class="flex items-center mb-2">
+                        <span class="material-icons-outlined text-gray-400 mr-2 text-sm">collections</span>
+                        <h4 class="text-xs font-bold text-gray-600 uppercase">General / Common</h4>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3" id="img-grid-General">
+                        </div>
+                </div>
+                </div>
+        </div>
+
+    </div>
+
+    <div class="space-y-6">
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 space-y-4">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Organization</h3>
+            
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Sales Channel</label>
+                <select name="sales_channel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700">
+                    <option value="both" selected>Both (Online & POS)</option>
+                    <option value="pos">POS Only</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Brand</label>
+                <select name="brand_id" id="selBrand" onchange="updateMainSku()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="" data-code="">-- Select --</option>
+                    <% brands.forEach(brand => { %> <option value="<%= brand.id %>" data-code="<%= brand.shortcode %>"><%= brand.name %></option> <% }) %>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                <select name="category_id" id="selCategory" onchange="updateMainSku()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="" data-code="">-- Select --</option>
+                    <% categories.forEach(cat => { %> <option value="<%= cat.id %>" data-code="<%= cat.shortcode %>"><%= cat.name %></option> <% }) %>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                <select name="type_id" id="selType" onchange="updateMainSku()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="" data-code="">-- Select --</option>
+                    <% types.forEach(type => { %> <option value="<%= type.id %>" data-code="<%= type.shortcode %>"><%= type.name %></option> <% }) %>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Work Type</label>
+                <select name="work_type_id" id="selWorkType" onchange="updateMainSku()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="" data-code="">-- Select --</option>
+                    <% if (typeof work_types !== 'undefined') { %>
+                        <% work_types.forEach(wt => { %> <option value="<%= wt.id %>" data-code="<%= wt.shortcode %>"><%= wt.name %></option> <% }) %>
+                    <% } %>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Fabric</label>
+                <select name="fabric_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- Select --</option>
+                    <% if (typeof fabrics !== 'undefined') { %>
+                        <% fabrics.forEach(f => { %> 
+                            <option value="<%= f.id %>"><%= f.name %></option> 
+                        <% }) %>
+                    <% } %>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Collection</label>
+                <select name="collection_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- None --</option>
+                    <% collections.forEach(col => { %> <option value="<%= col.id %>"><%= col.name %></option> <% }) %>
+                </select>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    const isReadOnly = <%= !can('prod_list', 'write') %>; // Pass permission to JS
+
+    // === GLOBAL STATE ===
+    window.selectedColors = [];
+    window.selectedSizes = [];
+    window.imageMap = { "General": [null, null, null] }; // Changed 'let' to 'window.'
+
+    // === INITIALIZATION ===
+    renderImageSection('General');
+
+    // === 1. COLOR LOGIC ===
+    function toggleColorDropdown() { document.getElementById('customColorMenu').classList.toggle('hidden'); }
+    
+    window.addEventListener('click', function(e) {
+        if (!document.getElementById('customColorMenu').contains(e.target) && !document.querySelector('button[onclick="toggleColorDropdown()"]').contains(e.target)) {
+            document.getElementById('customColorMenu').classList.add('hidden');
+        }
+    });
+
+    function addColorTag(name, code, hex) {
+        if (window.selectedColors.find(c => c.value === name)) { toggleColorDropdown(); return; }
+        
+        window.selectedColors.push({ value: name, code: code, hex: hex });
+        
+        // Add Entry to Image Map
+        if (!window.imageMap[name]) window.imageMap[name] = [null, null, null]; 
+        
+        toggleColorDropdown();
+        renderTags('color');
+        renderImageSections(); 
+    }
+
+    function addTag(type) {
+        if (type === 'color') return;
+        const dropdown = document.getElementById('sizeDropdown');
+        const value = dropdown.value;
+        if (!value) return;
+        if (window.selectedSizes.find(s => s.value === value)) return;
+        window.selectedSizes.push({ value: value, code: '' });
+        dropdown.value = "";
+        renderTags('size');
+    }
+
+    function removeTag(type, index) {
+        if (type === 'color') {
+            const removed = window.selectedColors.splice(index, 1)[0];
+            delete window.imageMap[removed.value]; 
+            renderImageSections();
+        }
+        if (type === 'size') window.selectedSizes.splice(index, 1);
+        renderTags(type);
+    }
+
+    function renderTags(type) {
+        const container = document.getElementById(type + 'Tags');
+        const list = type === 'color' ? window.selectedColors : window.selectedSizes;
+        container.innerHTML = list.map((item, index) => {
+            if (type === 'color') {
+                return `
+                <div class="relative group">
+                    <div class="w-8 h-8 rounded-full border border-gray-200 shadow-sm cursor-pointer hover:scale-105 transition" style="background-color: ${item.hex};" title="${item.value}"></div>
+                    <button onclick="removeTag('color', ${index})" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-md"><span class="material-icons-outlined text-[10px]">close</span></button>
+                </div>`;
+            } else {
+                return `
+                <div class="inline-flex items-center bg-white border border-gray-300 rounded px-2 py-1 shadow-sm text-xs font-medium text-gray-700">
+                    ${item.value}
+                    <button type="button" onclick="removeTag('${type}', ${index})" class="ml-2 text-gray-400 hover:text-red-600 focus:outline-none"><span class="material-icons-outlined text-[14px]">close</span></button>
+                </div>`;
+            }
+        }).join('');
+    }
+
+    // === 2. IMAGE MANAGER LOGIC ===
+    function renderImageSections() {
+        const container = document.getElementById('imageManagerContainer');
+        container.innerHTML = '';
+        renderImageSection('General');
+        window.selectedColors.forEach(c => {
+            renderImageSection(c.value, c.hex);
+        });
+    }
+
+    function renderImageSection(colorName, hex = '#eee') {
+        const container = document.getElementById('imageManagerContainer');
+        const slots = window.imageMap[colorName]; 
+
+        let html = `
+        <div class="image-section border-t border-gray-100 pt-4 first:border-0 first:pt-0">
+            <div class="flex items-center mb-3">
+                ${colorName === 'General' ? 
+                    '<span class="material-icons-outlined text-gray-400 mr-2 text-sm">collections</span>' : 
+                    `<div class="w-4 h-4 rounded-full border border-gray-200 mr-2" style="background-color: ${hex}"></div>`
+                }
+                <h4 class="text-xs font-bold text-gray-600 uppercase">${colorName}</h4>
+            </div>
+            <div class="grid grid-cols-3 gap-3">`;
+
+        slots.forEach((url, idx) => {
+            if (url) {
+                html += `
+                <div class="aspect-square rounded-lg border border-gray-200 relative overflow-hidden group bg-white">
+                    <img src="${url}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeImage('${colorName}', ${idx})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-md z-10">
+                        <span class="material-icons-outlined text-xs">close</span>
+                    </button>
+                </div>`;
+            } else if (!isReadOnly) { // Only show ADD button if NOT read-only
+                html += `
+                <div onclick="openMediaModal('${colorName}', ${idx})" class="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300 hover:border-gray-400 hover:text-gray-500 hover:bg-gray-50 transition cursor-pointer">
+                    <span class="material-icons-outlined text-2xl mb-1">add</span>
+                    <span class="text-[10px] font-bold">ADD</span>
+                </div>`;
+            }
+        });
+
+        html += `</div></div>`;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function removeImage(color, index) {
+        window.imageMap[color][index] = null;
+        renderImageSections();
+        updateHiddenInput();
+    }
+
+    function updateHiddenInput() {
+        // Remove nulls
+        const cleanMap = {};
+        for (const [key, val] of Object.entries(window.imageMap)) {
+            const validUrls = val.filter(u => u !== null);
+            if (validUrls.length > 0) cleanMap[key] = validUrls;
+        }
+        document.getElementById('imageMapInput').value = JSON.stringify(cleanMap);
+    }
+
+    // === 3. BRIDGE TO GLOBAL MODAL ===
+    function openMediaModal(color, index) {
+        // Set the global target in index.ejs so it knows where to send the image
+        if(typeof window.currentUploadTarget !== 'undefined') {
+            window.currentUploadTarget = { color, index };
+            // Call the function in index.ejs
+            if(typeof window.openMediaModal === 'function') {
+                // We just need to show it, the variable is already set
+                document.getElementById('mediaModal').classList.remove('hidden');
+                if(typeof loadLibrary === 'function') loadLibrary();
+            } else {
+                // Fallback if index.ejs function name differs
+                document.getElementById('mediaModal').classList.remove('hidden');
+            }
+        }
+    }
+
+    // === 4. SKU & TABLE LOGIC ===
+    function updateMainSku() {
+        const brand = document.getElementById('selBrand').selectedOptions[0].getAttribute('data-code') || '';
+        const cat = document.getElementById('selCategory').selectedOptions[0].getAttribute('data-code') || '';
+        const type = document.getElementById('selType').selectedOptions[0].getAttribute('data-code') || '';
+        const work = document.getElementById('selWorkType').selectedOptions[0].getAttribute('data-code') || '';
+        
+        let serial = <%= nextSerial %>; 
+        let serialStr = serial.toString();
+        if (serial < 100) serialStr = serialStr.padStart(2, '0');
+        
+        let prefix = `${brand}${cat}${type}${work}`;
+        if(prefix.length > 0) {
+            document.getElementById('mainSku').value = `${prefix}-${serialStr}`;
+        }
+    }
+
+    function generateVariants() {
+        const tbody = document.getElementById('variantTableBody');
+        const container = document.getElementById('variantTableContainer');
+        const basePrice = document.getElementById('mainPrice').value || 0;
+        const comparePrice = document.getElementById('mainCompare').value || 0;
+        // REMOVED costPrice definition to prevent crash
+        const mainSku = document.getElementById('mainSku').value || 'SKU';
+        
+        tbody.innerHTML = '';
+        if (window.selectedColors.length === 0 && window.selectedSizes.length === 0) { alert("Please add at least one Color or Size tag."); return; }
+        container.classList.remove('hidden');
+
+        const loopColors = window.selectedColors.length > 0 ? window.selectedColors : [{ value: '', code: '' }];
+        const loopSizes = window.selectedSizes.length > 0 ? window.selectedSizes : [{ value: '', code: '' }];
+
+        loopColors.forEach(color => {
+            loopSizes.forEach(size => {
+                let variantName = '';
+                if(color.value && size.value) variantName = `${color.value} / ${size.value}`;
+                else if(color.value) variantName = color.value;
+                else if(size.value) variantName = size.value;
+
+                let suffix = '';
+                if(color.code) suffix += color.code;
+                let sizePart = size.value;
+                if(size.value && size.value.toLowerCase().includes('free')) sizePart = 'FR';
+                if(sizePart) suffix += sizePart;
+
+                const sku = suffix ? `${mainSku}-${suffix}` : mainSku;
+                const row = `
+                <tr class="hover:bg-gray-50 group border-b border-gray-100 last:border-0">
+                    <td class="px-4 py-3 font-medium text-gray-700">
+                        ${variantName}
+                        <input type="hidden" name="variant_color[]" value="${color.value}">
+                        <input type="hidden" name="variant_size[]" value="${size.value}">
+                    </td>
+                    <td class="px-4 py-3"><input type="number" name="variant_price[]" value="${comparePrice}" class="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-red-500"></td>
+                    <td class="px-4 py-3"><input type="number" name="variant_compare[]" value="${basePrice}" class="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-red-500"></td>
+                    <td class="px-4 py-3"><input type="text" name="variant_sku[]" value="${sku}" class="w-full border border-gray-200 rounded px-2 py-1 text-xs font-mono uppercase"></td>
+                    <td class="px-4 py-3 text-center"><button type="button" onclick="this.closest('tr').remove()" class="text-gray-400 hover:text-red-500"><span class="material-icons-outlined text-base">delete</span></button></td>
+                </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        });
+    }
+</script>

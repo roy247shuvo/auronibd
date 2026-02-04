@@ -1,0 +1,166 @@
+<div class="flex justify-between items-end mb-8">
+    <% if (!can('orders_return', 'write')) { %>
+    <div class="w-full bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to process returns.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Steadfast Partial Returns</h1>
+        <p class="text-sm text-gray-500 mt-1">
+            Fix inventory for orders marked "Partially Delivered" by the courier API.
+        </p>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <table class="w-full text-left border-collapse">
+        <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-bold border-b border-gray-100">
+            <tr>
+                <th class="px-6 py-4">Order #</th>
+                <th class="px-6 py-4">Status</th>
+                <th class="px-6 py-4">Items Summary</th>
+                <th class="px-6 py-4 text-right">Action</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            <% orders.forEach(order => { %>
+            <tr class="hover:bg-gray-50 group">
+                <td class="px-6 py-4 font-bold font-mono">
+                    <%= order.order_number %>
+                    <div class="text-xs text-gray-400 font-sans mt-1"><%= new Date(order.created_at).toLocaleDateString() %></div>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">Partial</span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                    <%= order.item_summary ? order.item_summary.replace(/\|\|/g, ', ') : 'No Items' %>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <% if (can('orders_return', 'write')) { %>
+                    <button onclick="openReturnModal(<%= order.id %>, '<%= order.order_number %>')" 
+                            class="bg-black text-white hover:bg-gray-800 text-xs font-bold px-3 py-1.5 rounded shadow-sm transition">
+                        Identify Returned Item
+                    </button>
+                    <% } %>
+                </td>
+            </tr>
+            <% }) %>
+            <% if(orders.length === 0) { %>
+            <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No pending partial returns found.</td></tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+<div id="returnModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-bold text-lg" id="modalTitle">Process Partial Return</h3>
+            <button onclick="closeReturnModal()" class="text-gray-400 hover:text-red-500 text-xl">&times;</button>
+        </div>
+        
+        <div class="p-6">
+            <div class="bg-yellow-50 border border-yellow-100 text-yellow-800 text-xs p-3 rounded mb-4">
+                <strong>Instruction:</strong> Select ONLY the items that were <b>returned</b> by the customer. The unselected items will be considered SOLD.
+            </div>
+            <form id="restockForm">
+                <input type="hidden" id="modalOrderId" name="order_id">
+                <div id="modalItemsList" class="flex flex-col gap-3">
+                    </div>
+            </form>
+        </div>
+
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+            <button onclick="closeReturnModal()" class="px-4 py-2 rounded text-gray-600 hover:bg-gray-200 text-sm font-bold">Cancel</button>
+            <% if (can('orders_return', 'write')) { %>
+            <button onclick="submitRestock()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold shadow-lg">
+                Confirm Return & Restock
+            </button>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function openReturnModal(id, orderNum) {
+        document.getElementById('modalTitle').innerText = `Process Partial Return #${orderNum}`;
+        document.getElementById('modalOrderId').value = id;
+        const list = document.getElementById('modalItemsList');
+        list.innerHTML = '<div class="text-center py-4"><span class="material-icons-outlined animate-spin">sync</span></div>';
+        
+        document.getElementById('returnModal').classList.remove('hidden');
+
+        try {
+            const res = await fetch(`/admin/returns/items/${id}`);
+            const data = await res.json();
+            
+            list.innerHTML = '';
+            if(data.items.length > 0) {
+                data.items.forEach(item => {
+                    list.innerHTML += `
+                        <label class="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="w-5 h-5 text-red-600 rounded focus:ring-red-500 return-check" 
+                                   value="${item.id}" 
+                                   data-variant="${item.variant_id}" 
+                                   data-product="${item.product_id}" 
+                                   data-qty="${item.quantity}">
+                            <div class="flex-1">
+                                <div class="font-bold text-sm text-gray-900">${item.product_name}</div>
+                                <div class="text-xs text-gray-500">Size: ${item.size} | Qty in Order: ${item.quantity}</div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-400">Returned?</span>
+                        </label>
+                    `;
+                });
+            }
+        } catch(e) { alert('Error fetching items'); }
+    }
+
+    function closeReturnModal() {
+        document.getElementById('returnModal').classList.add('hidden');
+    }
+
+    async function submitRestock() {
+        const checks = document.querySelectorAll('.return-check:checked');
+        if(checks.length === 0) {
+            alert("Please select at least one item that was returned.");
+            return;
+        }
+        
+        if(!confirm("Are you sure? The selected items will be added back to stock.")) return;
+
+        const orderId = document.getElementById('modalOrderId').value;
+        
+        const items = Array.from(checks).map(c => ({
+            id: c.value,
+            variant_id: c.dataset.variant,
+            product_id: c.dataset.product,
+            qty: c.dataset.qty 
+        }));
+
+        try {
+            const res = await fetch('/admin/returns/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderId, returned_items: items })
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message);
+            }
+        } catch(e) { alert('System Error'); }
+    }
+</script>

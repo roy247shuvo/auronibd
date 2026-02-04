@@ -1,0 +1,15 @@
+# Secrets and Credentials
+.env
+*.log
+
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# OS specific files
+.DS_Store
+thumbs.db
+
+# Build folders
+dist/
+build/

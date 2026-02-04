@@ -1,0 +1,384 @@
+<div class="max-w-7xl mx-auto">
+    
+    <% if (!can('prod_inventory', 'write')) { %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="material-icons-outlined text-yellow-400">lock</span>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-bold">View Only Mode:</span> You do not have permission to manage inventory.
+                </p>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Inventory</h1>
+            <p class="text-sm text-gray-500 mt-1">Manage your catalog and stock.</p>
+        </div>
+        <% if (can('prod_inventory', 'write')) { %>
+        <button onclick="openProductModal()" class="flex items-center bg-gray-900 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-black shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5">
+            <span class="material-icons-outlined mr-2 text-[20px]">add</span>
+            Add Product
+        </button>
+        <% } %>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+        <table class="w-full text-left text-sm text-gray-600">
+            <thead class="bg-gray-50 text-xs uppercase font-medium text-gray-500 border-b border-gray-100">
+                <tr>
+                    <th class="px-6 py-4 w-20">Image</th>
+                    <th class="px-6 py-4">Product Name</th>
+                    <th class="px-6 py-4">SKU</th>
+                    <th class="px-6 py-4">Stock</th>
+                    <th class="px-6 py-4">Channel</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                <% products.forEach(p => { %>
+                    <tr class="hover:bg-gray-50 transition group">
+                        
+                        <td class="px-6 py-4">
+                            <div class="h-12 w-12 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                                <% if(p.random_image) { %>
+                                    <img src="<%= p.random_image %>" class="h-full w-full object-cover">
+                                <% } else { %>
+                                    <span class="material-icons-outlined text-gray-300 text-sm">image</span>
+                                <% } %>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-4 font-medium text-gray-900">
+                            <%= p.name %>
+                        </td>
+                        
+                        <td class="px-6 py-4 font-mono text-xs text-gray-500">
+                            <%= p.sku %>
+                        </td>
+                        
+                        <td class="px-6 py-4">
+                            <span class="font-bold <%= p.stock_quantity < 10 ? 'text-red-600' : 'text-green-600' %>">
+                                <%= p.stock_quantity %>
+                            </span>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <% if(p.sales_channel === 'both') { %>
+                                <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide">All Channels</span>
+                            <% } else if (p.sales_channel === 'pos') { %>
+                                <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide">POS Only</span>
+                            <% } else { %>
+                                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide">Online</span>
+                            <% } %>
+                        </td>
+
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-2">
+                                <button onclick="openPrintModal(<%= p.id %>)" class="text-gray-400 hover:text-purple-600 border border-gray-200 hover:border-purple-200 p-1.5 rounded-lg transition" title="Print Barcodes">
+                                    <span class="material-icons-outlined text-[18px]">print</span>
+                                </button>
+
+                                <button onclick="openViewModal(<%= p.id %>)" class="text-gray-400 hover:text-blue-600 border border-gray-200 hover:border-blue-200 p-1.5 rounded-lg transition" title="View Variants">
+                                    <span class="material-icons-outlined text-[18px]">visibility</span>
+                                </button>
+                                
+                                <% if (can('prod_inventory', 'write')) { %>
+                                <button onclick="openEditModal(<%= p.id %>)" class="text-gray-400 hover:text-green-600 border border-gray-200 hover:border-green-200 p-1.5 rounded-lg transition" title="Edit Product">
+                                    <span class="material-icons-outlined text-[18px]">edit</span>
+                                </button>
+                                <% } %>
+
+                                <% if (can('prod_inventory', 'delete')) { %>
+                                <a href="/admin/products/delete/<%= p.id %>" onclick="return confirm('Are you sure? This will delete the product and all its variants.');" class="p-1.5 text-gray-400 hover:text-red-600 transition hover:bg-red-50 rounded-lg">
+                                    <span class="material-icons-outlined text-[18px]">delete</span>
+                                </a>
+                                <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<div id="productModal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm transition-opacity" onclick="closeProductModal()"></div>
+    <div class="absolute inset-x-0 bottom-0 md:inset-0 md:flex md:items-center md:justify-center pointer-events-none">
+        <div class="bg-gray-50 w-full h-full md:h-[95vh] md:w-[95vw] md:max-w-7xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center flex-shrink-0">
+                <h2 class="text-xl font-bold text-gray-900">Add New Product</h2>
+                <div class="flex space-x-3">
+                    <button onclick="closeProductModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                    <% if (can('prod_inventory', 'write')) { %>
+                    <button type="submit" form="productForm" class="px-6 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-md transition">Save Product</button>
+                    <% } %>
+                </div>
+            </div>
+            <div class="overflow-y-auto p-8 flex-1 custom-scrollbar">
+                <%- include('add') %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="dynamicModal" class="fixed inset-0 z-[200] hidden bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+    <div id="dynamicModalPanel" class="bg-white w-full h-full md:h-[95vh] md:w-[95vw] md:max-w-7xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-gray-800" id="dynamicModalTitle">Edit</h3>
+            <button onclick="closeDynamicModal()" class="text-gray-400 hover:text-gray-600"><span class="material-icons-outlined">close</span></button>
+        </div>
+        <div id="dynamicModalContent" class="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar">
+            <div class="flex justify-center py-10">
+                <span class="material-icons-outlined animate-spin text-gray-300 text-4xl">sync</span>
+            </div>
+        </div>
+    </div>
+    <div id="imageLightbox" class="fixed inset-0 z-[300] hidden bg-black bg-opacity-95 flex items-center justify-center backdrop-blur-sm" onclick="closeLightbox()">
+        <button class="absolute top-5 right-5 text-white hover:text-gray-300 transition">
+            <span class="material-icons-outlined text-4xl">close</span>
+        </button>
+        <img id="lightboxImg" src="" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl transform transition-transform duration-300 scale-95" onclick="event.stopPropagation()">
+    </div>
+</div>
+
+<%- include('modals/print_barcodes') %>
+
+<%- include('../modals/media_library') %>
+
+<script>
+    // [NEW] Global Variable for Media Modal
+    let currentUploadTarget = null; 
+
+    // [NEW] Auto-open logic when redirecting from Save
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const newProductId = urlParams.get('new_product_id');
+        if (newProductId) {
+            openPrintModal(newProductId);
+        }
+    });
+
+    function openLightbox(url) {
+        const modal = document.getElementById('imageLightbox');
+        const img = document.getElementById('lightboxImg');
+        img.src = url;
+        modal.classList.remove('hidden');
+        setTimeout(() => img.classList.replace('scale-95', 'scale-100'), 10);
+    }
+
+    function closeLightbox() {
+        const modal = document.getElementById('imageLightbox');
+        const img = document.getElementById('lightboxImg');
+        img.classList.replace('scale-100', 'scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            img.src = "";
+        }, 200);
+    }
+    
+    // === 1. ADD MODAL LOGIC ===
+    // === 1. ADD MODAL LOGIC ===
+    function openProductModal() { 
+        document.getElementById('productModal').classList.remove('hidden');
+        
+        // Reset Global Variables to Default for New Product
+        if(typeof imageMap !== 'undefined') {
+            imageMap = { "General": [null, null, null] }; 
+            window.selectedColors = [];
+            window.selectedSizes = [];
+            
+            // Re-render the Add Form interfaces
+            if(typeof renderImageSections === 'function') renderImageSections();
+            if(typeof renderTags === 'function') { renderTags('color'); renderTags('size'); }
+            document.getElementById('imageMapInput').value = "";
+        }
+    }
+    
+    function closeProductModal() { document.getElementById('productModal').classList.add('hidden'); }
+
+    // === 2. DYNAMIC MODAL LOGIC ===
+    function closeDynamicModal() {
+        document.getElementById('dynamicModal').classList.add('hidden');
+    }
+
+    // A. Open Edit Product Form
+    // A. Open Edit Product Form
+    async function openEditModal(id) {
+        document.getElementById('dynamicModal').classList.remove('hidden');
+        document.getElementById('dynamicModalTitle').innerText = "Edit Product Details";
+        const contentDiv = document.getElementById('dynamicModalContent');
+        contentDiv.innerHTML = '<div class="flex justify-center py-10"><span class="material-icons-outlined animate-spin text-gray-300 text-4xl">sync</span></div>';
+
+        try {
+            const res = await fetch(`/admin/products/edit/${id}`);
+            const html = await res.text();
+            contentDiv.innerHTML = html;
+
+            // === KEY FIX: EXECUTE SCRIPTS ===
+            // This forces the Image Manager & Variant logic to initialize
+            const scripts = contentDiv.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+
+        } catch (err) {
+            console.error(err);
+            contentDiv.innerHTML = '<p class="text-red-500 text-center">Error loading form.</p>';
+        }
+    }
+
+    // B. Open View Variants List
+    async function openViewModal(id) {
+        document.getElementById('dynamicModal').classList.remove('hidden');
+        document.getElementById('dynamicModalTitle').innerText = "Product Variants";
+        document.getElementById('dynamicModalContent').innerHTML = '<div class="flex justify-center py-10"><span class="material-icons-outlined animate-spin text-gray-300 text-4xl">sync</span></div>';
+
+        try {
+            const res = await fetch(`/admin/products/view/${id}`);
+            const html = await res.text();
+            document.getElementById('dynamicModalContent').innerHTML = html;
+        } catch (err) {
+            document.getElementById('dynamicModalContent').innerHTML = '<p class="text-red-500 text-center">Error loading variants.</p>';
+        }
+    }
+
+    // C. Open Edit Specific Variant (Inside the same modal)
+    async function openVariantEdit(variantId) {
+        document.getElementById('dynamicModalTitle').innerText = "Edit Variant Price/Stock";
+        document.getElementById('dynamicModalContent').innerHTML = '<div class="flex justify-center py-10"><span class="material-icons-outlined animate-spin text-gray-300 text-4xl">sync</span></div>';
+        
+        try {
+            const res = await fetch(`/admin/products/variant/edit/${variantId}`);
+            const html = await res.text();
+            document.getElementById('dynamicModalContent').innerHTML = html;
+        } catch (err) {
+            document.getElementById('dynamicModalContent').innerHTML = '<p class="text-red-500 text-center">Error loading variant.</p>';
+        }
+    }
+
+    // D. Submit Variant Update (AJAX)
+    async function submitVariantUpdate(e) {
+        e.preventDefault();
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Disable button to prevent double click
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Saving...";
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const res = await fetch('/admin/products/variant/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if(result.success) {
+                // Success! Close modal and refresh to see changes
+                closeDynamicModal();
+                window.location.reload(); 
+            } else {
+                alert("Error updating variant. Please try again.");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Save Changes";
+            }
+        } catch(err) {
+            alert("Network Error");
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Save Changes";
+        }
+    }
+    
+// === GLOBAL MEDIA MODAL FUNCTIONS (MOVED FROM ADD.EJS) ===
+    function openMediaModal(color, index) {
+        currentUploadTarget = { color, index };
+        document.getElementById('mediaModal').classList.remove('hidden');
+        loadLibrary(); 
+    }
+
+    function closeMediaModal() {
+        document.getElementById('mediaModal').classList.add('hidden');
+    }
+
+    function switchTab(tab) {
+        document.getElementById('content-upload').classList.add('hidden');
+        document.getElementById('content-library').classList.add('hidden');
+        document.getElementById('tab-upload').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
+        document.getElementById('tab-library').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
+        document.getElementById('content-' + tab).classList.remove('hidden');
+        document.getElementById('tab-' + tab).className = "flex-1 py-3 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white";
+    }
+
+    async function handleFileUpload(input) {
+        if (!input.files || !input.files[0]) return;
+        const loader = document.getElementById('uploadLoader');
+        loader.classList.remove('hidden');
+
+        const formData = new FormData();
+        formData.append('file', input.files[0]);
+        try {
+            const res = await fetch('/admin/media/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            
+            if (data.success) {
+                // Using global imageMap (accessible because add.ejs is included in index.ejs)
+                if(typeof imageMap !== 'undefined') {
+                    imageMap[currentUploadTarget.color][currentUploadTarget.index] = data.url;
+                    
+                    // Safely call render functions if they exist
+                    if(typeof renderImageSections === 'function') renderImageSections();
+                    if(typeof updateHiddenInput === 'function') updateHiddenInput();
+                }
+                closeMediaModal();
+                loader.classList.add('hidden');
+                input.value = ""; 
+            } else {
+                alert("Upload failed");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Network Error");
+            loader.classList.add('hidden');
+        }
+    }
+
+    async function loadLibrary() {
+        const container = document.getElementById('content-library');
+        try {
+            const res = await fetch('/admin/media/list');
+            const data = await res.json();
+            
+            if (data.success) {
+                container.innerHTML = data.images.map(img => `
+                    <div onclick="selectFromLibrary('${img.image_url}')" class="aspect-square rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:border-red-500 hover:ring-2 hover:ring-red-200 transition relative">
+                        <img src="${img.image_url}" class="w-full h-full object-cover">
+                    </div>
+                `).join('');
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    function selectFromLibrary(url) {
+        if(typeof imageMap !== 'undefined') {
+            imageMap[currentUploadTarget.color][currentUploadTarget.index] = url;
+            if(typeof renderImageSections === 'function') renderImageSections();
+            if(typeof updateHiddenInput === 'function') updateHiddenInput();
+        }
+        closeMediaModal();
+    }
+</script>

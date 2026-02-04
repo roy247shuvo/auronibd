@@ -1,0 +1,24 @@
+<% if (!can('web_elements', 'write')) { %>
+<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <span class="material-icons-outlined text-yellow-400">lock</span>
+        </div>
+        <div class="ml-3">
+            <p class="text-sm text-yellow-700">
+                <span class="font-bold">View Only Mode:</span> You do not have permission to modify website content.
+            </p>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+    <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span class="material-icons-outlined text-3xl text-gray-400">highlight</span>
+    </div>
+    <h3 class="text-lg font-bold text-gray-900 mb-2">Lightboxes Coming Soon</h3>
+    <p class="text-gray-500 max-w-sm mx-auto">
+        This section is reserved for managing popup lightboxes and promotional modals.
+    </p>
+</div>

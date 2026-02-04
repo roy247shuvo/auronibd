@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt #<%= order.order_number %></title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <style>
+        /* Reset & Base */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
+        body { background: #fff; color: #000; }
+        
+        /* Dynamic Width based on pos_paper_width */
+        .receipt-container {
+            width: <%= shop.pos_paper_width == 56 ? '58mm' : '78mm' %>;
+            margin: 0 auto;
+            padding: 5px 0; 
+            font-size: <%= shop.pos_paper_width == 56 ? '10px' : '11px' %>;
+            font-weight: bold;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .bold { font-weight: 900; }
+        
+        /* Header */
+        .logo { max-width: 50%; height: auto; margin-bottom: 5px; filter: grayscale(100%); }
+        .header-info { margin-bottom: 5px; }
+        
+        /* Dashed Line */
+        .divider { border-top: 1px dashed #000; margin: 5px 0; }
+        
+        /* Items Table */
+        table { width: 100%; border-collapse: collapse; }
+        th { border-bottom: 1px dashed #000; text-align: left; padding: 2px 0; font-size: 0.9em; }
+        td { padding: 2px 0; vertical-align: top; }
+        
+        /* Payment Details */
+        .payment-box { border: 1px solid #000; padding: 4px; margin-top: 5px; font-size: 0.9em; }
+
+        /* Footer */
+        .footer { margin-top: 10px; text-align: center; font-size: 0.9em; }
+        .qr-code { width: 70px; height: 70px; margin: 5px auto; display: block; }
+
+        @media print {
+            @page { margin: 0; padding: 0; }
+            body { margin: 0; padding: 0; }
+        }
+    </style>
+</head>
+<body onload="generateBarcode()">
+
+<div class="receipt-container">
+    
+    <div class="text-center header-info">
+        <div class="bold" style="font-size: 1.2em;"><%= shop.store_name %></div>
+        <div style="white-space: pre-line;"><%= shop.store_address %></div>
+        <div>Tel: <%= shop.store_phone %></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+        <div>Date: <%= new Date(order.created_at).toLocaleDateString() %> <%= new Date(order.created_at).toLocaleTimeString() %></div>
+        <div>Op: <%= cashier %></div>
+        <div>Inv: <%= order.order_number %></div>
+    </div>
+
+    <div class="text-center" style="margin: 5px 0;">
+        <svg id="barcode"></svg>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+        <div><b>To:</b> <%= order.guest_name %></div>
+        <div>Ph: <%= order.guest_phone %></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="50%">Item</th>
+                <th width="15%" class="text-center">Q</th>
+                <th width="15%" class="text-right">P</th>
+                <th width="20%" class="text-right">Amt</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% items.forEach(item => { %>
+            <tr>
+                <td>
+                    <%= item.product_name %>
+                    <br><span style="font-weight: normal; font-size: 0.85em;">SKU: <%= item.sku %></span>
+
+                    <% if(item.size || item.color) { %>
+                    <br><span style="font-weight: normal; font-size: 0.85em;">[<%= item.size %>-<%= item.color %>]</span>
+                    <% } %>
+                </td>
+                <td class="text-center"><%= item.quantity %></td>
+                <td class="text-right"><%= item.price %></td>
+                <td class="text-right"><%= item.line_total %></td>
+            </tr>
+            <% }) %>
+        </tbody>
+    </table>
+
+    <div class="divider"></div>
+
+    <table style="font-weight: bold;">
+        <tr>
+            <td class="text-right">Subtotal:</td>
+            <td class="text-right" width="30%"><%= order.product_subtotal %></td>
+        </tr>
+        <% 
+           // Calculate Discount
+           let discount = parseFloat(order.product_subtotal) - parseFloat(order.total_amount);
+           if(discount > 0) { 
+        %>
+        <tr>
+            <td class="text-right">Discount:</td>
+            <td class="text-right">-<%= discount %></td>
+        </tr>
+        <% } %>
+        <tr style="font-size: 1.2em;">
+            <td class="text-right">TOTAL:</td>
+            <td class="text-right">TK. <%= order.total_amount %></td>
+        </tr>
+    </table>
+
+    <div class="divider"></div>
+
+    <div>
+        <div class="bold">Paid via <%= order.payment_method.toUpperCase() %></div>
+        
+        <div class="payment-box">
+            <% if(order.payment_method === 'cash') { %>
+                <div>Paid: <%= order.amount_received %></div>
+                <div>Change: <%= order.change_return %></div>
+                <% if(order.nb_trx_id) { %>
+                <div style="font-size: 0.85em;">Ref: <%= order.nb_trx_id %></div>
+                <% } %>
+            <% } else { %>
+                <% if(paymentDetail) { %>
+                    <div><%= paymentDetail %></div>
+                <% } %>
+                <% if(order.payment_trx_id) { %>
+                    <div>TrxID: <%= order.payment_trx_id %></div>
+                <% } %>
+                <% if(order.nb_trx_id) { %>
+                <div style="font-size: 0.85em;">Ref: <%= order.nb_trx_id %></div>
+                <% } %>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="bold">THANK YOU!</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.facebook.com/bdnicheboutique" class="qr-code">
+        <div>Scan to visit Facebook</div>
+        <div style="margin-top: 5px; font-size: 0.8em;">app.nicheboutiquebd.com</div>
+    </div>
+
+</div>
+
+<script>
+    function generateBarcode() {
+        try {
+            JsBarcode("#barcode", "<%= order.order_number %>", {
+                format: "CODE128",
+                width: 1.5,
+                height: 35,
+                displayValue: false,
+                margin: 0
+            });
+        } catch(e) { console.error("Barcode Error", e); }
+    }
+</script>
+
+</body>
+</html>

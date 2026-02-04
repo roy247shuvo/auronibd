@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title><%= typeof title !== 'undefined' ? title : 'Niche Boutique' %></title>
+    
+    <link rel="icon" href="/uploads/nichefav.webp" type="image/webp">
+
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;1,6..96,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-black': '#0a0a0a',
+                        'brand-gold': '#D4AF37', 
+                        'brand-cream': '#f8f5f1',
+                    },
+                    fontFamily: {
+                        serif: ['Bodoni Moda', 'serif'],
+                        sans: ['Jost', 'sans-serif'],
+                    },
+                    animation: {
+                        'marquee': 'marquee 25s linear infinite',
+                        'marquee-slow': 'marquee 40s linear infinite',
+                        'fade-up': 'fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        fadeUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CRITICAL: Fixes the Mobile Menu showing by default */
+        [x-cloak] { display: none !important; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+
+    <% if (locals.shopSettings && shopSettings.meta_pixel_id) { %>
+        <%- shopSettings.meta_domain_verification %>
+
+        <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+
+        fbq('init', '<%= shopSettings.meta_pixel_id %>');
+        fbq('track', 'PageView');
+        </script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                // A. Add to Cart / Contact (Frontend Tracking)
+                document.body.addEventListener('click', function(e) {
+                    // Check if clicked element or parent has these classes/attributes
+                    if (e.target.closest('.add-to-cart-btn') || e.target.closest('.btn-cart') || e.target.innerText.includes('Add to Cart')) {
+                        fbq('track', 'AddToCart');
+                    }
+                    if (e.target.closest('a[href^="tel:"]') || e.target.closest('a[href^="whatsapp:"]')) {
+                        fbq('track', 'Contact');
+                    }
+                });
+
+                // B. Scroll Depth (50%)
+                let tracked50 = false;
+                window.addEventListener('scroll', function() {
+                    const scrollPercent = (window.scrollY + window.innerHeight) / document.body.offsetHeight * 100;
+                    if (scrollPercent > 50 && !tracked50) {
+                        tracked50 = true;
+                        fbq('trackCustom', 'ScrollDepth', { depth: '50%' });
+                    }
+                });
+
+                // C. Time on Page (30s)
+                setTimeout(() => { fbq('trackCustom', 'TimeOnPage', { seconds: 30 }); }, 30000);
+            });
+        </script>
+    <% } %>
+</head>
+
+<div x-data="{ 
+            showError: false, 
+            errorMessage: '',
+            init() {
+                const params = new URLSearchParams(window.location.search);
+                if (params.has('error')) {
+                    this.errorMessage = params.get('error');
+                    this.showError = true;
+                    // Clean URL without reloading
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, newUrl);
+                }
+            }
+         }"
+         x-show="showError" 
+         x-cloak
+         class="fixed inset-0 z-[100] flex items-center justify-center px-4"
+         style="display: none;">
+        
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+             x-show="showError"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="showError = false"></div>
+
+        <div class="bg-white w-full max-w-sm rounded-lg shadow-2xl p-8 text-center relative transform transition-all"
+             x-show="showError"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 translate-y-4">
+            
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span class="material-icons-outlined text-3xl">error_outline</span>
+            </div>
+
+            <h3 class="font-serif text-xl font-bold text-gray-900 mb-2">Payment Failed</h3>
+            <p class="text-sm text-gray-500 mb-8" x-text="errorMessage || 'Something went wrong with your transaction.'"></p>
+
+            <div class="space-y-3">
+                <a href="/checkout" class="block w-full bg-black text-white text-xs font-bold uppercase tracking-widest py-4 rounded-sm hover:bg-gray-800 transition">
+                    Try Payment Again
+                </a>
+                
+                <a href="/contact" class="block w-full bg-white border border-gray-200 text-black text-xs font-bold uppercase tracking-widest py-4 rounded-sm hover:bg-gray-50 transition">
+                    Contact Support
+                </a>
+
+                <button @click="showError = false" class="block w-full text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-black transition mt-4">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+    </div>
+    
+<body class="text-brand-black antialiased flex flex-col min-h-screen bg-white">
+    <%- include('partials/header') %>
+    <main class="flex-grow">
+        <%- body %>
+    </main>
+    <%- include('partials/footer') %>
+    
+    <%- include('partials/cart_sidebar') %>
+
+    <%- include('partials/auth_modal') %>
+
+    <script>
+        (function() {
+            let lastInteraction = Date.now();
+            const HEARTBEAT_INTERVAL = 10000; // 10 Seconds
+            const INACTIVITY_LIMIT = 60000;   // 1 Minute (Stop tracking if idle)
+
+            ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
+                document.addEventListener(evt, () => { lastInteraction = Date.now(); }, { passive: true });
+            });
+
+            const sendHeartbeat = () => {
+                if (!document.hidden && (Date.now() - lastInteraction) < INACTIVITY_LIMIT) {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    if(token) {
+                        fetch('/api/visitor-heartbeat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'CSRF-Token': token }
+                        }).catch(() => {});
+                    }
+                }
+            };
+
+            sendHeartbeat();
+            setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+        })();
+    </script>
+</body>
+</html>
