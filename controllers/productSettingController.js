@@ -74,3 +74,27 @@ exports.saveItem = async (req, res) => {
         }
     }
 };
+
+exports.deleteItem = async (req, res) => {
+    const { table, id } = req.body;
+    
+    // Security: Whitelist allowed tables to prevent SQL injection
+    const allowedTables = ['brands', 'categories', 'product_types', 'fabrics', 'work_types', 'colors'];
+
+    if (!allowedTables.includes(table)) {
+        return res.json({ success: false, message: "Invalid table." });
+    }
+
+    try {
+        await db.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("DB Error:", err);
+        // Handle Foreign Key Constraint (if item is used in products)
+        if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+            res.json({ success: false, message: "Cannot delete: This item is currently used by one or more products." });
+        } else {
+            res.json({ success: false, message: "Database Error: " + err.message });
+        }
+    }
+};

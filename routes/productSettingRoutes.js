@@ -11,4 +11,6 @@ router.get('/settings', checkPermission('prod_settings'), productSettingControll
 // Check permission BEFORE processing the file upload
 router.post('/save-item', checkPermission('prod_settings'), upload.single('logo'), productSettingController.saveItem);
 
+router.post('/delete-item', checkPermission('prod_settings'), productSettingController.deleteItem);
+
 module.exports = router;
