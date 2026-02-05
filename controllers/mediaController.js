@@ -4,17 +4,32 @@ exports.uploadImage = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        const url = req.file.path;
-        const context = req.query.context || 'product'; // Get context from URL
+        const url = req.file.path; // Cloudinary URL
+        const context = req.query.context || 'product';
+        const type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
 
-        // Save with context
-        await db.query("INSERT INTO media (image_url, context) VALUES (?, ?)", [url, context]);
+        // Save to Media Library DB for history
+        await db.query("INSERT INTO media (image_url, context, media_type) VALUES (?, ?, ?)", [url, context, type]);
 
-        res.json({ success: true, url: url });
+        // Return Standard JSON
+        res.json({ success: true, url: url, type: type });
     } catch (error) {
         console.error("Upload Error:", error);
-        // Return the ACTUAL error message to help debug (e.g., "Data too long")
         res.status(500).json({ error: error.message || 'Upload failed' });
+    }
+};
+
+exports.getLibrary = async (req, res) => {
+    try {
+        const context = req.query.context || 'product';
+        // Fetch last 50 items for this context
+        const [images] = await db.query(
+            "SELECT * FROM media WHERE context = ? ORDER BY created_at DESC LIMIT 50", 
+            [context]
+        );
+        res.json({ success: true, images: images });
+    } catch (error) {
+        res.status(500).json({ error: 'Fetch failed' });
     }
 };
 
@@ -33,21 +48,5 @@ exports.uploadLocalImage = async (req, res) => {
     } catch (error) {
         console.error("Local Upload Error:", error);
         res.status(500).json({ error: 'Upload failed' });
-    }
-};
-
-exports.getLibrary = async (req, res) => {
-    try {
-        const context = req.query.context || 'product';
-        
-        // Filter by context (Show only banners if context=banner, else show products)
-        const [images] = await db.query(
-            "SELECT * FROM media WHERE context = ? ORDER BY created_at DESC LIMIT 50", 
-            [context]
-        );
-        
-        res.json({ success: true, images: images });
-    } catch (error) {
-        res.status(500).json({ error: 'Fetch failed' });
     }
 };

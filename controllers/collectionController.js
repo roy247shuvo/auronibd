@@ -21,8 +21,10 @@ exports.getCollectionsPage = async (req, res) => {
 // 2. Create / Update Collection
 exports.saveCollection = async (req, res) => {
     try {
-        const { id, name, existing_image } = req.body;
-        let image_url = existing_image || '';
+        const { id, name, existing_image, image_url } = req.body; 
+        
+        // Priority: 1. New File Upload (if any) 2. Hidden Input URL (from Modal) 3. Existing DB Image
+        let finalUrl = existing_image || '';
 
         // Handle Image Upload (Local -> Cloudinary)
         if (req.file) {
@@ -34,9 +36,9 @@ exports.saveCollection = async (req, res) => {
         const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
 
         if (id) {
-            await db.query("UPDATE collections SET name=?, slug=?, image_url=? WHERE id=?", [name, slug, image_url, id]);
+            await db.query("UPDATE collections SET name=?, slug=?, image_url=? WHERE id=?", [name, slug, finalUrl, id]);
         } else {
-            await db.query("INSERT INTO collections (name, slug, image_url) VALUES (?, ?, ?)", [name, slug, image_url]);
+            await db.query("INSERT INTO collections (name, slug, image_url) VALUES (?, ?, ?)", [name, slug, finalUrl]);
         }
         res.redirect('/admin/collections');
     } catch (err) {

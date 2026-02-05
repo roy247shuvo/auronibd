@@ -1,36 +1,36 @@
-<div id="mediaModal" class="fixed inset-0 z-[300] hidden bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+<div id="mediaModal" class="fixed inset-0 z-[300] hidden bg-gray-900 bg-opacity-60 backdrop-blur-sm flex items-center justify-center">
     <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <div>
                 <h3 class="font-bold text-gray-800 text-lg">Media Library</h3>
-                <p class="text-xs text-gray-500" id="mediaContextLabel">Showing: Products</p>
+                <p class="text-xs text-gray-500" id="mediaContextLabel">Select File</p>
             </div>
-            <button onclick="closeMediaModal()" class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition">
+            <button onclick="MediaLibrary.close()" class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition">
                 <span class="material-icons-outlined">close</span>
             </button>
         </div>
         
         <div class="flex border-b border-gray-100">
-            <button onclick="switchTab('upload')" id="tab-upload" class="flex-1 py-4 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white hover:bg-gray-50 transition">
+            <button onclick="MediaLibrary.switchTab('upload')" id="tab-upload" class="flex-1 py-4 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white hover:bg-gray-50 transition">
                 <span class="material-icons-outlined text-sm mr-1 align-middle">cloud_upload</span> Upload New
             </button>
-            <button onclick="switchTab('library')" id="tab-library" class="flex-1 py-4 text-sm font-medium text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 transition">
-                <span class="material-icons-outlined text-sm mr-1 align-middle">grid_view</span> Library
+            <button onclick="MediaLibrary.switchTab('library')" id="tab-library" class="flex-1 py-4 text-sm font-medium text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 transition">
+                <span class="material-icons-outlined text-sm mr-1 align-middle">grid_view</span> Recent Library
             </button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
             
             <div id="content-upload" class="h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl bg-white hover:border-red-400 hover:bg-red-50 transition cursor-pointer relative group">
-                <input type="file" id="mediaUploadInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileUpload(this)">
+                <input type="file" id="mediaUploadInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="MediaLibrary.handleUpload(this)">
                 
                 <div class="text-center group-hover:scale-105 transition transform">
                     <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-icons-outlined text-3xl">cloud_upload</span>
                     </div>
                     <p class="text-gray-800 font-bold text-lg">Click to Upload</p>
-                    <p class="text-sm text-gray-500 mt-1" id="uploadHint">Optimized for Products (Max 1000px)</p>
+                    <p class="text-sm text-gray-500 mt-1" id="uploadHint">Supports Images (WebP) & Video (MP4)</p>
                 </div>
 
                 <div id="uploadLoader" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-20">
@@ -45,133 +45,128 @@
 </div>
 
 <script>
-    // Global Context Variable (Default to product)
-    let currentMediaContext = 'product';
+    window.MediaLibrary = {
+        callback: null,
+        context: 'product',
 
-    // 1. Switch Tabs
-    function switchTab(tab) {
-        document.getElementById('content-upload').classList.add('hidden');
-        document.getElementById('content-library').classList.add('hidden');
-        
-        // Reset Styles
-        document.getElementById('tab-upload').className = "flex-1 py-4 text-sm font-medium text-gray-500 bg-gray-50 border-b border-gray-200";
-        document.getElementById('tab-library').className = "flex-1 py-4 text-sm font-medium text-gray-500 bg-gray-50 border-b border-gray-200";
-
-        // Active Style
-        document.getElementById('content-' + tab).classList.remove('hidden');
-        const activeClass = "flex-1 py-4 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white";
-        document.getElementById('tab-' + tab).className = activeClass;
-
-        if(tab === 'library') loadLibrary();
-    }
-
-    // 2. Fetch Library (Filtered by Context)
-    async function loadLibrary() {
-        const container = document.getElementById('content-library');
-        container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400"><span class="material-icons-outlined animate-spin text-3xl">sync</span><p>Loading...</p></div>';
-        
-        try {
-            // PASS CONTEXT IN QUERY
-            const res = await fetch(`/admin/media/list?context=${currentMediaContext}`);
-            const data = await res.json();
+        // 1. OPEN MODAL
+        open: function(onSelectCallback, context = 'product') {
+            this.callback = onSelectCallback;
+            this.context = context;
             
-            if(data.success && data.images.length > 0) {
-                container.innerHTML = data.images.map(media => {
-                    const isVideo = media.image_url.match(/\.(mp4|webm|mov)$/i);
-                    const thumbnail = isVideo 
-                        ? `<div class="w-full h-full bg-gray-900 flex items-center justify-center"><span class="material-icons-outlined text-white">play_circle</span></div>`
-                        : `<img src="${media.image_url}" class="w-full h-full object-cover">`;
+            // UI Updates
+            document.getElementById('mediaModal').classList.remove('hidden');
+            this.updateLabels();
+            this.switchTab('upload'); // Reset to upload tab
+        },
 
-                    // If parent page has 'handleMediaSelect', use it. Otherwise default to 'selectFromLibrary'
-                    const clickFn = (typeof handleMediaSelect === 'function') ? `handleMediaSelect('${media.image_url}')` : `selectFromLibrary('${media.image_url}')`;
+        // 2. CLOSE MODAL
+        close: function() {
+            document.getElementById('mediaModal').classList.add('hidden');
+            this.callback = null;
+        },
 
-                    return `
-                    <div onclick="${clickFn}" class="aspect-square bg-gray-100 rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:border-red-500 hover:ring-2 hover:ring-red-100 transition relative group">
-                        ${thumbnail}
-                    </div>`;
-                }).join('');
-            } else {
-                container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400"><span class="material-icons-outlined text-4xl mb-2 opacity-50">image_not_supported</span><p>No media found in ' + currentMediaContext + '</p></div>';
-            }
-        } catch(err) {
-            console.error(err);
-            container.innerHTML = '<div class="col-span-full text-center text-red-400">Error loading library</div>';
-        }
-    }
-
-    // 3. Upload File (Sends Context)
-    async function handleFileUpload(input) {
-        if(!input.files || !input.files[0]) return;
-        
-        const loader = document.getElementById('uploadLoader');
-        loader.classList.remove('hidden');
-
-        const formData = new FormData();
-        formData.append('file', input.files[0]);
-        try {
-            // Check context to decide route
-            const endpoint = (currentMediaContext === 'logo') ? '/admin/media/upload-local' : '/admin/media/upload';
+        // 3. SWITCH TABS
+        switchTab: function(tab) {
+            document.getElementById('content-upload').classList.add('hidden');
+            document.getElementById('content-library').classList.add('hidden');
             
-            const res = await fetch(`${endpoint}?context=${currentMediaContext}`, { 
-                method: 'POST', 
-                headers: { 'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                body: formData 
-            });
+            // Styles
+            document.getElementById('tab-upload').className = "flex-1 py-4 text-sm font-medium text-gray-500 bg-gray-50 border-b border-gray-200";
+            document.getElementById('tab-library').className = "flex-1 py-4 text-sm font-medium text-gray-500 bg-gray-50 border-b border-gray-200";
+            
+            // Activate
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).className = "flex-1 py-4 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white";
 
-            // 1. Catch Server Crashes (HTML responses)
-            if (!res.ok) {
-                const text = await res.text();
-                console.error("Server Error Log:", text); // Check Console for details
-                throw new Error("Server Error: " + res.status);
-            }
+            if (tab === 'library') this.loadLibrary();
+        },
 
-            const data = await res.json();
-
-            if(data.success) {
-                if(typeof handleMediaSelect === 'function') {
-                    handleMediaSelect(data.url);
-                } else if(typeof selectFromLibrary === 'function') {
-                    selectFromLibrary(data.url);
-                }
+        // 4. LOAD LIBRARY
+        loadLibrary: async function() {
+            const container = document.getElementById('content-library');
+            container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400"><span class="material-icons-outlined animate-spin text-3xl">sync</span><p>Loading...</p></div>';
+            
+            try {
+                const res = await fetch(`/admin/media/list?context=${this.context}`);
+                const data = await res.json();
                 
-                loader.classList.add('hidden');
-                input.value = ""; 
-            } else {
-                // 2. Show the specific error from backend
-                alert('Upload failed: ' + (data.error || 'Unknown Error'));
+                if (data.success && data.images.length > 0) {
+                    container.innerHTML = data.images.map(media => {
+                        const isVideo = media.image_url.match(/\.(mp4|webm|mov)$/i);
+                        const thumbnail = isVideo 
+                            ? `<div class="w-full h-full bg-gray-900 flex items-center justify-center"><span class="material-icons-outlined text-white">play_circle</span></div>`
+                            : `<img src="${media.image_url}" class="w-full h-full object-cover">`;
+
+                        // Handle Click - Pass URL and Type
+                        return `
+                        <div onclick="MediaLibrary.select('${media.image_url}', '${isVideo ? 'video' : 'image'}')" 
+                             class="aspect-square bg-gray-100 rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:border-red-500 hover:ring-2 hover:ring-red-100 transition relative group">
+                            ${thumbnail}
+                        </div>`;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400"><p>No media found.</p></div>';
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div class="col-span-full text-center text-red-400">Error loading library</div>';
+            }
+        },
+
+        // 5. HANDLE UPLOAD
+        handleUpload: async function(input) {
+            if (!input.files || !input.files[0]) return;
+            const loader = document.getElementById('uploadLoader');
+            loader.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                // Pass context to backend to decide folder/size
+                const res = await fetch(`/admin/media/upload?context=${this.context}`, { 
+                    method: 'POST', 
+                    headers: { 'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                    body: formData 
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    this.select(data.url, data.type);
+                    input.value = ""; // Reset
+                } else {
+                    alert('Upload failed: ' + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Upload error");
+            } finally {
                 loader.classList.add('hidden');
             }
-        } catch(err) {
-            console.error(err);
-            // 3. Show the actual network/server error
-            alert(err.message); 
-            loader.classList.add('hidden');
-        }
-        
-        } catch(err) {
-            console.error(err);
-            alert('Upload error');
-            loader.classList.add('hidden');
-        }
-    }
+        },
 
-    // 4. Helper to Set Context (Call this from other pages)
-    function setMediaContext(type) {
-        currentMediaContext = type;
-        const label = document.getElementById('mediaContextLabel');
-        const hint = document.getElementById('uploadHint');
-        
-        if(type === 'banner') {
-            label.innerText = 'Showing: Banners & Heroes';
-            hint.innerText = 'Optimized for HD Banners (1920px)';
-        } else {
-            label.innerText = 'Showing: Products';
-            hint.innerText = 'Optimized for Products (Max 1000px)';
+        // 6. SELECT ACTION
+        select: function(url, type) {
+            if (this.callback) this.callback(url, type);
+            this.close();
+        },
+
+        // Helpers
+        updateLabels: function() {
+            const label = document.getElementById('mediaContextLabel');
+            const hint = document.getElementById('uploadHint');
+            
+            if (this.context === 'banner') {
+                label.innerText = 'Context: Website Banners';
+                hint.innerText = 'Max 1920px (Optimized for HD)';
+            } else if (this.context === 'collection') {
+                label.innerText = 'Context: Collections';
+                hint.innerText = 'Max 1920px (Optimized for Collections)';
+            } else {
+                label.innerText = 'Context: Products';
+                hint.innerText = 'Max 1000px (Optimized for Shop)';
+            }
         }
-        
-        // Refresh library if tab is active
-        if(!document.getElementById('content-library').classList.contains('hidden')) {
-            loadLibrary();
-        }
-    }
+    };
 </script>

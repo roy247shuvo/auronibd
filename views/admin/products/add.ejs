@@ -345,22 +345,22 @@
         document.getElementById('imageMapInput').value = JSON.stringify(cleanMap);
     }
 
-    // === 3. BRIDGE TO GLOBAL MODAL ===
-    function openMediaModal(color, index) {
-        // Set the global target in index.ejs so it knows where to send the image
-        if(typeof window.currentUploadTarget !== 'undefined') {
-            window.currentUploadTarget = { color, index };
-            // Call the function in index.ejs
-            if(typeof window.openMediaModal === 'function') {
-                // We just need to show it, the variable is already set
-                document.getElementById('mediaModal').classList.remove('hidden');
-                if(typeof loadLibrary === 'function') loadLibrary();
-            } else {
-                // Fallback if index.ejs function name differs
-                document.getElementById('mediaModal').classList.remove('hidden');
-            }
+    // === 3. BRIDGE TO GLOBAL MODAL (Updated) ===
+        function openMediaModal(color, index) {
+            // Call the new API
+            MediaLibrary.open((url, type) => {
+                // This callback runs when user selects an image
+                if (window.imageMap[color]) {
+                    window.imageMap[color][index] = url;
+                    
+                    // Refresh View
+                    if (typeof renderImageSections === 'function') {
+                        renderImageSections();
+                    }
+                    updateHiddenInput();
+                }
+            }, 'product'); // Context 'product'
         }
-    }
 
     // === 4. SKU & TABLE LOGIC ===
     function updateMainSku() {

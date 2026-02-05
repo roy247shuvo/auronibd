@@ -224,34 +224,28 @@
         document.getElementById('addModal').classList.remove('hidden');
     }
 
-    // === 2. MEDIA LIBRARY INTEGRATION ===
-    function openMediaModal() {
-        // Set context to 'banner' for HD uploads
-        if(typeof setMediaContext === 'function') {
-            setMediaContext('banner');
+    // === 2. MEDIA LIBRARY INTEGRATION (Updated) ===
+        function openMediaModal() {
+            MediaLibrary.open((url, type) => {
+                // Callback
+                handleMediaSelect(url, type);
+            }, 'banner'); // Context 'banner' (1920px)
         }
-        document.getElementById('mediaModal').classList.remove('hidden');
-        switchTab('library');
-    }
-
-    function closeMediaModal() {
-        document.getElementById('mediaModal').classList.add('hidden');
-    }
-
-    // Handle Selection from Media Library
-    function handleMediaSelect(url) {
-        tempImageUrl = url;
-        closeMediaModal();
-
-        const isVideo = url.match(/\.(mp4|webm|mov)$/i);
         
-        if (isVideo) {
-            setMediaToForm(url, 'video');
-        } else {
-            // Open Cropper for Images
-            openCropper(url);
+        // Updated Handler
+        function handleMediaSelect(url, type) {
+            tempImageUrl = url;
+            
+            // Auto-detect video if type not explicitly passed
+            const isVideo = type === 'video' || url.match(/\.(mp4|webm|mov)$/i);
+        
+            if (isVideo) {
+                setMediaToForm(url, 'video');
+            } else {
+                // Open Cropper for Images
+                openCropper(url);
+            }
         }
-    }
 
     // === 3. CROPPER LOGIC (16:9) ===
     function openCropper(url) {

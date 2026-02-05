@@ -93,7 +93,7 @@
                     </div>
 
                     <% if (can('prod_collections', 'write')) { %>
-                    <button type="button" onclick="openMediaModal()" class="bg-white border border-gray-200 text-gray-700 font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:bg-gray-100 transition z-10">
+                    <button type="button" onclick="selectCollectionImage()" class="bg-white border border-gray-200 text-gray-700 font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:bg-gray-100 transition z-10">
                         Choose from Library
                     </button>
                     <% } %>
@@ -148,98 +148,17 @@
         document.getElementById('collectionModal').classList.add('hidden');
     }
 
-    // === 2. MEDIA MODAL INTEGRATION ===
-    
-    // Open Modal
-    function openMediaModal() {
-        document.getElementById('mediaModal').classList.remove('hidden');
-        loadLibrary();
-    }
-
-    // Close Modal
-    function closeMediaModal() {
-        document.getElementById('mediaModal').classList.add('hidden');
-    }
-
-    // Switch Tabs (Required by Shared Modal HTML)
-    function switchTab(tab) {
-        document.getElementById('content-upload').classList.add('hidden');
-        document.getElementById('content-library').classList.add('hidden');
-        document.getElementById('tab-upload').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
-        document.getElementById('tab-library').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
-        
-        document.getElementById('content-' + tab).classList.remove('hidden');
-        document.getElementById('tab-' + tab).className = "flex-1 py-3 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white";
-        
-        if(tab === 'library') loadLibrary();
-    }
-
-    // [FIXED] Load Images for Collections
-    async function loadLibrary() {
-        const container = document.getElementById('content-library');
-        
-        // Show loading state
-        container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400"><span class="material-icons-outlined animate-spin text-3xl">sync</span><p>Loading...</p></div>';
-        
-        try {
-            const res = await fetch('/admin/media/list');
-            const data = await res.json();
+    // === 2. MEDIA LIBRARY INTEGRATION (Updated) ===
+    function selectCollectionImage() {
+        // Use the global MediaLibrary object from the modal include
+        MediaLibrary.open((url, type) => {
+            // Update Hidden Input & Preview
+            document.getElementById('collImageInput').value = url;
+            document.getElementById('collImagePreview').src = url;
             
-            if(data.success && data.images.length > 0) {
-                // FIX: Removed the extra <div class="grid"> wrapper here
-                container.innerHTML = data.images.map(img => `
-                    <div onclick="selectFromLibrary('${img.image_url}')" class="aspect-square bg-white rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:border-red-500 hover:ring-2 hover:ring-red-100 transition group relative">
-                        <img src="${img.image_url}" class="w-full h-full object-cover">
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400"><p>No images found.</p></div>`;
-            }
-        } catch(err) {
-            console.error(err);
-            container.innerHTML = `<div class="col-span-full text-center text-red-400">Error loading library</div>`;
-        }
-    }
-
-    // Upload New Image (Standard Function Name)
-    async function handleFileUpload(input) {
-        if(!input.files || input.files.length === 0) return;
-        
-        const loader = document.getElementById('uploadLoader');
-        if(loader) loader.classList.remove('hidden');
-
-        const formData = new FormData();
-        formData.append('file', input.files[0]);
-
-        try {
-            const res = await fetch('/admin/media/upload', { method: 'POST', body: formData });
-            const data = await res.json();
-
-            if(data.success) {
-                selectFromLibrary(data.url);
-                if(loader) loader.classList.add('hidden');
-                input.value = "";
-            } else {
-                alert('Upload failed');
-                if(loader) loader.classList.add('hidden');
-            }
-        } catch(err) {
-            console.error(err);
-            alert('Upload error');
-            if(loader) loader.classList.add('hidden');
-        }
-    }
-
-    // Select Image & Close Modal (Page Specific Logic)
-    function selectFromLibrary(url) {
-        // Update Collection Modal
-        document.getElementById('collImageInput').value = url;
-        document.getElementById('collImagePreview').src = url;
-        
-        // Show Preview / Hide Placeholder
-        document.getElementById('collImagePreview').classList.remove('hidden');
-        document.getElementById('collImagePlaceholder').classList.add('hidden');
-        
-        closeMediaModal();
+            // Toggle UI Visibility
+            document.getElementById('collImagePreview').classList.remove('hidden');
+            document.getElementById('collImagePlaceholder').classList.add('hidden');
+        }, 'collection'); // Pass 'collection' context for 1920px optimization
     }
 </script>

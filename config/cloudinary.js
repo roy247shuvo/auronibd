@@ -15,11 +15,22 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        // 1. Check Context (Passed via Query param: ?context=banner)
+        // 1. Determine Context (passed via Query: ?context=banner)
         const context = req.query.context || 'product';
-        const isBanner = context === 'banner';
         
-        // 2. Check File Type
+        // 2. Define Folder & Settings based on Context
+        let folderName = 'auroni_products';
+        let widthLimit = 1000;
+
+        if (context === 'banner') {
+            folderName = 'auroni_banners';
+            widthLimit = 1920; // Max for Hero/Sliders
+        } else if (context === 'collection') {
+            folderName = 'auroni_collections';
+            widthLimit = 1920;
+        }
+
+        // 3. Handle File Type (Video vs Image)
         const isVideo = file.mimetype.startsWith('video');
 
         if (isVideo) {
@@ -29,20 +40,19 @@ const storage = new CloudinaryStorage({
                 format: 'mp4',
                 public_id: file.fieldname + '-' + Date.now(),
                 transformation: [
-                    { width: isBanner ? 1920 : 1280, crop: "limit" }, // HD for banners
+                    { width: widthLimit, crop: "limit" }, 
                     { quality: "auto:good", fetch_format: "auto" }
                 ]
             };
         } else {
             return {
-                folder: isBanner ? 'auroni_banners' : 'auroni_products',
+                folder: folderName,
                 resource_type: 'image',
-                format: 'webp',
+                format: 'webp', // Force WebP
                 public_id: file.fieldname + '-' + Date.now(),
                 transformation: [
-                    // DYNAMIC RESIZING BASED ON CONTEXT
-                    { width: isBanner ? 1920 : 1000, crop: "limit" }, 
-                    { quality: "auto" } 
+                    { width: widthLimit, crop: "limit" }, // Resize if larger than limit
+                    { quality: "auto" } // Auto optimization
                 ]
             };
         }
