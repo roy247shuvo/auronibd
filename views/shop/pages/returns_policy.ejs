@@ -1,81 +1,185 @@
-<div class="pt-32 pb-20">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+
+    /* Font Setup */
+    .font-bangla-title {
+        font-family: 'Ekushey Punarbhaba', 'Hind Siliguri', serif;
+    }
+    .font-bangla-body {
+        font-family: 'Hind Siliguri', sans-serif;
+    }
+
+    /* Animated Gradient Border */
+    .gradient-border {
+        position: relative;
+        background: #fff;
+        z-index: 1;
+        border-radius: 0.75rem; /* rounded-xl */
+    }
+    .gradient-border::before {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        z-index: -1;
+        background: linear-gradient(45deg, #ff595e, #ffca3a, #8ac926, #1982c4, #6a4c93);
+        background-size: 400% 400%;
+        animation: gradientShift 5s ease infinite;
+        border-radius: 0.85rem;
+    }
+
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* Floating Flower Animation */
+    .floating-flower {
+        animation: float 6s ease-in-out infinite;
+    }
+    .floating-flower-delayed {
+        animation: float 6s ease-in-out infinite 3s;
+    }
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-10px) rotate(10deg); }
+        100% { transform: translateY(0px) rotate(0deg); }
+    }
+</style>
+
+<div class="pt-32 pb-20 bg-orange-50/30 font-bangla-body relative overflow-hidden">
     
-    <div class="text-center mb-16 px-6">
-        <h1 class="font-serif text-4xl italic text-gray-900 mb-4">Returns & Exchange</h1>
-        <p class="text-gray-500 max-w-lg mx-auto text-sm leading-relaxed">
-            Our goal is to ensure you are completely satisfied with your purchase. Please read our return conditions below.
+    <div class="absolute top-20 left-5 text-pink-200 opacity-50 floating-flower pointer-events-none">
+        <span class="material-icons-outlined text-6xl">local_florist</span>
+    </div>
+    <div class="absolute top-40 right-5 text-red-200 opacity-50 floating-flower-delayed pointer-events-none">
+        <span class="material-icons-outlined text-8xl">local_florist</span>
+    </div>
+    <div class="absolute bottom-20 left-10 text-yellow-200 opacity-50 floating-flower pointer-events-none">
+        <span class="material-icons-outlined text-7xl">local_florist</span>
+    </div>
+
+    <div class="text-center mb-12 px-6 relative z-10">
+        <h1 class="font-bangla-title text-4xl md:text-5xl text-[#800000] mb-4 drop-shadow-sm">
+            রিটার্ন ও এক্সচেঞ্জ পলিসি
+        </h1>
+        <p class="text-gray-600 max-w-lg mx-auto text-base leading-relaxed">
+            <span class="font-bold text-[#800000]">অরণি (Auroni)</span>-তে আপনাকে স্বাগতম! আপনার সন্তুষ্টিই আমাদের প্রধান লক্ষ্য। পণ্য ফেরত বা পরিবর্তনের সহজ নিয়মগুলো নিচে দেওয়া হলো।
         </p>
     </div>
 
-    <div class="max-w-4xl mx-auto px-6 space-y-8">
+    <div class="max-w-4xl mx-auto px-6 space-y-8 relative z-10">
         
-        <div class="bg-red-50 border border-red-100 p-8 rounded-sm">
-            <div class="flex items-start gap-4">
-                <span class="material-icons-outlined text-red-700 text-2xl mt-1">priority_high</span>
-                <div>
-                    <h3 class="font-bold text-sm uppercase tracking-widest text-red-800 mb-3">Check Before You Receive</h3>
-                    <p class="text-sm text-gray-700 leading-relaxed font-bold">
-                        You MUST check the product in front of the delivery man.
-                    </p>
-                    <p class="text-sm text-gray-600 leading-relaxed mt-2">
-                        If you find any damage, defect, or mismatch, return it immediately to the delivery man. Once the delivery man leaves, we cannot accept any claims regarding damage or missing items.
-                    </p>
+        <div class="gradient-border p-[3px]">
+            <div class="bg-red-50 p-6 md:p-8 rounded-xl h-full">
+                <div class="flex items-start gap-4">
+                    <div class="bg-white p-3 rounded-full shadow-md animate-bounce">
+                        <span class="material-icons-outlined text-red-600 text-3xl">priority_high</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bangla-title text-xl text-red-700 mb-2">
+                            ডেলিভারি ম্যানের সামনেই চেক করুন
+                        </h3>
+                        <div class="space-y-2 text-gray-800">
+                            <p class="font-bold bg-white inline-block px-2 py-1 rounded border border-red-100 shadow-sm">
+                                ⚠️ জরুরি: প্যাকেট খোলার ভিডিও করা ভালো।
+                            </p>
+                            <p class="text-sm md:text-base leading-relaxed">
+                                প্রোডাক্ট হাতে পাওয়ার পর অবশ্যই <strong>ডেলিভারি ম্যানের সামনেই চেক করে নিবেন</strong>। যদি কোনো সমস্যা (যেমন: ছেঁড়া, ফাটা বা ভুল পণ্য) পান, তবে সাথে সাথেই ফেরত দিন।
+                            </p>
+                            <p class="text-xs text-red-500 font-bold mt-1">
+                                * ডেলিভারি ম্যান চলে আসার পর কোনো অভিযোগ গ্রহণ করা কঠিন হয়ে যায়।
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white border border-gray-200 p-8 rounded-sm shadow-sm">
-            <div class="flex items-start gap-4">
-                <span class="material-icons-outlined text-gray-800 text-2xl mt-1">autorenew</span>
-                <div>
-                    <h3 class="font-bold text-sm uppercase tracking-widest text-gray-900 mb-3">Replacements & Exchanges</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed mb-4">
-                        If a damage is found during the check:
-                    </p>
-                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-3 pl-2">
-                        <li>
-                            <strong class="text-gray-900">Same Item Replacement:</strong> If available in stock, we will replace the damaged item with a fresh one. 
-                            <span class="inline-block bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded ml-2 uppercase">Free Delivery</span>
-                        </li>
-                        <li>
-                            <strong class="text-gray-900">Exchange Options:</strong> If the item is out of stock, you may exchange it for a similar item of similar or higher price.
-                        </li>
-                        <li class="bg-gray-50 p-3 border border-gray-100 rounded text-xs text-gray-500">
-                            <strong class="text-gray-800">Coupon Policy on Exchange:</strong> 
-                            Coupons applied to the original (damaged) product will <u>not</u> be transferred to the new exchanged item if it is a different product. The new item will only be discounted if it has its own valid active coupon.
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-white border-2 border-green-100 p-6 md:p-8 rounded-xl shadow-lg relative overflow-hidden">
+            <span class="material-icons-outlined absolute -right-4 -top-4 text-9xl text-green-50 opacity-50 rotate-12">autorenew</span>
             
-            <div class="bg-white border border-gray-200 p-8 rounded-sm shadow-sm">
-                <span class="material-icons-outlined text-gray-800 text-2xl mb-4">local_shipping</span>
-                <h3 class="font-bold text-sm uppercase tracking-widest text-gray-900 mb-3">Delivery Charges</h3>
-                <p class="text-sm text-gray-600 leading-relaxed">
-                    In case of a return (where you do not take a replacement), the <strong>delivery charge is strictly non-refundable</strong>. You will be refunded the product cost only.
+            <div class="flex items-start gap-4 relative z-10">
+                <div class="bg-green-100 p-3 rounded-full shadow-inner">
+                    <span class="material-icons-outlined text-green-700 text-3xl animate-[spin_4s_linear_infinite]">autorenew</span>
+                </div>
+                <div class="w-full">
+                    <h3 class="font-bangla-title text-xl text-green-800 mb-3">
+                        পরিবর্তন বা রিপ্লেসমেন্ট
+                    </h3>
+                    <p class="text-gray-600 mb-4 text-sm">চেক করার সময় যদি কোনো ডিফেক্ট পান:</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-green-50 p-3 rounded border border-green-200">
+                            <strong class="block text-green-900 mb-1 flex items-center">
+                                <span class="material-icons-outlined text-sm mr-1">check_circle</span> সেম টু সেম:
+                            </strong>
+                            <p class="text-xs text-gray-700">স্টকে থাকলে আমরা সাথে সাথেই নতুন পণ্য পাঠিয়ে দিব।</p>
+                            <span class="inline-block mt-2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded animate-pulse">
+                                ফ্রি ডেলিভারি চার্জ
+                            </span>
+                        </div>
+                        
+                        <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                            <strong class="block text-blue-900 mb-1 flex items-center">
+                                <span class="material-icons-outlined text-sm mr-1">swap_horiz</span> অন্য পণ্য:
+                            </strong>
+                            <p class="text-xs text-gray-700">স্টক না থাকলে আপনি সমমূল্যের অন্য যেকোনো পণ্য নিতে পারবেন।</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 bg-yellow-50 p-3 rounded-lg border-l-4 border-yellow-400">
+                        <p class="text-xs text-yellow-800">
+                            <strong>কুপন সতর্কতা:</strong> আগের প্রোডাক্টে কুপন ব্যবহার করে ডিসকাউন্ট পেয়ে থাকলে, সেটি নতুন এক্সচেঞ্জ করা প্রোডাক্টে অটোমেটিক ট্রান্সফার হবে না।
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="bg-white border-b-4 border-purple-500 p-6 rounded-xl shadow-md flex flex-col items-center text-center">
+                <div class="bg-purple-100 p-4 rounded-full mb-3 shadow-sm">
+                    <span class="material-icons-outlined text-purple-600 text-3xl">local_shipping</span>
+                </div>
+                <h3 class="font-bangla-title text-lg text-purple-900 mb-2">ডেলিভারি চার্জ</h3>
+                <p class="text-sm text-gray-600">
+                    পণ্য যদি ভালো থাকে কিন্তু আপনি মনের ভুলে বা পছন্দ না হওয়ায় ফেরত দেন, তবে <strong class="text-red-500">ডেলিভারি চার্জ আপনাকে দিতে হবে</strong>। শুধু পণ্যের দাম ফেরত পাবেন।
                 </p>
             </div>
 
-            <div class="bg-white border border-gray-200 p-8 rounded-sm shadow-sm">
-                <span class="material-icons-outlined text-gray-800 text-2xl mb-4">schedule</span>
-                <h3 class="font-bold text-sm uppercase tracking-widest text-gray-900 mb-3">Refund Timeline</h3>
-                <p class="text-sm text-gray-600 leading-relaxed">
-                    If no replacement is possible and a refund is required, it will be processed within <strong>7-14 working days</strong> to your original payment method.
+            <div class="bg-white border-b-4 border-orange-500 p-6 rounded-xl shadow-md flex flex-col items-center text-center">
+                <div class="bg-orange-100 p-4 rounded-full mb-3 shadow-sm">
+                    <span class="material-icons-outlined text-orange-600 text-3xl">schedule</span>
+                </div>
+                <h3 class="font-bangla-title text-lg text-orange-900 mb-2">টাকা ফেরত (Refund)</h3>
+                <p class="text-sm text-gray-600">
+                    বিকাশ বা কার্ডে পেমেন্ট করে থাকলে, রিফান্ড পেতে <strong class="text-gray-900 bg-orange-100 px-1 rounded">৭-১৪ কর্মদিবস</strong> সময় লাগতে পারে।
                 </p>
             </div>
         </div>
 
-        <div class="bg-gray-50 border-l-4 border-gray-900 p-8 rounded-r-sm">
-            <h3 class="font-bold text-sm uppercase tracking-widest text-gray-900 mb-3">Payment Gateway Disclaimer</h3>
-            <p class="text-sm text-gray-600 leading-relaxed mb-2">
-                Niche Boutique is not responsible for any payment failures caused by technical glitches or server issues from the payment provider (e.g., bKash, Bank Servers).
-            </p>
-            <p class="text-xs text-gray-500">
-                If your money is deducted but the order is not confirmed due to a gateway error, please contact the respective Bank or Mobile Financial Service (bKash) authority directly.
-            </p>
+        <div class="bg-gray-800 text-gray-200 p-6 rounded-xl relative overflow-hidden shadow-2xl">
+            <div class="relative z-10 flex gap-4">
+                <span class="material-icons-outlined text-yellow-400 text-3xl animate-pulse">warning</span>
+                <div>
+                    <h3 class="font-bangla-title text-base text-yellow-400 mb-2">পেমেন্ট সতর্কতা</h3>
+                    <p class="text-xs md:text-sm leading-relaxed text-gray-300">
+                        বিকাশ বা ব্যাংকের সার্ভার ডাউন থাকার কারণে পেমেন্ট ফেইল হলে <strong>অরণি (Auroni)</strong> দায়ী থাকবে না। টাকা কেটে নিলে কিন্তু অর্ডার কনফার্ম না হলে, দয়া করে আপনার ব্যাংক বা মোবাইল ব্যাংকিং হেল্পলাইনে কল করুন।
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-12 mb-8">
+            <p class="text-gray-500 text-sm mb-4 font-bangla-title">আরও বিস্তারিত জানতে বা কথা বলতে</p>
+            
+            <a href="https://wa.me/8801754044785" target="_blank" 
+               class="inline-flex items-center gap-3 bg-[#25D366] text-white px-8 py-4 rounded-full font-bold shadow-lg hover:bg-[#128c7e] hover:scale-105 transition-all duration-300 group ring-4 ring-[#25D366]/30 animate-[bounce_2s_infinite]">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" class="w-6 h-6 filter drop-shadow-md">
+                <span class="text-lg">হোয়াটসঅ্যাপে মেসেজ দিন</span>
+            </a>
         </div>
 
     </div>

@@ -1,92 +1,181 @@
-<div class="pt-32 pb-20">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+
+    /* Font Setup */
+    .font-bangla-title {
+        font-family: 'Ekushey Punarbhaba', 'Hind Siliguri', serif;
+    }
+    .font-bangla-body {
+        font-family: 'Hind Siliguri', sans-serif;
+    }
+
+    /* Animated Gradient Border */
+    .gradient-border {
+        position: relative;
+        background: #fff;
+        z-index: 1;
+        border-radius: 0.75rem; /* rounded-xl */
+    }
+    .gradient-border::before {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        z-index: -1;
+        background: linear-gradient(45deg, #ff595e, #ffca3a, #8ac926, #1982c4, #6a4c93);
+        background-size: 400% 400%;
+        animation: gradientShift 5s ease infinite;
+        border-radius: 0.85rem;
+    }
+
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* Floating Flower Animation */
+    .floating-flower {
+        animation: float 6s ease-in-out infinite;
+    }
+    .floating-flower-delayed {
+        animation: float 6s ease-in-out infinite 3s;
+    }
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-10px) rotate(10deg); }
+        100% { transform: translateY(0px) rotate(0deg); }
+    }
+</style>
+
+<div class="pt-32 pb-20 bg-blue-50/30 font-bangla-body relative overflow-hidden">
     
-    <div class="text-center mb-16 px-6">
-        <h1 class="font-serif text-4xl italic text-gray-900 mb-4">Shipping & Delivery Policy</h1>
-        <p class="text-gray-500 max-w-lg mx-auto text-sm leading-relaxed">
-            Please read our delivery terms carefully to ensure a smooth shopping experience.
+    <div class="absolute top-10 left-10 text-blue-200 opacity-40 floating-flower pointer-events-none">
+        <span class="material-icons-outlined text-7xl">local_shipping</span>
+    </div>
+    <div class="absolute bottom-40 right-5 text-purple-200 opacity-40 floating-flower-delayed pointer-events-none">
+        <span class="material-icons-outlined text-8xl">redeem</span>
+    </div>
+
+    <div class="text-center mb-16 px-6 relative z-10">
+        <h1 class="font-bangla-title text-4xl md:text-5xl text-gray-900 mb-4">ডেলিভারি পলিসি</h1>
+        <p class="text-gray-600 max-w-lg mx-auto text-base leading-relaxed">
+            <span class="font-bold text-[#800000]">অরণি (Auroni)</span> থেকে কেনাকাটা সহজ করতে আমাদের ডেলিভারি সংক্রান্ত নিয়মগুলো জেনে নিন।
         </p>
     </div>
 
-    <div class="max-w-4xl mx-auto px-6">
+    <div class="max-w-4xl mx-auto px-6 relative z-10">
         
         <div class="space-y-8">
 
-            <div class="bg-red-50 border border-red-100 p-8 rounded-sm">
-                <div class="flex items-start gap-4">
-                    <span class="material-icons-outlined text-red-700 text-2xl mt-1">payments</span>
-                    <div>
-                        <h3 class="font-bold text-sm uppercase tracking-widest text-red-800 mb-3">Cash on Delivery (Important)</h3>
-                        <p class="text-sm text-gray-700 leading-relaxed mb-2">
-                            To confirm any Cash on Delivery (COD) order, customers <strong>must pay the delivery charge in advance</strong> via bKash. The product price will be collected by the delivery man upon delivery.
-                        </p>
-                        <p class="text-xs text-red-600 font-bold uppercase tracking-wide">
-                            * Orders will not be processed until the delivery charge is confirmed.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white border border-gray-200 p-8 rounded-sm shadow-sm">
-                <div class="flex items-start gap-4">
-                    <span class="material-icons-outlined text-gray-800 text-2xl mt-1">visibility</span>
-                    <div>
-                        <h3 class="font-bold text-sm uppercase tracking-widest text-gray-900 mb-3">Open Box Policy</h3>
-                        <p class="text-sm text-gray-600 leading-relaxed mb-4">
-                            We maintain a strict "Check Before You Pay" policy. You must open the parcel and inspect the item(s) in front of the delivery man.
-                        </p>
-                        <ul class="list-disc list-inside text-sm text-gray-600 space-y-2 pl-2">
-                            <li>If the product is damaged or incorrect, return it immediately to the delivery man.</li>
-                            <li>Once the delivery man leaves, <strong>no complaints regarding damage, missing items, or quality will be accepted.</strong></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white border border-gray-200 p-8 rounded-sm shadow-sm">
-                <div class="flex items-start gap-4">
-                    <span class="material-icons-outlined text-gray-800 text-2xl mt-1">local_shipping</span>
-                    <div>
-                        <h3 class="font-bold text-sm uppercase tracking-widest text-gray-900 mb-3">Delivery Timelines</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                            <div class="bg-gray-50 p-4 rounded border border-gray-100">
-                                <span class="block text-xs font-bold uppercase text-gray-400 mb-1">Inside Dhaka</span>
-                                <span class="block text-lg font-serif text-gray-900">2 - 3 Days</span>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded border border-gray-100">
-                                <span class="block text-xs font-bold uppercase text-gray-400 mb-1">Outside Dhaka</span>
-                                <span class="block text-lg font-serif text-gray-900">3 - 5 Days</span>
-                            </div>
+            <div class="gradient-border p-[3px]">
+                <div class="bg-red-50 p-6 md:p-8 rounded-xl h-full">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-white p-3 rounded-full shadow-md animate-pulse">
+                            <span class="material-icons-outlined text-red-600 text-3xl">payments</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bangla-title text-xl text-red-800 mb-3">ক্যাশ অন ডেলিভারি (COD)</h3>
+                            <p class="text-sm md:text-base text-gray-700 leading-relaxed mb-3">
+                                ক্যাশ অন ডেলিভারিতে অর্ডার কনফার্ম করতে হলে <strong class="text-red-600 border-b-2 border-red-200">ডেলিভারি চার্জ অবশ্যই অগ্রিম বিকাশ করতে হবে</strong>। পণ্যের বাকি টাকা ডেলিভারি ম্যানের হাতে দিতে পারবেন।
+                            </p>
+                            <p class="text-xs text-red-600 font-bold bg-red-100 inline-block px-2 py-1 rounded">
+                                * ডেলিভারি চার্জ পেমেন্ট না করা পর্যন্ত অর্ডার প্রসেস করা হবে না।
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white border border-gray-200 p-8 rounded-sm shadow-sm">
-                <div class="flex items-start gap-4">
-                    <span class="material-icons-outlined text-gray-800 text-2xl mt-1">monitor_weight</span>
+            <div class="bg-white border-2 border-blue-100 p-6 md:p-8 rounded-xl shadow-lg relative overflow-hidden group">
+                <span class="material-icons-outlined absolute -right-6 -bottom-6 text-9xl text-blue-50 opacity-50 group-hover:scale-110 transition-transform duration-700">visibility</span>
+                
+                <div class="flex items-start gap-4 relative z-10">
+                    <div class="bg-blue-100 p-3 rounded-full shadow-inner">
+                        <span class="material-icons-outlined text-blue-700 text-3xl animate-[bounce_2s_infinite]">visibility</span>
+                    </div>
                     <div>
-                        <h3 class="font-bold text-sm uppercase tracking-widest text-gray-900 mb-3">Heavy / Oversized Items</h3>
+                        <h3 class="font-bangla-title text-xl text-blue-900 mb-3">ওপেন বক্স পলিসি (Open Box)</h3>
+                        <p class="text-sm text-gray-600 leading-relaxed mb-4">
+                            আমরা <strong>"দেখে পেমেন্ট করুন"</strong> নীতিতে বিশ্বাসী। পার্সেল পাওয়ার পর ডেলিভারি ম্যানের সামনেই খুলে চেক করে নিতে হবে।
+                        </p>
+                        <ul class="list-disc list-inside text-sm text-gray-700 space-y-2 pl-2">
+                            <li class="marker:text-blue-500">প্রোডাক্টে কোনো সমস্যা বা ভুল থাকলে সাথে সাথেই রিটার্ন করুন।</li>
+                            <li class="marker:text-red-500">ডেলিভারি ম্যান চলে যাওয়ার পর <strong class="text-red-600">কোনো অভিযোগ (ছেঁড়া/ফাটা/মিসিং) গ্রহণ করা হবে না।</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-green-100 p-6 md:p-8 rounded-xl shadow-lg">
+                <div class="flex items-start gap-4">
+                    <div class="bg-green-100 p-3 rounded-full shadow-inner">
+                        <span class="material-icons-outlined text-green-700 text-3xl animate-[spin_3s_linear_infinite]">local_shipping</span>
+                    </div>
+                    <div class="w-full">
+                        <h3 class="font-bangla-title text-xl text-green-900 mb-4">কত দিনে পাবেন?</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-green-50 p-4 rounded-lg border border-green-200 text-center hover:scale-105 transition-transform duration-300">
+                                <span class="block text-xs font-bold text-green-600 mb-1">ঢাকার ভেতরে</span>
+                                <span class="block text-2xl font-bangla-title text-green-900">২ - ৩ দিন</span>
+                            </div>
+                            <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 text-center hover:scale-105 transition-transform duration-300">
+                                <span class="block text-xs font-bold text-orange-600 mb-1">ঢাকার বাইরে</span>
+                                <span class="block text-2xl font-bangla-title text-orange-900">৩ - ৫ দিন</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                                <span class="material-icons-outlined text-yellow-600 text-sm mt-0.5">hourglass_top</span>
+                                <p class="text-xs text-yellow-900 leading-relaxed font-bangla-body">
+                                    <strong>লিমিটেড স্টক / কাস্টম আইটেম:</strong> কিছু এক্সক্লুসিভ কালেকশনের ক্ষেত্রে ঢাকার ভেতরে <strong>৩-৫ দিন</strong> এবং বাইরে <strong>৫-৭ দিন</strong> সময় লাগতে পারে।
+                                </p>
+                            </div>
+                            
+                            <div class="flex items-start gap-3 bg-purple-50 p-3 rounded-lg border border-purple-100">
+                                <span class="material-icons-outlined text-purple-600 text-sm mt-0.5">event_upcoming</span>
+                                <p class="text-xs text-purple-900 leading-relaxed font-bangla-body">
+                                    <strong>প্রি-অর্ডার (Pre-Order):</strong> প্রি-অর্ডার আইটেমগুলোর ডেলিভারি টাইম অর্ডার কনফার্ম করার সময় আপনাকে জানিয়ে দেওয়া হবে।
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-purple-100 p-6 md:p-8 rounded-xl shadow-sm">
+                <div class="flex items-start gap-4">
+                    <span class="material-icons-outlined text-purple-600 text-3xl mt-1">monitor_weight</span>
+                    <div>
+                        <h3 class="font-bangla-title text-lg text-purple-900 mb-2">ওজন ও চার্জ</h3>
                         <p class="text-sm text-gray-600 leading-relaxed">
-                            The standard delivery charge applies to parcels up to 1KG. If your order exceeds standard weight or size limits, <strong>additional shipping charges may apply</strong>. Our team will inform you of any extra costs before dispatching.
+                            সাধারণ ডেলিভারি চার্জ ১ কেজি পর্যন্ত পার্সেলের জন্য। যদি আপনার অর্ডারের ওজন বা সাইজ বেশি হয়, তবে <strong>অতিরিক্ত চার্জ যুক্ত হতে পারে</strong>। পাঠানোর আগেই আমাদের টিম আপনাকে জানিয়ে দিবে।
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-900 text-white p-8 rounded-sm text-center">
-                <h3 class="font-serif text-xl italic mb-4">Need Help?</h3>
-                <p class="text-sm text-gray-300 mb-6">If you have any issues with delivery, contact us immediately.</p>
+            <div class="bg-gray-900 text-gray-300 p-8 rounded-xl text-center shadow-2xl relative overflow-hidden">
+                <span class="material-icons-outlined absolute -left-10 -bottom-10 text-9xl text-gray-800 opacity-50 rotate-45">support_agent</span>
                 
-                <div class="flex flex-col md:flex-row justify-center items-center gap-6">
-                    <a href="tel:+8801889997441" class="flex items-center gap-2 text-sm font-bold hover:text-gray-300 transition">
-                        <span class="material-icons-outlined text-lg">call</span>
-                        +880 1889-997441
-                    </a>
-                    <span class="hidden md:inline text-gray-600">|</span>
-                    <a href="https://www.facebook.com/bdnicheboutique" target="_blank" class="flex items-center gap-2 text-sm font-bold hover:text-gray-300 transition">
-                        <i class="fab fa-facebook text-lg"></i>
-                        Message on Facebook
-                    </a>
+                <div class="relative z-10">
+                    <h3 class="font-bangla-title text-2xl text-white mb-2">সাহায্য লাগবে?</h3>
+                    <p class="text-sm text-gray-400 mb-6">ডেলিভারি নিয়ে কোনো সমস্যা হলে এখনই জানান</p>
+                    
+                    <div class="flex flex-col justify-center items-center gap-4">
+                        <a href="https://wa.me/8801754044785" target="_blank" 
+                           class="inline-flex items-center gap-3 bg-[#25D366] text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-[#128c7e] hover:scale-105 transition-all duration-300 animate-pulse">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" class="w-6 h-6 filter drop-shadow-md">
+                            হোয়াটসঅ্যাপে মেসেজ দিন
+                        </a>
+                        
+                        <a href="tel:+8801754044785" class="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition">
+                            <span class="material-icons-outlined text-lg">call</span>
+                            +880 1754-044785
+                        </a>
+                    </div>
                 </div>
             </div>
 
