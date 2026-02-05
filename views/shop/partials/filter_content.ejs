@@ -72,6 +72,24 @@
     <div class="h-px bg-gray-50"></div>
     <% } %>
 
+    <% if(typeof specials !== 'undefined' && specials.length > 0) { %>
+    <div x-data="{ open: false }">
+        <button @click="open = !open" class="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest mb-3 hover:text-brand-gold transition-colors">
+            Special Features <span class="material-icons-outlined text-xs text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+        </button>
+        <div x-show="open" class="space-y-2" x-collapse>
+            <% specials.forEach(s => { %>
+                <label class="flex items-center space-x-3 cursor-pointer group">
+                    <input type="checkbox" value="<%= s.id %>" x-model="filters.specials" @change="fetchProducts(true)" 
+                           class="w-3.5 h-3.5 border-gray-300 rounded-sm text-black focus:ring-0 focus:ring-offset-0 cursor-pointer">
+                    <span class="text-xs text-gray-500 group-hover:text-black transition-colors"><%= s.name %></span>
+                </label>
+            <% }) %>
+        </div>
+    </div>
+    <div class="h-px bg-gray-50"></div>
+    <% } %>
+
     <% if(colors.length > 0) { %>
     <div x-data="{ open: true }">
         <button @click="open = !open" class="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest mb-3 hover:text-brand-gold transition-colors">

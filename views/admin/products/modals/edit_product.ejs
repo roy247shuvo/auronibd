@@ -233,7 +233,22 @@
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Collection</label>
                 <select name="collection_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" <%= can('prod_list', 'write') ? '' : 'disabled' %>>
-                    </select>
+                     <% collections.forEach(col => { %> 
+                        <option value="<%= col.id %>" <%= p.collection_id === col.id ? 'selected' : '' %>><%= col.name %></option> 
+                     <% }) %>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Special Feature</label>
+                <select name="special_feature_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" <%= can('prod_list', 'write') ? '' : 'disabled' %>>
+                    <option value="">-- None --</option>
+                    <% if(typeof specials !== 'undefined') { %>
+                        <% specials.forEach(s => { %> 
+                            <option value="<%= s.id %>" <%= p.special_feature_id === s.id ? 'selected' : '' %>><%= s.name %></option> 
+                        <% }) %>
+                    <% } %>
+                </select>
             </div>
         </div>
 

@@ -204,6 +204,16 @@
                     <% collections.forEach(col => { %> <option value="<%= col.id %>"><%= col.name %></option> <% }) %>
                 </select>
             </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Special Feature</label>
+                <select name="special_feature_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- None --</option>
+                    <% if(typeof specials !== 'undefined') { %>
+                        <% specials.forEach(s => { %> <option value="<%= s.id %>"><%= s.name %></option> <% }) %>
+                    <% } %>
+                </select>
+            </div>
         </div>
     </div>
 </form>

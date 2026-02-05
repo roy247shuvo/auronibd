@@ -52,15 +52,33 @@ async function getGlobalData() {
         WHERE p.is_online = 'yes' AND pv.stock_quantity > 0
         ORDER BY c.name ASC
     `);
+    
+    // [NEW] Special Features (Only show used ones)
+    const [specials] = await db.query(`
+        SELECT DISTINCT s.* FROM special_features s
+        JOIN products p ON p.special_feature_id = s.id
+        WHERE p.is_online = 'yes' AND p.stock_quantity > 0
+        ORDER BY s.name ASC
+    `);
 
     // Collections (Table has 'status', so this is correct)
     const [collections] = await db.query("SELECT * FROM collections WHERE status = 'active' ORDER BY created_at DESC");
+
+    // [NEW] Special Features (For Sidebar Filter)
+    // Only fetch features that are actually used by online, in-stock products
+    const [specials] = await db.query(`
+        SELECT DISTINCT s.* FROM special_features s
+        JOIN products p ON p.special_feature_id = s.id
+        WHERE p.is_online = 'yes' AND p.stock_quantity > 0
+        ORDER BY s.name ASC
+    `);
 
     // [NEW] Fetch Shop Settings (Firebase & Meta Config)
     const [settings] = await db.query("SELECT * FROM shop_settings LIMIT 1");
     const shopSettings = settings.length ? settings[0] : {};
     
-    return { brands, categories, collections, colors, fabrics, work_types, shopSettings };
+    // Add 'specials' to the return object
+    return { brands, categories, collections, colors, fabrics, work_types, shopSettings, specials };
 }
 
 // 1. HOMEPAGE CONTROLLER
@@ -185,6 +203,12 @@ exports.filterProducts = async (req, res) => {
         if (categories && categories.length) { sql += ` AND p.category_id IN (?)`; params.push(categories); }
         if (fabrics && fabrics.length) { sql += ` AND p.fabric_id IN (?)`; params.push(fabrics); }
         if (work_types && work_types.length) { sql += ` AND p.work_type_id IN (?)`; params.push(work_types); }
+
+        // [NEW] Special Features Filter
+        if (req.body.specials && req.body.specials.length) { 
+            sql += ` AND p.special_feature_id IN (?)`; 
+            params.push(req.body.specials); 
+        }
         
         // Collection Filter (Checks both direct ID and Join Table)
         if (collections && collections.length) { 
@@ -305,13 +329,15 @@ exports.getProduct = async (req, res) => {
                    c.name as category_name,
                    t.name as type_name,
                    f.name as fabric_name,
-                   w.name as work_type_name
+                   w.name as work_type_name,
+                   s.name as special_feature_name  // [NEW]
             FROM products p
             LEFT JOIN brands b ON p.brand_id = b.id
             LEFT JOIN categories c ON p.category_id = c.id
             LEFT JOIN product_types t ON p.type_id = t.id
             LEFT JOIN fabrics f ON p.fabric_id = f.id
             LEFT JOIN work_types w ON p.work_type_id = w.id
+            LEFT JOIN special_features s ON p.special_feature_id = s.id // [NEW]
             WHERE p.slug = ? AND p.is_online = 'yes'`, 
             [slug]
         );

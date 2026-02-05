@@ -38,8 +38,8 @@ exports.saveItem = async (req, res) => {
             let query = `UPDATE ${table} SET name = ?, shortcode = ?`;
             let params = [name, shortcode];
 
-            // [NEW] Update Slug for Brands & Categories
-            if (table === 'brands' || table === 'categories') {
+            // [NEW] Update Slug for Brands, Categories & Special Features
+            if (table === 'brands' || table === 'categories' || table === 'special_features') {
                 query += `, slug = ?`;
                 params.push(slug);
             }
@@ -68,6 +68,8 @@ exports.saveItem = async (req, res) => {
                 await db.query("INSERT INTO categories (name, shortcode, slug) VALUES (?, ?, ?)", [name, shortcode, slug]);
             } else if (table === 'colors') {
                 await db.query("INSERT INTO colors (name, shortcode, hex_code) VALUES (?, ?, ?)", [name, shortcode, hex_code]);
+            } else if (table === 'special_features') {
+                await db.query("INSERT INTO special_features (name, shortcode, slug) VALUES (?, ?, ?)", [name, shortcode, slug]);
             } else {
                 // For Types, Fabrics, Work Types (tables without slug)
                 await db.query(`INSERT INTO ${table} (name, shortcode) VALUES (?, ?)`, [name, shortcode]);
@@ -93,7 +95,7 @@ exports.deleteItem = async (req, res) => {
     const { table, id } = req.body;
     
     // Security: Whitelist allowed tables to prevent SQL injection
-    const allowedTables = ['brands', 'categories', 'product_types', 'fabrics', 'work_types', 'colors'];
+    const allowedTables = ['brands', 'categories', 'product_types', 'fabrics', 'work_types', 'colors', 'special_features'];
 
     if (!allowedTables.includes(table)) {
         return res.json({ success: false, message: "Invalid table." });

@@ -152,6 +152,13 @@
                         <span class="text-gray-900"><%= product.work_type_name %></span>
                     </div>
                     <% } %>
+                    
+                    <% if(product.special_feature_name) { %>
+                    <div class="flex items-center justify-between border-b border-gray-200 pb-2">
+                        <span class="font-bold uppercase tracking-widest text-[10px] text-gray-500">Specialty</span>
+                        <span class="text-gray-900"><%= product.special_feature_name %></span>
+                    </div>
+                    <% } %>
                 </div>
             </div>
 
