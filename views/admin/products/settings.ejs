@@ -499,6 +499,33 @@
             saveBtn.innerText = "Save Item";
         }
     }
+    
+    // [NEW] DELETE FUNCTION
+    async function deleteItem(table, id) {
+        if(!confirm("Are you sure? This action cannot be undone.")) return;
+
+        try {
+            const res = await fetch('/admin/products/delete-item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ table, id })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                // Optional: Show success toast or just reload
+                window.location.reload();
+            } else {
+                alert(data.message);
+            }
+        } catch(err) {
+            console.error(err);
+            alert("Network Error");
+        }
+    }
 
     // === 3. BARCODE LOGIC (Browser Memory) ===
     let currentLabelSize = localStorage.getItem('barcodeLabelSize') || '38x25';
