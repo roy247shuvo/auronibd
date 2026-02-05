@@ -33,9 +33,27 @@ exports.saveItem = async (req, res) => {
     let logoUrl = null;
     if (req.file) logoUrl = req.file.path;
 
+    // [NEW] 1. Check for Duplicate Shortcode (Case Insensitive)
+    if (shortcode) {
+        // Check only within the current 'table'
+        let checkSql = `SELECT id FROM ${table} WHERE shortcode = ?`;
+        let checkParams = [shortcode];
+
+        if (id) {
+            checkSql += ` AND id != ?`; // Exclude self if editing
+            checkParams.push(id);
+        }
+
+        const [duplicates] = await db.query(checkSql, checkParams);
+        if (duplicates.length > 0) {
+            return res.json({ success: false, message: `Shortcode '${shortcode}' is already used in this list.` });
+        }
+    }
+
     try {
-        // [NEW] Generate Slug (e.g., "Summer Collection" -> "summer-collection")
-        const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+        // [UPDATED] 2. Generate Slug (Allow Bengali/Unicode characters)
+        // Simply trims and replaces spaces with dashes. Does NOT remove special chars.
+        const slug = name.trim().toLowerCase().replace(/\s+/g, '-');
 
         if (id) {
             // === EDIT MODE ===
