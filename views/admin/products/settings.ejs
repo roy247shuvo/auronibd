@@ -379,20 +379,20 @@
     function switchTab(tabName) {
         // Hide all contents
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-        
         // Remove active state from all buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('border-red-500', 'text-red-600');
             btn.classList.add('border-transparent', 'text-gray-500');
         });
-
         // Show selected content
         document.getElementById('tab-' + tabName).classList.remove('hidden');
-
         // Add active state to button
         const btn = document.getElementById('tab-btn-' + tabName);
         btn.classList.remove('border-transparent', 'text-gray-500');
         btn.classList.add('border-red-500', 'text-red-600');
+
+        // [NEW] Persist Selection to LocalStorage
+        localStorage.setItem('activeProductSettingTab', tabName);
 
         // Special init for barcode tab if selected
         if(tabName === 'labels') {
@@ -566,7 +566,14 @@
 
     // Initialize logic on load
     document.addEventListener('DOMContentLoaded', () => {
-        // If url has hash #labels, switch to it, otherwise brands
-        if(window.location.hash === '#labels') switchTab('labels');
+        // [NEW] Restore Active Tab from Storage (Defaults to 'brands')
+        const savedTab = localStorage.getItem('activeProductSettingTab') || 'brands';
+
+        // Check if there is a specific override (like a URL hash), otherwise use saved tab
+        if(window.location.hash === '#labels') {
+            switchTab('labels');
+        } else {
+            switchTab(savedTab);
+        }
     });
 </script>

@@ -30,10 +30,19 @@ exports.saveItem = async (req, res) => {
     if (req.file) logoUrl = req.file.path;
 
     try {
+        // [NEW] Generate Slug (e.g., "Summer Collection" -> "summer-collection")
+        const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+
         if (id) {
             // === EDIT MODE ===
             let query = `UPDATE ${table} SET name = ?, shortcode = ?`;
             let params = [name, shortcode];
+
+            // [NEW] Update Slug for Brands & Categories
+            if (table === 'brands' || table === 'categories') {
+                query += `, slug = ?`;
+                params.push(slug);
+            }
 
             if (logoUrl && table === 'brands') {
                 query += `, logo_image = ?`;
@@ -52,10 +61,15 @@ exports.saveItem = async (req, res) => {
         else {
             // === ADD MODE ===
             if (table === 'brands') {
-                await db.query("INSERT INTO brands (name, shortcode, logo_image) VALUES (?, ?, ?)", [name, shortcode, logoUrl]);
+                // [UPDATED] Added slug
+                await db.query("INSERT INTO brands (name, shortcode, logo_image, slug) VALUES (?, ?, ?, ?)", [name, shortcode, logoUrl, slug]);
+            } else if (table === 'categories') {
+                // [NEW] Added explicit handler for categories to include slug
+                await db.query("INSERT INTO categories (name, shortcode, slug) VALUES (?, ?, ?)", [name, shortcode, slug]);
             } else if (table === 'colors') {
                 await db.query("INSERT INTO colors (name, shortcode, hex_code) VALUES (?, ?, ?)", [name, shortcode, hex_code]);
             } else {
+                // For Types, Fabrics, Work Types (tables without slug)
                 await db.query(`INSERT INTO ${table} (name, shortcode) VALUES (?, ?)`, [name, shortcode]);
             }
         }
@@ -68,7 +82,7 @@ exports.saveItem = async (req, res) => {
         
         // ERROR: Send JSON with the message
         if (err.code === 'ER_DUP_ENTRY') {
-            res.json({ success: false, message: `The Shortcode "${shortcode}" is already used!` });
+            res.json({ success: false, message: `The Shortcode or Name is already used!` });
         } else {
             res.json({ success: false, message: 'Database Error: ' + err.message });
         }
