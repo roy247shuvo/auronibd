@@ -6,10 +6,12 @@ exports.uploadImage = async (req, res) => {
 
         const url = req.file.path; // Cloudinary URL
         const context = req.query.context || 'product';
+        
+        // We calculate type for the frontend response, but we don't save it to DB
         const type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
 
-        // Save to Media Library DB for history
-        await db.query("INSERT INTO media (image_url, context, media_type) VALUES (?, ?, ?)", [url, context, type]);
+        // Save to Media Library DB (Removed 'media_type' column)
+        await db.query("INSERT INTO media (image_url, context) VALUES (?, ?)", [url, context]);
 
         // Return Standard JSON
         res.json({ success: true, url: url, type: type });
