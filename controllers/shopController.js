@@ -53,14 +53,6 @@ async function getGlobalData() {
         ORDER BY c.name ASC
     `);
     
-    // [NEW] Special Features (Only show used ones)
-    const [specials] = await db.query(`
-        SELECT DISTINCT s.* FROM special_features s
-        JOIN products p ON p.special_feature_id = s.id
-        WHERE p.is_online = 'yes' AND p.stock_quantity > 0
-        ORDER BY s.name ASC
-    `);
-
     // Collections (Table has 'status', so this is correct)
     const [collections] = await db.query("SELECT * FROM collections WHERE status = 'active' ORDER BY created_at DESC");
 

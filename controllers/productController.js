@@ -267,3 +267,62 @@ exports.updateProduct = async (req, res) => {
         conn.release();
     }
 };
+
+// 5. VIEW SINGLE PRODUCT (Edit Modal Fetch) - REQUIRED for Edit Modal
+exports.getEditProduct = async (req, res) => {
+    try {
+        const [products] = await db.query("SELECT * FROM products WHERE id = ?", [req.params.id]);
+        if (products.length === 0) return res.status(404).send("Product not found");
+        
+        const p = products[0];
+        const [images] = await db.query("SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC", [p.id]);
+        const [variants] = await db.query("SELECT * FROM product_variants WHERE product_id = ?", [p.id]);
+        
+        // Fetch Master Data for Dropdowns
+        const [brands] = await db.query("SELECT * FROM brands");
+        const [categories] = await db.query("SELECT * FROM categories");
+        const [types] = await db.query("SELECT * FROM product_types");
+        const [fabrics] = await db.query("SELECT * FROM fabrics");
+        const [work_types] = await db.query("SELECT * FROM work_types");
+        const [collections] = await db.query("SELECT * FROM collections");
+        const [specials] = await db.query("SELECT * FROM special_features ORDER BY name ASC"); 
+        
+        // Colors & Sizes for Variant Generator
+        const [allColors] = await db.query("SELECT * FROM colors");
+        const [sizes] = await db.query("SELECT * FROM sizes");
+
+        // Prepare Image Map
+        const imageMap = { "General": [null, null, null] };
+        const selectedColors = [];
+        const selectedSizes = [];
+
+        // Fill Image Map
+        images.forEach(img => {
+            const key = img.color_name || "General";
+            if(!imageMap[key]) imageMap[key] = [null, null, null];
+            if(img.sort_order < 3) imageMap[key][img.sort_order] = img.image_url;
+        });
+
+        // Fill Selected Attributes
+        const usedColors = [...new Set(variants.map(v => v.color))].filter(c => c !== 'N/A');
+        const usedSizes = [...new Set(variants.map(v => v.size))].filter(s => s !== 'N/A');
+
+        usedColors.forEach(cName => {
+            const cObj = allColors.find(ac => ac.name === cName);
+            if(cObj) selectedColors.push({ value: cName, code: cObj.shortcode, hex: cObj.hex_code });
+        });
+
+        usedSizes.forEach(sName => {
+            selectedSizes.push({ value: sName, code: '' });
+        });
+
+        res.render('admin/products/modals/edit_product', {
+            p, images, variants, brands, categories, types, fabrics, work_types, collections, specials,
+            allColors, sizes, imageMap, selectedColors, selectedSizes
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error loading product");
+    }
+};
