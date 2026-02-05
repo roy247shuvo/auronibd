@@ -72,7 +72,13 @@
                     <div class="mb-4">
                         <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Mobile Number</label>
                         <input type="tel" x-model="phone" placeholder="017XXXXXXXX" maxlength="11"
-                               class="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-black font-mono tracking-widest">
+                           class="w-full border-2 rounded-lg px-4 py-3 outline-none font-mono tracking-widest transition-all"
+                           :class="{
+                               'border-red-500 bg-red-50': phone.length > 0 && !phone.startsWith('01'),
+                               'border-green-500 bg-green-50': phone.length === 11 && /^01\d{9}$/.test(phone),
+                               'border-gray-200': phone.length === 0 || (phone.startsWith('01') && phone.length < 11)
+                           }"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                     <button type="submit" :disabled="loading"
                             class="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition disabled:opacity-50">
@@ -228,17 +234,24 @@ function authModal() {
         },
 
         async confirmLink() {
-            this.processing = true;
-            await fetch('/customer/link', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'CSRF-Token': this.getToken() },
-                body: JSON.stringify({
-                    email: this.googleUser.email,
-                    uid: this.googleUser.uid,
-                    photoURL: this.googleUser.photoURL,
-                    phone: this.phone
-                })
-            }).then(() => window.location.reload());
+            try {
+                this.processing = true;
+                const res = await fetch('/customer/link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': this.getToken() },
+                    body: JSON.stringify({
+                        email: this.googleUser.email,
+                        uid: this.googleUser.uid,
+                        photoURL: this.googleUser.photoURL,
+                        phone: this.phone
+                    })
+                });
+                if (res.ok) window.location.reload();
+                else throw new Error("Linking failed");
+            } catch (err) {
+                this.processing = false;
+                alert(err.message);
+            }
         },
 
         async createNewAccount() {

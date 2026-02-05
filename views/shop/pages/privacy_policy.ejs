@@ -1,0 +1,94 @@
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+
+    .font-bangla-title { font-family: 'Ekushey Punarbhaba', 'Hind Siliguri', serif; }
+    .font-bangla-body { font-family: 'Hind Siliguri', sans-serif; }
+
+    /* Floating Flower Animation */
+    .floating-flower { animation: float 6s ease-in-out infinite; }
+    .floating-flower-delayed { animation: float 6s ease-in-out infinite 3s; }
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-10px) rotate(10deg); }
+        100% { transform: translateY(0px) rotate(0deg); }
+    }
+</style>
+
+<div class="pt-32 pb-20 bg-gray-50/30 font-bangla-body relative overflow-hidden">
+    
+    <div class="absolute top-20 left-5 text-green-100 opacity-50 floating-flower pointer-events-none">
+        <span class="material-icons-outlined text-8xl">security</span>
+    </div>
+    <div class="absolute bottom-20 right-5 text-blue-100 opacity-50 floating-flower-delayed pointer-events-none">
+        <span class="material-icons-outlined text-9xl">lock</span>
+    </div>
+
+    <div class="text-center mb-12 px-6 relative z-10">
+        <h1 class="font-bangla-title text-4xl md:text-5xl text-gray-900 mb-4">প্রাইভেসি পলিসি</h1>
+        <p class="text-gray-600 max-w-lg mx-auto text-base leading-relaxed">
+            <span class="font-bold text-[#800000]">অরণি (Auroni)</span>-তে আপনার ব্যক্তিগত তথ্যের সুরক্ষা আমাদের কাছে অত্যন্ত গুরুত্বপূর্ণ। আমরা কীভাবে আপনার তথ্য ব্যবহার করি তা নিচে বিস্তারিত আলোচনা করা হলো।
+        </p>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-6 space-y-8 relative z-10">
+        
+        <div class="bg-white border-2 border-blue-50 p-8 rounded-xl shadow-sm hover:border-blue-200 transition-colors group">
+            <div class="flex items-start gap-4">
+                <div class="bg-blue-100 p-3 rounded-full shadow-inner group-hover:scale-110 transition-transform">
+                    <span class="material-icons-outlined text-blue-700 text-2xl">dns</span>
+                </div>
+                <div>
+                    <h3 class="font-bangla-title text-xl text-blue-900 mb-3">তথ্য সংগ্রহ ও ব্যবহার</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed mb-3">
+                        আমরা আপনার নাম, ফোন নম্বর এবং ঠিকানা শুধুমাত্র অর্ডার প্রসেসিং এবং ডেলিভারির জন্য ব্যবহার করি। 
+                    </p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-2 pl-2">
+                        <li><strong>আইপি অ্যাড্রেস (IP Address):</strong> নিরাপত্তার খাতিরে এবং স্প্যাম ঠেকাতে আমরা ভিজিটরদের আইপি অ্যাড্রেস ট্র্যাক করি।</li>
+                        <li><strong>কুকিজ (Cookies):</strong> ওয়েবসাইটটি দ্রুত লোড হতে এবং আপনার কার্ট সেভ রাখতে আমরা ব্রাউজার কুকিজ ব্যবহার করি।</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border-2 border-purple-50 p-8 rounded-xl shadow-sm hover:border-purple-200 transition-colors group">
+            <div class="flex items-start gap-4">
+                <div class="bg-purple-100 p-3 rounded-full shadow-inner group-hover:scale-110 transition-transform">
+                    <span class="material-icons-outlined text-purple-700 text-2xl">analytics</span>
+                </div>
+                <div>
+                    <h3 class="font-bangla-title text-xl text-purple-900 mb-3">ট্র্যাকিং এবং মার্কেটিং</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        আপনাকে সঠিক পণ্য খুঁজে পেতে সাহায্য করতে আমরা <strong>Meta (Facebook) Pixel</strong> এবং <strong>Conversion API</strong> ব্যবহার করি। এর মাধ্যমে আমরা বুঝতে পারি আপনি কোন ধরনের পণ্য পছন্দ করছেন।
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border-2 border-green-50 p-8 rounded-xl shadow-sm hover:border-green-200 transition-colors group">
+            <div class="flex items-start gap-4">
+                <div class="bg-green-100 p-3 rounded-full shadow-inner group-hover:scale-110 transition-transform">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" class="w-6 h-6">
+                </div>
+                <div>
+                    <h3 class="font-bangla-title text-xl text-green-900 mb-3">যোগাযোগ</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        আপনার দেওয়া ফোন নম্বরে আমরা <strong>WhatsApp</strong> অথবা <strong>SMS</strong> এর মাধ্যমে অর্ডার কনফার্মেশন বা স্পেশাল অফারের আপডেট পাঠাতে পারি। আপনি চাইলে যেকোনো সময় এটি বন্ধ করতে পারেন।
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-900 text-gray-300 p-8 rounded-xl flex items-center gap-6 shadow-xl relative overflow-hidden">
+            <span class="material-icons-outlined text-8xl text-gray-800 absolute -right-6 -bottom-6 opacity-50 rotate-12">verified_user</span>
+            <div class="relative z-10">
+                <h3 class="font-bangla-title text-xl text-white mb-2 flex items-center gap-2">
+                    <span class="material-icons-outlined text-green-400">lock</span> সার্ভার সিকিউরিটি
+                </h3>
+                <p class="text-sm leading-relaxed">
+                    আমাদের ওয়েবসাইটটি সম্পূর্ণ নিরাপদ (SSL Secured)। আপনার কোনো পেমেন্ট ইনফরমেশন বা পাসওয়ার্ড আমাদের সার্ভারে সংরক্ষণ করা হয় না।
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>

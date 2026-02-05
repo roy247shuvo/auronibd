@@ -552,3 +552,33 @@ exports.heartbeat = async (req, res) => {
         res.sendStatus(500);
     }
 };
+
+// GET Privacy Policy
+exports.getPrivacyPolicy = async (req, res) => {
+    try {
+        const globalData = await getGlobalData();
+        res.render('shop/pages/privacy_policy', { 
+            title: 'Privacy Policy', 
+            layout: 'shop/layout',
+            ...globalData 
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error loading privacy policy");
+    }
+};
+
+// GET Terms of Service
+exports.getTermsOfService = async (req, res) => {
+    try {
+        const globalData = await getGlobalData();
+        res.render('shop/pages/terms_of_service', { 
+            title: 'Terms of Service', 
+            layout: 'shop/layout',
+            ...globalData 
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error loading terms of service");
+    }
+};

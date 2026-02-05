@@ -35,6 +35,8 @@ router.get('/bkash/callback', bkashController.bkashCallback);
 router.get('/contact', shopController.getContact);
 router.get('/shipping-policy', shopController.getShippingPolicy);
 router.get('/returns-policy', shopController.getReturnsPolicy);
+router.get('/privacy-policy', shopController.getPrivacyPolicy);
+router.get('/terms-of-service', shopController.getTermsOfService);
 router.post('/subscribe', shopController.subscribe);
 
 router.post('/api/visitor-heartbeat', express.json(), shopController.heartbeat);
