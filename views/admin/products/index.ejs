@@ -154,9 +154,6 @@
 <%- include('../modals/media_library') %>
 
 <script>
-    // [NEW] Global Variable for Media Modal
-    let currentUploadTarget = null; 
-
     // [NEW] Auto-open logic when redirecting from Save
     document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -185,31 +182,35 @@
     }
     
     // === 1. ADD MODAL LOGIC ===
-    // === 1. ADD MODAL LOGIC ===
     function openProductModal() { 
         document.getElementById('productModal').classList.remove('hidden');
         
         // Reset Global Variables to Default for New Product
-        if(typeof imageMap !== 'undefined') {
-            imageMap = { "General": [null, null, null] }; 
+        // We check for window.imageMap to be safe
+        if(typeof imageMap !== 'undefined' || typeof window.imageMap !== 'undefined') {
+            window.imageMap = { "General": [null, null, null] }; 
             window.selectedColors = [];
             window.selectedSizes = [];
             
             // Re-render the Add Form interfaces
             if(typeof renderImageSections === 'function') renderImageSections();
             if(typeof renderTags === 'function') { renderTags('color'); renderTags('size'); }
-            document.getElementById('imageMapInput').value = "";
+            
+            // Clear hidden input
+            const input = document.getElementById('imageMapInput');
+            if(input) input.value = "";
         }
     }
     
-    function closeProductModal() { document.getElementById('productModal').classList.add('hidden'); }
+    function closeProductModal() { 
+        document.getElementById('productModal').classList.add('hidden'); 
+    }
 
     // === 2. DYNAMIC MODAL LOGIC ===
     function closeDynamicModal() {
         document.getElementById('dynamicModal').classList.add('hidden');
     }
 
-    // A. Open Edit Product Form
     // A. Open Edit Product Form
     async function openEditModal(id) {
         document.getElementById('dynamicModal').classList.remove('hidden');
@@ -222,8 +223,7 @@
             const html = await res.text();
             contentDiv.innerHTML = html;
 
-            // === KEY FIX: EXECUTE SCRIPTS ===
-            // This forces the Image Manager & Variant logic to initialize
+            // Execute Scripts to initialize Image Manager & Variants
             const scripts = contentDiv.querySelectorAll('script');
             scripts.forEach(oldScript => {
                 const newScript = document.createElement('script');
@@ -253,7 +253,7 @@
         }
     }
 
-    // C. Open Edit Specific Variant (Inside the same modal)
+    // C. Open Edit Specific Variant
     async function openVariantEdit(variantId) {
         document.getElementById('dynamicModalTitle').innerText = "Edit Variant Price/Stock";
         document.getElementById('dynamicModalContent').innerHTML = '<div class="flex justify-center py-10"><span class="material-icons-outlined animate-spin text-gray-300 text-4xl">sync</span></div>';
@@ -273,7 +273,6 @@
         const form = e.target;
         const submitBtn = form.querySelector('button[type="submit"]');
         
-        // Disable button to prevent double click
         submitBtn.disabled = true;
         submitBtn.innerText = "Saving...";
 
@@ -289,7 +288,6 @@
             const result = await res.json();
             
             if(result.success) {
-                // Success! Close modal and refresh to see changes
                 closeDynamicModal();
                 window.location.reload(); 
             } else {
@@ -304,81 +302,25 @@
         }
     }
     
-// === GLOBAL MEDIA MODAL FUNCTIONS (MOVED FROM ADD.EJS) ===
+    // === 3. GLOBAL MEDIA MODAL BRIDGE (Corrected) ===
+    // We removed the old 'switchTab', 'loadLibrary', 'handleFileUpload' functions
+    // This now relies purely on the new MediaLibrary object
     function openMediaModal(color, index) {
-        currentUploadTarget = { color, index };
-        document.getElementById('mediaModal').classList.remove('hidden');
-        loadLibrary(); 
-    }
-
-    function closeMediaModal() {
-        document.getElementById('mediaModal').classList.add('hidden');
-    }
-
-    function switchTab(tab) {
-        document.getElementById('content-upload').classList.add('hidden');
-        document.getElementById('content-library').classList.add('hidden');
-        document.getElementById('tab-upload').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
-        document.getElementById('tab-library').className = "flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-50";
-        document.getElementById('content-' + tab).classList.remove('hidden');
-        document.getElementById('tab-' + tab).className = "flex-1 py-3 text-sm font-bold text-red-600 border-b-2 border-red-600 bg-white";
-    }
-
-    async function handleFileUpload(input) {
-        if (!input.files || !input.files[0]) return;
-        const loader = document.getElementById('uploadLoader');
-        loader.classList.remove('hidden');
-
-        const formData = new FormData();
-        formData.append('file', input.files[0]);
-        try {
-            const res = await fetch('/admin/media/upload', { method: 'POST', body: formData });
-            const data = await res.json();
-            
-            if (data.success) {
-                // Using global imageMap (accessible because add.ejs is included in index.ejs)
-                if(typeof imageMap !== 'undefined') {
-                    imageMap[currentUploadTarget.color][currentUploadTarget.index] = data.url;
-                    
-                    // Safely call render functions if they exist
-                    if(typeof renderImageSections === 'function') renderImageSections();
-                    if(typeof updateHiddenInput === 'function') updateHiddenInput();
+        MediaLibrary.open((url, type) => {
+            // Check if imageMap exists (it's initialized in Add/Edit scripts)
+            if (window.imageMap && window.imageMap[color]) {
+                window.imageMap[color][index] = url;
+                
+                // Trigger the render function (dynamically defined by Add or Edit views)
+                if (typeof renderImageSections === 'function') {
+                    renderImageSections();
                 }
-                closeMediaModal();
-                loader.classList.add('hidden');
-                input.value = ""; 
-            } else {
-                alert("Upload failed");
+                
+                // Update the hidden input (dynamically defined)
+                if (typeof updateHiddenInput === 'function') {
+                    updateHiddenInput();
+                }
             }
-        } catch (err) {
-            console.error(err);
-            alert("Network Error");
-            loader.classList.add('hidden');
-        }
-    }
-
-    async function loadLibrary() {
-        const container = document.getElementById('content-library');
-        try {
-            const res = await fetch('/admin/media/list');
-            const data = await res.json();
-            
-            if (data.success) {
-                container.innerHTML = data.images.map(img => `
-                    <div onclick="selectFromLibrary('${img.image_url}')" class="aspect-square rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:border-red-500 hover:ring-2 hover:ring-red-200 transition relative">
-                        <img src="${img.image_url}" class="w-full h-full object-cover">
-                    </div>
-                `).join('');
-            }
-        } catch (err) { console.error(err); }
-    }
-
-    function selectFromLibrary(url) {
-        if(typeof imageMap !== 'undefined') {
-            imageMap[currentUploadTarget.color][currentUploadTarget.index] = url;
-            if(typeof renderImageSections === 'function') renderImageSections();
-            if(typeof updateHiddenInput === 'function') updateHiddenInput();
-        }
-        closeMediaModal();
+        }, 'product'); // Context 'product'
     }
 </script>
