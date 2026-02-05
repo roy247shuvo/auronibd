@@ -5,8 +5,9 @@
         
         <div class="flex-shrink-0 mr-12">
             <a href="/" class="block group">
-                <img src="https://res.cloudinary.com/deyae37hu/image/upload/v1769007427/niche_boutique_products/logo-1769007426174.webp" 
-                     class="h-16 w-auto object-contain transition-transform duration-500 group-hover:scale-105">
+                <img src="<%= shopSettings.shop_logo || '/uploads/logo.png' %>" 
+                     alt="<%= shopSettings.shop_name %>"
+                     class="h-12 w-auto object-contain transition-transform duration-500 group-hover:scale-105">
             </a>
         </div>
 

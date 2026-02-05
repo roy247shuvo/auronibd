@@ -43,11 +43,10 @@
     <div class="bg-white/80 backdrop-blur-lg p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/50 relative z-10 transition-all duration-300 hover:shadow-3xl">
         
         <div class="flex flex-col items-center mb-8">
-            <img src="https://res.cloudinary.com/deyae37hu/image/upload/v1769007427/niche_boutique_products/logo-1769007426174.webp" 
+            <img src="<%= shopSettings.shop_logo || '/uploads/logo.png' %>" 
+                 alt="Admin Login"
                  class="w-32 h-auto object-contain mb-4 drop-shadow-lg hover:scale-105 transition-transform duration-500">
             <h2 class="text-3xl font-extrabold text-center text-gradient">Welcome Back</h2>
-            <p class="text-sm text-center text-gray-500 mt-2">Sign in to manage your empire</p>
-        </div>
 
         <% if (locals.error) { %>
             <div class="bg-red-50 text-red-600 text-sm p-4 rounded-xl mb-6 flex items-center justify-center font-bold border border-red-100 animate-pulse">

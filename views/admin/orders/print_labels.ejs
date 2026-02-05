@@ -134,14 +134,14 @@
     <div class="page size-<%= size %>">
         
         <div class="header">
-            <% if(shop.shop_logo) { %>
-                <img src="<%= shop.shop_logo %>" class="shop-logo">
+            <% if(shopSettings.shop_logo) { %>
+                <img src="<%= shopSettings.shop_logo %>" class="shop-logo">
             <% } else { %>
-                <div style="font-weight:800; font-size:14px;"><%= shop.shop_name || 'Niche Boutique' %></div>
+                <div style="font-weight:800; font-size:14px;"><%= shopSettings.shop_name || 'Niche Boutique' %></div>
             <% } %>
             <div class="shop-info">
-                <%= shop.shop_address || '' %>
-                <% if(shop.shop_phone) { %><br>Tel: <%= shop.shop_phone %><% } %>
+                <%= shopSettings.shop_address || '' %>
+                <% if(shopSettings.shop_phone) { %><br>Tel: <%= shopSettings.shop_phone %><% } %>
             </div>
         </div>
 

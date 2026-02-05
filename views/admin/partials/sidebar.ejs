@@ -2,10 +2,12 @@
     
     <div class="h-20 flex items-center justify-between px-6 border-b border-gray-50 flex-shrink-0">
         <div class="flex items-center">
-            <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-red-200 shadow-lg">
-                NB
-            </div>
-            <span class="ml-3 font-bold text-lg text-gray-900 tracking-tight">Niche Boutique</span>
+            <% if (shopSettings.shop_logo) { %>
+                <img src="<%= shopSettings.shop_logo %>" class="w-8 h-8 object-contain rounded-lg bg-white border border-gray-100 p-0.5 shadow-sm">
+            <% } else { %>
+                <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-red-200 shadow-lg">NB</div>
+            <% } %>
+            <span class="ml-3 font-bold text-lg text-gray-900 tracking-tight"><%= shopSettings.shop_name || 'Niche Boutique' %></span>
         </div>
         
         <button onclick="toggleMobileMenu()" class="md:hidden text-gray-500 hover:text-red-500">
