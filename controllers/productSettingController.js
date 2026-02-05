@@ -9,6 +9,9 @@ exports.getSettingsPage = async (req, res) => {
         const [work_types] = await db.query("SELECT * FROM work_types");
         const [colors] = await db.query("SELECT * FROM colors");
         const [sizes] = await db.query("SELECT * FROM sizes ORDER BY sort_order ASC");
+        
+        // [NEW] Fetch Special Features
+        const [specials] = await db.query("SELECT * FROM special_features ORDER BY name ASC");
 
         // Toast Notification Check
         const toast = req.session.toast;
@@ -16,6 +19,7 @@ exports.getSettingsPage = async (req, res) => {
 
         res.render('admin/products/settings', { 
             brands, categories, types, fabrics, work_types, colors, sizes,
+            specials, // [NEW] Pass to view
             toast 
         });
     } catch (err) {
@@ -84,7 +88,8 @@ exports.saveItem = async (req, res) => {
         
         // ERROR: Send JSON with the message
         if (err.code === 'ER_DUP_ENTRY') {
-            res.json({ success: false, message: `The Shortcode or Name is already used!` });
+            // [OPTIONAL] More specific error message
+            res.json({ success: false, message: `This Name or Shortcode already exists in the ${table} list.` });
         } else {
             res.json({ success: false, message: 'Database Error: ' + err.message });
         }
