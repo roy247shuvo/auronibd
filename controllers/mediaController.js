@@ -13,7 +13,8 @@ exports.uploadImage = async (req, res) => {
         res.json({ success: true, url: url });
     } catch (error) {
         console.error("Upload Error:", error);
-        res.status(500).json({ error: 'Upload failed' });
+        // Return the ACTUAL error message to help debug (e.g., "Data too long")
+        res.status(500).json({ error: error.message || 'Upload failed' });
     }
 };
 
