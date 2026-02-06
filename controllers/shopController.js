@@ -342,14 +342,14 @@ exports.getProduct = async (req, res) => {
                    t.name as type_name,
                    f.name as fabric_name,
                    w.name as work_type_name,
-                   s.name as special_feature_name, s.slug as special_feature_slug 
+                   s.name as special_feature_name
             FROM products p
             LEFT JOIN brands b ON p.brand_id = b.id
             LEFT JOIN categories c ON p.category_id = c.id
             LEFT JOIN product_types t ON p.type_id = t.id
             LEFT JOIN fabrics f ON p.fabric_id = f.id
             LEFT JOIN work_types w ON p.work_type_id = w.id
-            LEFT JOIN special_features s ON p.special_feature_id = s.id // [NEW]
+            LEFT JOIN special_features s ON p.special_feature_id = s.id
             WHERE p.slug = ? AND p.is_online = 'yes'`, 
             [slug]
         );
