@@ -143,11 +143,13 @@ exports.getHome = async (req, res) => {
             title: 'Auroni',
             layout: 'shop/layout',
             lightboxes,
-            fabrics,
+            ...globalData, // <--- 1. MOVED TO TOP (Sets the defaults first)
+            
+            // 2. Now these specific versions (with images) will overwrite the defaults
+            fabrics,      
             work_types,
             colors,
-            products,
-            ...globalData
+            products
         });
     } catch (err) {
         console.error(err);

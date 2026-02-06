@@ -16,6 +16,7 @@ const pool = mysql.createPool({
 // 2. FORCE the Database Session to switch to GMT+6 immediately
 pool.on('connection', (connection) => {
     connection.query('SET time_zone = "+06:00"');
+    connection.query('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
 });
 
 // Convert the pool to use Promises
