@@ -7,7 +7,11 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <% work_types.forEach(w => { 
             let imgUrl = w.media_url || '/uploads/placeholder.jpg';
-            if(!imgUrl.startsWith('/') && !imgUrl.startsWith('http')) imgUrl = '/' + imgUrl;
+            imgUrl = (imgUrl || '').toString(); 
+                if(imgUrl && !imgUrl.startsWith('/') && !imgUrl.startsWith('http')) {
+                    imgUrl = '/' + imgUrl;
+                }
+                if (!imgUrl) imgUrl = '/uploads/placeholder.jpg';
         %>
             <a href="/shop?work_type=<%= w.id %>" class="group relative rounded-xl overflow-hidden aspect-[3/4] shadow-sm">
                 <img src="<%= imgUrl %>" 

@@ -86,8 +86,7 @@ exports.getHome = async (req, res) => {
              FROM product_images pi 
              JOIN products p2 ON p2.id = pi.product_id 
              WHERE p2.${foreignKey} = main.id 
-             AND (p2.is_online = 'yes' OR p2.is_online = '1')
-             ORDER BY RAND() 
+             ORDER BY (p2.is_online = 'yes') DESC, RAND() 
              LIMIT 1) as media_url
         `;
 
@@ -113,7 +112,7 @@ exports.getHome = async (req, res) => {
             ORDER BY main.name ASC
         `);
 
-        // 3. COLORS (Simplified)
+        // 3. COLORS (Robust)
         const [colors] = await db.query(`
             SELECT main.*, COUNT(DISTINCT pv.product_id) as product_count,
             (SELECT pi.image_url 
@@ -121,7 +120,8 @@ exports.getHome = async (req, res) => {
              JOIN products p2 ON p2.id = pi.product_id 
              JOIN product_variants pv2 ON pv2.product_id = p2.id
              WHERE pv2.color = main.name 
-             ORDER BY RAND() LIMIT 1) as media_url
+             ORDER BY (p2.is_online = 'yes') DESC, RAND() 
+             LIMIT 1) as media_url
             FROM colors main 
             JOIN product_variants pv ON pv.color = main.name 
             GROUP BY main.id 
