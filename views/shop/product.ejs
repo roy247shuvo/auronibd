@@ -55,7 +55,7 @@
         </div>
 
         <div class="prose prose-sm text-gray-600 leading-relaxed text-sm">
-            <p><%- product.description.replace(/\n/g, '<br>') %></p>
+            <p><%- (product.description || '').replace(/\n/g, '<br>') %></p>
         </div>
     </div>
 

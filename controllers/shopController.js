@@ -342,7 +342,7 @@ exports.getProduct = async (req, res) => {
                    t.name as type_name,
                    f.name as fabric_name,
                    w.name as work_type_name,
-                   s.name as special_feature_name  // [NEW]
+                   s.name as special_feature_name, s.slug as special_feature_slug 
             FROM products p
             LEFT JOIN brands b ON p.brand_id = b.id
             LEFT JOIN categories c ON p.category_id = c.id
@@ -358,15 +358,19 @@ exports.getProduct = async (req, res) => {
         const product = products[0];
 
         // [NEW] Track ViewContent (Server Side)
-        metaService.sendEvent('ViewContent', {
-            custom_data: {
-                content_name: product.name,
-                content_ids: [product.id],
-                content_type: 'product',
-                value: product.sale_price || product.regular_price,
-                currency: 'BDT'
-            }
-        }, req);
+        try {
+            metaService.sendEvent('ViewContent', {
+                custom_data: {
+                    content_name: product.name,
+                    content_ids: [product.id],
+                    content_type: 'product',
+                    value: product.sale_price || product.regular_price,
+                    currency: 'BDT'
+                }
+            }, req);
+        } catch (metaErr) {
+            console.warn("Meta Tracking Failed:", metaErr.message);
+        }
 
         // 2. Fetch Assets (Images & Variants)
         const [images] = await db.query("SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC", [product.id]);
