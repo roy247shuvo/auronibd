@@ -153,7 +153,7 @@ exports.getHome = async (req, res) => {
 
         res.render('shop/home', { 
             title: 'Auroni',
-            // layout: 'shop/layout', // REMOVED to prevent crash
+            layout: 'shop/layout', // Uncommented to fix Sidebar & Image issues
             lightboxes,
             fabrics,
             work_types,
