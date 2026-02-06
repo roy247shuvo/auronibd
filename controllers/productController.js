@@ -312,8 +312,10 @@ exports.getEditProduct = async (req, res) => {
             if(cObj) selectedColors.push({ value: cName, code: cObj.shortcode, hex: cObj.hex_code });
         });
 
+        // [UPDATED] Look up shortcode for Sizes too
         usedSizes.forEach(sName => {
-            selectedSizes.push({ value: sName, code: '' });
+            const sObj = sizes.find(s => s.name === sName);
+            selectedSizes.push({ value: sName, code: sObj ? sObj.shortcode : '' });
         });
 
         res.render('admin/products/modals/edit_product', {

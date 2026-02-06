@@ -1,0 +1,56 @@
+<div class="mb-12 relative">
+    <div class="px-4 mb-6 relative z-10 text-center">
+        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1 flex items-center justify-center gap-2">
+            <span class="animate-bounce">🧵</span> আরামদায়ক কাপড়
+        </h2>
+        <p class="font-bangla-body text-xs text-gray-500">বেছে নিন আপনার পছন্দের মেটেরিয়াল</p>
+    </div>
+
+    <div class="flex overflow-x-auto gap-4 px-4 pb-4 snap-x hide-scrollbar justify-center">
+    <% fabrics.forEach(f => { %>
+        <a href="/shop?fabric=<%= f.id %>" class="snap-center shrink-0 w-28 flex flex-col items-center group">
+            
+            <div class="w-24 h-32 rounded-xl overflow-hidden shadow-sm border border-gray-100 relative bg-gray-50 group-hover:shadow-md transition-all">
+                <% if (f.media_url && (f.media_url.endsWith('.mp4') || f.media_url.endsWith('.webm'))) { %>
+                    <video src="<%= f.media_url %>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
+                <% } else { %>
+                    <img src="<%= f.media_url || '/uploads/placeholder.jpg' %>" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                <% } %>
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                
+                <div class="absolute bottom-2 right-2 text-[10px] text-white font-bold bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm">
+                    <%= f.product_count %>
+                </div>
+            </div>
+
+            <h3 class="mt-2 font-bangla-body text-sm font-bold text-gray-700 text-center group-hover:text-[#800000] transition">
+                <%= f.name %>
+            </h3>
+        </a>
+    <% }) %>
+</div>
+        <% fabrics.forEach(f => { %>
+            <a href="/shop?fabric=<%= f.id %>" class="snap-center shrink-0 w-28 flex flex-col items-center group">
+                
+                <div class="w-24 h-32 rounded-xl overflow-hidden shadow-sm border border-gray-100 relative bg-gray-50 group-hover:shadow-md transition-all">
+                    <% if (f.media_url && (f.media_url.endsWith('.mp4') || f.media_url.endsWith('.webm'))) { %>
+                        <video src="<%= f.media_url %>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
+                    <% } else { %>
+                        <img src="<%= f.media_url || '/uploads/placeholder.jpg' %>" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                    <% } %>
+                    
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    
+                    <div class="absolute bottom-2 right-2 text-[10px] text-white font-bold bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm">
+                        <%= f.product_count %>
+                    </div>
+                </div>
+
+                <h3 class="mt-2 font-bangla-body text-sm font-bold text-gray-700 text-center group-hover:text-[#800000] transition">
+                    <%= f.name %>
+                </h3>
+            </a>
+        <% }) %>
+    </div>
+</div>

@@ -1,11 +1,80 @@
-<%- include('components/hero') %>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Galada&display=swap');
 
-<%- include('components/brand_strip') %>
+    .font-bangla-title { font-family: 'Galada', cursive; }
+    .font-bangla-body { font-family: 'Hind Siliguri', sans-serif; }
 
-<%- include('components/collections_grid') %>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .animate-spin-slow { animation: spin 10s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+</style>
 
-<%- include('components/shop_by_brand') %>
+<div class="bg-[#FFFBF0] min-h-screen pb-20 overflow-x-hidden font-bangla-body">
+    
+    <%- include('components/hero') %>
 
-<%- include('components/shop_by_category') %>
+    <div class="mt-10">
+        <% if (typeof fabrics !== 'undefined' && fabrics.length > 0) { %>
+            <%- include('components/shop_by_fabric') %>
+        <% } %>
+    </div>
 
-<%- include('components/shop_by_color') %>
+    <% if (typeof work_types !== 'undefined' && work_types.length > 0) { %>
+        <%- include('components/shop_by_work') %>
+    <% } %>
+
+    <% if (typeof colors !== 'undefined' && colors.length > 0) { %>
+        <%- include('components/shop_by_color') %>
+    <% } %>
+
+    <div class="px-4 mb-12 mt-12">
+        <div class="text-center mb-8 relative">
+            <span class="absolute top-1/2 left-0 w-full h-px bg-[#800000]/10 -z-10"></span>
+            <h2 class="font-bangla-title text-2xl bg-[#FFFBF0] inline-block px-6 text-gray-800 relative">
+                <span class="absolute -top-3 -right-2 text-xl animate-float">✨</span>
+                নতুন কালেকশন
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <% if (typeof products !== 'undefined' && products.length > 0) { %>
+                <% products.forEach(product => { %>
+                    <a href="/product/<%= product.slug %>" class="group bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 relative block">
+                        <div class="aspect-[2/3] overflow-hidden relative bg-gray-100">
+                            <img src="<%= product.image_url || '/uploads/placeholder.jpg' %>" 
+                                 class="w-full h-full object-cover transition duration-700 group-hover:scale-110" 
+                                 loading="lazy" alt="<%= product.name %>">
+                        </div>
+                        <div class="p-3">
+                            <h3 class="text-xs font-bold text-gray-800 line-clamp-2"><%= product.name %></h3>
+                            <span class="text-sm font-bold text-[#800000]">৳<%= product.price %></span>
+                        </div>
+                    </a>
+                <% }) %>
+            <% } %>
+        </div>
+        
+        <div class="mt-8 text-center">
+             <a href="/shop?sort=newest" class="inline-flex items-center gap-2 bg-gray-900 text-white font-bangla-body px-6 py-3 rounded-full shadow-lg hover:bg-[#800000] transition transform hover:scale-105 text-sm">
+                আরও দেখুন <span class="material-icons-outlined text-sm">arrow_forward</span>
+             </a>
+        </div>
+    </div>
+
+    <div class="mx-4 mt-8 bg-white rounded-2xl p-6 shadow-sm border border-orange-100 text-center space-y-3 relative overflow-hidden">
+        <div class="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-600 mb-2 relative z-10">
+             <span class="material-icons-outlined text-2xl">verified_user</span>
+        </div>
+        <h3 class="font-bangla-title text-xl text-gray-800 relative z-10">অরণি গ্যারান্টি</h3>
+        <p class="font-bangla-body text-xs text-gray-500 leading-relaxed max-w-xs mx-auto relative z-10">
+            আমরা দিচ্ছি ১০০% কালার এবং কোয়ালিটি গ্যারান্টি। পছন্দ না হলে ৭ দিনের মধ্যে রিটার্ন করার সুবিধা।
+        </p>
+    </div>
+
+</div>

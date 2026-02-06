@@ -1,31 +1,28 @@
-<section class="py-24 bg-brand-cream border-t border-gray-100">
-    <div class="max-w-[1800px] mx-auto px-6">
-        <div class="text-center mb-16">
-            <h2 class="font-serif text-4xl mb-3">The Palette</h2>
-            <div class="w-16 h-px bg-brand-gold mx-auto"></div>
-        </div>
-
-        <div class="flex flex-wrap justify-center gap-8">
-            <% colors.slice(0, 8).forEach(c => { %>
-                <a href="/shop?color=<%= c.name %>" class="group flex flex-col items-center w-40 md:w-48 cursor-pointer">
-                    <div class="w-full aspect-[2/3] overflow-hidden relative shadow-md hover:shadow-2xl transition-all duration-500 mb-5 rounded-sm">
-                        <img src="<%= c.cover_image %>" class="w-full h-full object-cover transition duration-1000 group-hover:scale-110">
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-                    </div>
-                    
-                    <div class="flex flex-col items-center">
-                        <div class="w-5 h-5 rounded-full border border-gray-200 shadow-sm mb-2 group-hover:scale-125 transition-transform duration-300" 
-                             style="background-color: <%= c.hex_code %>;"></div>
-                        <span class="font-serif text-base italic text-gray-600 group-hover:text-black transition-colors"><%= c.name %></span>
-                    </div>
-                </a>
-            <% }) %>
-        </div>
-
-        <div class="text-center mt-16">
-            <a href="/shop" class="inline-block border border-black px-10 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
-                View All Colors
-            </a>
-        </div>
+<div class="mb-16 px-4">
+    <div class="text-center mb-8">
+        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1 flex items-center justify-center gap-2">
+            <span class="animate-bounce">🎨</span> রঙের মেলা
+        </h2>
+        <p class="font-bangla-body text-xs text-gray-500">আপনার প্রিয় রঙের কালেকশন দেখুন</p>
     </div>
-</section>
+
+    <div class="flex flex-wrap justify-center gap-4">
+        <% colors.forEach(c => { %>
+            <a href="/shop?color=<%= c.name %>" class="group flex flex-col items-center gap-2 w-20">
+                <div class="w-20 h-20 rounded-2xl overflow-hidden shadow-md border-2 border-white ring-1 ring-gray-100 relative group-hover:scale-105 transition-transform duration-300">
+                    <% if (c.media_url && (c.media_url.endsWith('.mp4') || c.media_url.endsWith('.webm'))) { %>
+                        <video src="<%= c.media_url %>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
+                    <% } else { %>
+                        <img src="<%= c.media_url || '/uploads/placeholder.jpg' %>" class="w-full h-full object-cover">
+                    <% } %>
+                    
+                    <div class="absolute inset-0 opacity-20 mix-blend-overlay" style="background-color: <%= c.hex_code %>;"></div>
+                </div>
+                
+                <span class="text-[11px] font-bangla-body font-bold text-gray-700 group-hover:text-[#800000]">
+                    <%= c.name %>
+                </span>
+            </a>
+        <% }) %>
+    </div>
+</div>
