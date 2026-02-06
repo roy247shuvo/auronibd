@@ -78,82 +78,70 @@ async function getGlobalData() {
 exports.getHome = async (req, res) => {
     try {
         const globalData = await getGlobalData();
-
-        // A. Hero Lightboxes
         const [lightboxes] = await db.query("SELECT * FROM home_lightboxes ORDER BY sort_order ASC, created_at DESC");
 
-        // --- SMART MEDIA SUBQUERY (Video First, then Random Image) ---
+        // --- FIXED MEDIA SUBQUERY (Broader check) ---
         const mediaSubquery = (foreignKey) => `
-            (SELECT image_url 
+            (SELECT pi.image_url 
              FROM product_images pi 
              JOIN products p2 ON p2.id = pi.product_id 
              WHERE p2.${foreignKey} = main.id 
-             AND p2.is_online = 'yes'
-             AND p2.stock_quantity > 0
-             ORDER BY 
-                CASE WHEN pi.image_url LIKE '%.mp4' OR pi.image_url LIKE '%.webm' THEN 0 ELSE 1 END ASC,
-                RAND() 
+             AND (p2.is_online = 'yes' OR p2.is_online = '1')
+             ORDER BY RAND() 
              LIMIT 1) as media_url
         `;
 
-        // B. FABRICS (With Media)
+        // 1. FABRICS (Relaxed Join)
         const [fabrics] = await db.query(`
             SELECT main.*, COUNT(p.id) as product_count,
             ${mediaSubquery('fabric_id')}
             FROM fabrics main 
-            JOIN products p ON p.fabric_id = main.id 
-            WHERE p.stock_quantity > 0 AND p.is_online = 'yes'
+            LEFT JOIN products p ON p.fabric_id = main.id 
             GROUP BY main.id 
+            HAVING product_count > 0
             ORDER BY main.name ASC
         `);
 
-        // C. WORK TYPES (With Media)
+        // 2. WORK TYPES
         const [work_types] = await db.query(`
             SELECT main.*, COUNT(p.id) as product_count,
             ${mediaSubquery('work_type_id')}
             FROM work_types main 
-            JOIN products p ON p.work_type_id = main.id 
-            WHERE p.stock_quantity > 0 AND p.is_online = 'yes'
+            LEFT JOIN products p ON p.work_type_id = main.id 
             GROUP BY main.id 
+            HAVING product_count > 0
             ORDER BY main.name ASC
         `);
 
-        // D. COLORS (With Media - Special Join)
+        // 3. COLORS (Simplified)
         const [colors] = await db.query(`
             SELECT main.*, COUNT(DISTINCT pv.product_id) as product_count,
-            (SELECT image_url 
+            (SELECT pi.image_url 
              FROM product_images pi 
              JOIN products p2 ON p2.id = pi.product_id 
              JOIN product_variants pv2 ON pv2.product_id = p2.id
              WHERE pv2.color = main.name 
-             AND p2.is_online = 'yes'
-             AND pv2.stock_quantity > 0 
-             ORDER BY 
-                CASE WHEN pi.image_url LIKE '%.mp4' OR pi.image_url LIKE '%.webm' THEN 0 ELSE 1 END ASC,
-                RAND() 
-             LIMIT 1) as media_url
+             ORDER BY RAND() LIMIT 1) as media_url
             FROM colors main 
             JOIN product_variants pv ON pv.color = main.name 
-            JOIN products p ON p.id = pv.product_id
-            WHERE p.is_online = 'yes' AND pv.stock_quantity > 0 
             GROUP BY main.id 
             ORDER BY product_count DESC 
             LIMIT 12
         `);
 
-        // E. NEW ARRIVALS (Products)
+        // 4. NEW ARRIVALS (Products)
         const [products] = await db.query(`
             SELECT p.*, 
             (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as image_url
             FROM products p 
-            WHERE p.is_online = 'yes' AND p.stock_quantity > 0 
+            WHERE (p.is_online = 'yes' OR p.is_online = '1') 
             ORDER BY p.created_at DESC 
-            LIMIT 8
+            LIMIT 10
         `);
 
         res.render('shop/home', { 
             title: 'Auroni',
-            layout: 'shop/layout', // Uncommented to fix Sidebar & Image issues
+            layout: 'shop/layout',
             lightboxes,
             fabrics,
             work_types,

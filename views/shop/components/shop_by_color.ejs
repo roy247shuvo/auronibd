@@ -1,25 +1,24 @@
-<div class="mb-16 px-4">
-    <div class="text-center mb-8">
-        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1 flex items-center justify-center gap-2">
-            <span class="animate-bounce">🎨</span> রঙের মেলা
-        </h2>
-        <p class="font-bangla-body text-xs text-gray-500">আপনার প্রিয় রঙের কালেকশন দেখুন</p>
+<div class="px-4 md:px-8">
+    <div class="text-center mb-10">
+        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1">রঙের মেলা</h2>
+        <p class="font-aesthetic text-xs text-gray-400 uppercase tracking-[0.2em]">Shop by Shade</p>
     </div>
 
-    <div class="flex flex-wrap justify-center gap-4">
-        <% colors.forEach(c => { %>
-            <a href="/shop?color=<%= c.name %>" class="group flex flex-col items-center gap-2 w-20">
-                <div class="w-20 h-20 rounded-2xl overflow-hidden shadow-md border-2 border-white ring-1 ring-gray-100 relative group-hover:scale-105 transition-transform duration-300">
-                    <% if (c.media_url && (c.media_url.endsWith('.mp4') || c.media_url.endsWith('.webm'))) { %>
-                        <video src="<%= c.media_url %>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
-                    <% } else { %>
-                        <img src="<%= c.media_url || '/uploads/placeholder.jpg' %>" class="w-full h-full object-cover">
-                    <% } %>
+    <div class="flex flex-wrap justify-center gap-6">
+        <% colors.forEach(c => { 
+            let imgUrl = c.media_url || '/uploads/placeholder.jpg';
+            if(!imgUrl.startsWith('/') && !imgUrl.startsWith('http')) imgUrl = '/' + imgUrl;
+        %>
+            <a href="/shop?color=<%= c.name %>" class="group flex flex-col items-center gap-3">
+                <div class="w-20 h-20 rounded-full p-[3px] shadow-sm transition-transform duration-300 group-hover:scale-110"
+                     style="border: 2px solid <%= c.hex_code || '#ddd' %>;">
                     
-                    <div class="absolute inset-0 opacity-20 mix-blend-overlay" style="background-color: <%= c.hex_code %>;"></div>
+                    <div class="w-full h-full rounded-full overflow-hidden relative">
+                         <img src="<%= imgUrl %>" class="w-full h-full object-cover">
+                    </div>
                 </div>
                 
-                <span class="text-[11px] font-bangla-body font-bold text-gray-700 group-hover:text-[#800000]">
+                <span class="text-xs font-bold text-gray-600 font-bangla-body group-hover:text-[#800000]">
                     <%= c.name %>
                 </span>
             </a>

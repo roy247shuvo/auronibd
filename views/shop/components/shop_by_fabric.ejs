@@ -1,55 +1,26 @@
-<div class="mb-12 relative">
-    <div class="px-4 mb-6 relative z-10 text-center">
-        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1 flex items-center justify-center gap-2">
-            <span class="animate-bounce">🧵</span> আরামদায়ক কাপড়
-        </h2>
-        <p class="font-bangla-body text-xs text-gray-500">বেছে নিন আপনার পছন্দের মেটেরিয়াল</p>
+<div class="px-4 md:px-8">
+    <div class="text-center mb-10">
+        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1">আরামদায়ক কাপড়</h2>
+        <p class="font-aesthetic text-xs text-gray-400 uppercase tracking-[0.2em]">Premium Fabrics</p>
     </div>
 
-    <div class="flex overflow-x-auto gap-4 px-4 pb-4 snap-x hide-scrollbar justify-center">
-    <% fabrics.forEach(f => { %>
-        <a href="/shop?fabric=<%= f.id %>" class="snap-center shrink-0 w-28 flex flex-col items-center group">
-            
-            <div class="w-24 h-32 rounded-xl overflow-hidden shadow-sm border border-gray-100 relative bg-gray-50 group-hover:shadow-md transition-all">
-                <% if (f.media_url && (f.media_url.endsWith('.mp4') || f.media_url.endsWith('.webm'))) { %>
-                    <video src="<%= f.media_url %>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
-                <% } else { %>
-                    <img src="<%= f.media_url || '/uploads/placeholder.jpg' %>" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
-                <% } %>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <% fabrics.forEach(f => { 
+            let imgUrl = f.media_url || '/uploads/placeholder.jpg';
+            if(!imgUrl.startsWith('/') && !imgUrl.startsWith('http')) imgUrl = '/' + imgUrl;
+        %>
+            <a href="/shop?fabric=<%= f.id %>" class="group relative rounded-xl overflow-hidden aspect-[3/4] shadow-sm">
+                <img src="<%= imgUrl %>" 
+                     class="w-full h-full object-cover transition duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-100">
                 
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                 
-                <div class="absolute bottom-2 right-2 text-[10px] text-white font-bold bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm">
-                    <%= f.product_count %>
+                <div class="absolute bottom-4 left-0 w-full text-center">
+                    <h3 class="font-bangla-title text-white text-xl group-hover:-translate-y-1 transition-transform"><%= f.name %></h3>
+                    <span class="text-[10px] text-white/80 uppercase tracking-widest border border-white/30 px-2 py-0.5 rounded-full">
+                        <%= f.product_count %> Items
+                    </span>
                 </div>
-            </div>
-
-            <h3 class="mt-2 font-bangla-body text-sm font-bold text-gray-700 text-center group-hover:text-[#800000] transition">
-                <%= f.name %>
-            </h3>
-        </a>
-    <% }) %>
-</div>
-        <% fabrics.forEach(f => { %>
-            <a href="/shop?fabric=<%= f.id %>" class="snap-center shrink-0 w-28 flex flex-col items-center group">
-                
-                <div class="w-24 h-32 rounded-xl overflow-hidden shadow-sm border border-gray-100 relative bg-gray-50 group-hover:shadow-md transition-all">
-                    <% if (f.media_url && (f.media_url.endsWith('.mp4') || f.media_url.endsWith('.webm'))) { %>
-                        <video src="<%= f.media_url %>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
-                    <% } else { %>
-                        <img src="<%= f.media_url || '/uploads/placeholder.jpg' %>" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
-                    <% } %>
-                    
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    
-                    <div class="absolute bottom-2 right-2 text-[10px] text-white font-bold bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm">
-                        <%= f.product_count %>
-                    </div>
-                </div>
-
-                <h3 class="mt-2 font-bangla-body text-sm font-bold text-gray-700 text-center group-hover:text-[#800000] transition">
-                    <%= f.name %>
-                </h3>
             </a>
         <% }) %>
     </div>

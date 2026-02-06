@@ -1,25 +1,25 @@
-<div class="mb-12 py-8 bg-white border-y border-dashed border-gray-200 relative overflow-hidden">
-    <div class="px-4 mb-6 relative z-10 text-center">
-        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1 flex items-center justify-center gap-2">
-            <span class="animate-pulse">✨</span> নিখুঁত কারুকাজ
-        </h2>
-        <p class="font-bangla-body text-xs text-gray-500">হাতের কাজ নাকি প্রিন্ট? বেছে নিন এখনই</p>
+<div class="px-4 md:px-8">
+    <div class="text-center mb-10">
+        <h2 class="font-bangla-title text-2xl text-[#800000] mb-1">নিখুঁত কারুকাজ</h2>
+        <p class="font-aesthetic text-xs text-gray-400 uppercase tracking-[0.2em]">Craftsmanship</p>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 px-4">
-        <% work_types.forEach(w => { %>
-            <a href="/shop?work_type=<%= w.id %>" class="relative rounded-xl overflow-hidden aspect-[4/3] group shadow-sm">
-                <% if (w.media_url && (w.media_url.endsWith('.mp4') || w.media_url.endsWith('.webm'))) { %>
-                    <video src="<%= w.media_url %>" autoplay muted loop playsinline class="w-full h-full object-cover"></video>
-                <% } else { %>
-                    <img src="<%= w.media_url || '/uploads/placeholder.jpg' %>" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
-                <% } %>
-
-                <div class="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                    <div class="text-center">
-                        <span class="block font-bangla-title text-lg text-white mb-1"><%= w.name %></span>
-                        <span class="inline-block text-[10px] text-white/90 border border-white/30 px-2 rounded-full"><%= w.product_count %> আইটেম</span>
-                    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <% work_types.forEach(w => { 
+            let imgUrl = w.media_url || '/uploads/placeholder.jpg';
+            if(!imgUrl.startsWith('/') && !imgUrl.startsWith('http')) imgUrl = '/' + imgUrl;
+        %>
+            <a href="/shop?work_type=<%= w.id %>" class="group relative rounded-xl overflow-hidden aspect-[3/4] shadow-sm">
+                <img src="<%= imgUrl %>" 
+                     class="w-full h-full object-cover transition duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-100">
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                
+                <div class="absolute bottom-4 left-0 w-full text-center">
+                    <h3 class="font-bangla-title text-white text-xl group-hover:-translate-y-1 transition-transform"><%= w.name %></h3>
+                    <span class="text-[10px] text-white/80 uppercase tracking-widest border border-white/30 px-2 py-0.5 rounded-full">
+                        <%= w.product_count %> Designs
+                    </span>
                 </div>
             </a>
         <% }) %>
