@@ -96,12 +96,17 @@
         document.getElementById('modalTitle').innerText = `Process Partial Return #${orderNum}`;
         document.getElementById('modalOrderId').value = id;
         const list = document.getElementById('modalItemsList');
-        list.innerHTML = '<div class="text-center py-4"><span class="material-icons-outlined animate-spin">sync</span></div>';
         
+        // Show Spinner
+        list.innerHTML = '<div class="text-center py-4"><span class="material-icons-outlined animate-spin">sync</span></div>';
         document.getElementById('returnModal').classList.remove('hidden');
 
         try {
-            const res = await fetch(`/admin/returns/items/${id}`);
+            // [FIX 1] Correct URL: Added '/orders'
+            const res = await fetch(`/admin/orders/returns/items/${id}`);
+            
+            if (!res.ok) throw new Error("Network response was not ok");
+            
             const data = await res.json();
             
             list.innerHTML = '';
@@ -122,8 +127,14 @@
                         </label>
                     `;
                 });
+            } else {
+                list.innerHTML = '<div class="text-center text-gray-400 py-4">No items found for this order.</div>';
             }
-        } catch(e) { alert('Error fetching items'); }
+        } catch(e) { 
+            console.error(e);
+            list.innerHTML = '<div class="text-center text-red-500 py-4">Error loading items. Try again.</div>';
+            alert('Error fetching items: ' + e.message);
+        }
     }
 
     function closeReturnModal() {
@@ -138,9 +149,8 @@
         }
         
         if(!confirm("Are you sure? The selected items will be added back to stock.")) return;
-
-        const orderId = document.getElementById('modalOrderId').value;
         
+        const orderId = document.getElementById('modalOrderId').value;
         const items = Array.from(checks).map(c => ({
             id: c.value,
             variant_id: c.dataset.variant,
@@ -149,18 +159,28 @@
         }));
 
         try {
-            const res = await fetch('/admin/returns/process', {
+            // [FIX 2] Correct URL: Added '/orders'
+            const res = await fetch('/admin/orders/returns/process', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    // [FIX 3] Added CSRF Token (Required for POST requests)
+                    'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
                 body: JSON.stringify({ order_id: orderId, returned_items: items })
             });
+
             const data = await res.json();
+            
             if(data.success) {
                 alert(data.message);
                 window.location.reload();
             } else {
-                alert(data.message);
+                alert("Server Error: " + data.message);
             }
-        } catch(e) { alert('System Error'); }
+        } catch(e) { 
+            console.error(e);
+            alert('System Error. Check console for details.'); 
+        }
     }
 </script>

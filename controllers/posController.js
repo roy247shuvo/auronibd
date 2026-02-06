@@ -353,7 +353,7 @@ exports.submitOrder = async (req, res) => {
         // 1. Generate POS Invoice Number
         const [settings] = await conn.query("SELECT last_pos_sequence, last_nb_trx_sequence FROM shop_settings LIMIT 1");
         const nextPosSeq = (settings[0].last_pos_sequence || 0) + 1;
-        const orderNumber = `NB-POS${String(nextPosSeq).padStart(4, '0')}`;
+        const orderNumber = `AR-POS${String(nextPosSeq).padStart(4, '0')}`;
 
         // 2. Generate NB Transaction ID (Always for POS)
         const nextTrxSeq = (settings[0].last_nb_trx_sequence || 0) + 1;
@@ -421,9 +421,25 @@ exports.submitOrder = async (req, res) => {
                     await conn.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?", [diff, item.product_id]);
                 }
             } else {
-                // Fallback: If no hold found (e.g. backend restart), deduct now
-                await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE id = ?", [item.quantity, item.variant_id]);
-                await conn.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?", [item.quantity, item.product_id]);
+                // Deduct Main Stock
+            await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE id = ?", [item.quantity, item.variant_id]);
+            await conn.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?", [item.quantity, item.product_id]);
+            
+            // [NEW] Deduct Inventory Batches (FIFO)
+            let qtyToDeduct = item.quantity;
+            const [batches] = await conn.query(`
+                SELECT id, remaining_quantity 
+                FROM inventory_batches 
+                WHERE variant_id = ? AND remaining_quantity > 0 
+                ORDER BY created_at ASC FOR UPDATE
+            `, [item.variant_id]);
+            
+            for (const batch of batches) {
+                if (qtyToDeduct <= 0) break;
+                const take = Math.min(qtyToDeduct, batch.remaining_quantity);
+                await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity - ? WHERE id = ?`, [take, batch.id]);
+                qtyToDeduct -= take;
+            }
             }
         }
 

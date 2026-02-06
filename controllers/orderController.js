@@ -57,6 +57,10 @@ exports.getWebOrders = async (req, res) => {
                 order.final_due = order.total_amount - order.final_paid;
             });
         }
+        
+        const toast = req.query.success ? { type: 'success', message: req.query.success } 
+                    : req.query.error ? { type: 'error', message: req.query.error } 
+                    : null;
 
         res.render('admin/orders/web_orders', {
             title: 'Web Orders',
@@ -236,9 +240,15 @@ exports.createManualOrder = async (req, res) => {
             const [variantInfo] = await conn.query("SELECT cost_price FROM product_variants WHERE id = ?", [item.variant_id]);
             const costPrice = (variantInfo.length > 0) ? variantInfo[0].cost_price : 0;
 
-            // Updated INSERT to include cost_price
-            await conn.query(`INSERT INTO order_items (order_id, product_id, variant_id, product_name, quantity, price, sku, size, color, cost_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                [order_id, item.product_id, item.variant_id, item.product_name, item.quantity, item.price, item.sku, item.size, item.color, costPrice]);
+            // [FIX] Calculate line_total
+            const lineTotal = item.price * item.quantity;
+        
+            // [FIX] Add 'line_total' to the INSERT statement
+            await conn.query(`
+                INSERT INTO order_items (order_id, product_id, variant_id, product_name, quantity, price, sku, size, color, cost_price, line_total) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                [order_id, item.product_id, item.variant_id, item.product_name, item.quantity, item.price, item.sku, item.size, item.color, costPrice, lineTotal]
+            );
             
             // [UPDATED] Deduct stock for Pending, Confirmed, or Hold
             if (['pending', 'confirmed', 'hold'].includes(status)) {

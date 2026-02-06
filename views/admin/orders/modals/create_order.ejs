@@ -438,8 +438,13 @@
         if(cart.length === 0) return alert('Please add at least one product.');
         
         const phone = document.getElementById('phoneInput').value;
+        const name = document.getElementById('nameInput').value.trim(); // Check Name
+        const address = document.getElementById('addressInput').value.trim(); // Check Address
+    
         if(phone.length !== 11 || !phone.startsWith('01')) return alert('Please enter a valid BD phone number.');
-
+        if(!name) return alert('Please enter customer name.'); // [New Check]
+        if(!address) return alert('Please enter customer address.'); // [New Check]
+    
         document.getElementById('cartItemsInput').value = JSON.stringify(cart);
         document.getElementById('createOrderForm').submit();
     }

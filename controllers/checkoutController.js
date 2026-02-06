@@ -451,17 +451,50 @@ exports.placeOrder = async (req, res) => {
             order_id = orderResult.insertId;
         }
 
-        // Generate/Update Permanent Order Number (NB-ONxxxxx)
-        const order_number = 'NB-ON' + String(order_id).padStart(5, '0');
+        // [NEW] Generate Permanent Order Number (AR-00013 Start)
+        // We use 'last_trx_sequence' from settings so it continues even if you delete orders
+        const [seqSettings] = await db.query("SELECT last_trx_sequence FROM shop_settings LIMIT 1");
+        let lastSeq = seqSettings[0].last_trx_sequence || 0;
+
+        // Logic: If counter is 0 or low, force it to start at 12 (so next is 13)
+        if (lastSeq < 12) lastSeq = 12; 
+        const nextSeq = lastSeq + 1;
+
+        const order_number = 'AR-' + String(nextSeq).padStart(5, '0');
+
+        // Update the counter and the order
+        await db.query("UPDATE shop_settings SET last_trx_sequence = ?", [nextSeq]);
         await db.query("UPDATE orders SET order_number = ? WHERE id = ?", [order_number, order_id]);
 
         // Insert Items
         const finalItems = orderItemsData.map(item => { item[0] = order_id; return item; });
         if (finalItems.length > 0) await db.query(`INSERT INTO order_items (order_id, product_id, variant_id, product_name, sku, color, size, price, quantity, line_total) VALUES ?`, [finalItems]);
         
-        // Stock Update
+        // Stock Update (Variants + Batches)
         for (const update of stockUpdates) {
+            // 1. Deduct from Variant (Existing)
             await db.query(`UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE id = ?`, [update.qty, update.id]);
+        
+            // 2. Deduct from Batches (FIFO Logic) - [NEW]
+            let qtyToDeduct = update.qty;
+            
+            // Get batches for this variant, ordered by creation (Oldest First)
+            const [batches] = await db.query(`
+                SELECT id, remaining_quantity 
+                FROM inventory_batches 
+                WHERE variant_id = ? AND remaining_quantity > 0 
+                ORDER BY created_at ASC
+            `, [update.id]);
+        
+            for (const batch of batches) {
+                if (qtyToDeduct <= 0) break; // Done
+        
+                const take = Math.min(qtyToDeduct, batch.remaining_quantity);
+                
+                await db.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity - ? WHERE id = ?`, [take, batch.id]);
+                
+                qtyToDeduct -= take;
+            }
         }
 
         // [NEW] Track Purchase (Server Side - High Quality)

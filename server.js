@@ -31,10 +31,14 @@ app.use(helmet({
 // 2. Rate Limiter (Prevent Brute Force)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 300, // Limit each IP to 100 requests per windowMs
   message: "Too many requests from this IP, please try again after 15 minutes",
   standardHeaders: true, 
-  legacyHeaders: false, 
+  legacyHeaders: false,
+  // [NEW] Skip rate limiting for the Admin Panel
+  skip: (req, res) => {
+      return req.path.startsWith('/admin');
+  }
 });
 app.use(limiter);
 
