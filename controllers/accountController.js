@@ -311,10 +311,20 @@ exports.addTransfer = async (req, res) => {
 };
 
 
-// [NEW] Render Courier Data Page
+// [NEW] Render Courier Data Page (Updated)
 exports.getCourierData = async (req, res) => {
     try {
-        // Fetch only settled orders (Real Money)
+        // 1. Get Lifetime Totals
+        const [lifetimeStats] = await db.query(`
+            SELECT 
+                SUM(cod_received) as total_cod,
+                SUM(courier_delivery_charge) as total_delivery,
+                SUM(gateway_fee) as total_fees 
+            FROM orders 
+            WHERE settled_at IS NOT NULL
+        `);
+
+        // 2. Fetch Recent History
         const [settledOrders] = await db.query(`
             SELECT * FROM orders 
             WHERE settled_at IS NOT NULL 
@@ -322,20 +332,19 @@ exports.getCourierData = async (req, res) => {
             LIMIT 100
         `);
 
-        // Calculate Totals for the View
-        let totalReceived = 0;
-        let totalDeliveryCost = 0;
-        
-        settledOrders.forEach(o => {
-            totalReceived += parseFloat(o.cod_received || 0);
-            totalDeliveryCost += parseFloat(o.courier_delivery_charge || 0);
-        });
+        // 3. [NEW] Fetch Active Bank Accounts for the Dropdown
+        const [accounts] = await db.query("SELECT id, account_name, bank_name FROM bank_accounts WHERE status = 'active'");
 
         res.render('admin/accounts/courier_data', {
             title: 'Courier Settlements',
             layout: 'admin/layout',
             orders: settledOrders,
-            stats: { totalReceived, totalDeliveryCost }
+            accounts: accounts, // Pass accounts to view
+            stats: { 
+                totalReceived: parseFloat(lifetimeStats[0].total_cod || 0),
+                totalDeliveryCost: parseFloat(lifetimeStats[0].total_delivery || 0),
+                totalCodFees: parseFloat(lifetimeStats[0].total_fees || 0)
+            }
         });
     } catch (err) {
         console.error(err);
@@ -635,7 +644,7 @@ exports.getBalanceSheet = async (req, res) => {
         const totalInventory = parseFloat(inventory[0].total_value) || 0;
 
         const [receivables] = await db.query(`
-            SELECT SUM(total_amount) as pending_money 
+            SELECT SUM(total_amount - IFNULL(paid_amount, 0)) as pending_money 
             FROM orders 
             WHERE sent_to_courier = 'yes' AND settled_at IS NULL AND status NOT IN ('cancelled', 'Returned')
         `);

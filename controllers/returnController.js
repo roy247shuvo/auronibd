@@ -41,7 +41,7 @@ exports.getOrderItems = async (req, res) => {
     }
 };
 
-// 3. Process the Restock
+// 3. Process the Restock (Updated for Financial Correction)
 exports.processRestock = async (req, res) => {
     const conn = await db.getConnection();
     try {
@@ -53,19 +53,26 @@ exports.processRestock = async (req, res) => {
             throw new Error("No items selected for return.");
         }
 
+        let totalRefundValue = 0; // [NEW] Track value of returned items
+
         for (const item of returned_items) {
             const qty = parseInt(item.qty);
             if (qty > 0) {
-                // A. Update Order Item (Record that it came back)
+                // A. Fetch Price for Financial Adjustment [NEW]
+                const [itemData] = await conn.query("SELECT price FROM order_items WHERE id = ?", [item.id]);
+                const price = parseFloat(itemData[0].price || 0);
+                totalRefundValue += (price * qty);
+
+                // B. Update Order Item (Record that it came back)
                 await conn.query(`UPDATE order_items SET returned_quantity = ? WHERE id = ?`, [qty, item.id]);
 
-                // B. Restock Product Variant
+                // C. Restock Product Variant
                 await conn.query(`UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?`, [qty, item.variant_id]);
 
-                // C. Restock Main Product Count
+                // D. Restock Main Product Count
                 await conn.query(`UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?`, [qty, item.product_id]);
 
-                // D. Update Inventory Batch (FIFO Logic)
+                // E. Update Inventory Batch (FIFO Logic)
                 const [batches] = await conn.query(`SELECT id FROM inventory_batches WHERE variant_id = ? ORDER BY id DESC LIMIT 1`, [item.variant_id]);
                 if (batches.length > 0) {
                     await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity + ? WHERE id = ?`, [qty, batches[0].id]);
@@ -73,11 +80,23 @@ exports.processRestock = async (req, res) => {
             }
         }
 
-        // E. Mark Order as Processed
-        await conn.query(`UPDATE orders SET is_steadfast_partial_returned = 1 WHERE id = ?`, [order_id]);
+        // F. [NEW] Decrease Order Total to reflect Partial Delivery
+        // This ensures "Pending COD" calculates 1000 instead of 2000
+        if (totalRefundValue > 0) {
+            await conn.query(`
+                UPDATE orders 
+                SET product_subtotal = product_subtotal - ?, 
+                    total_amount = total_amount - ?,
+                    is_steadfast_partial_returned = 1
+                WHERE id = ?
+            `, [totalRefundValue, totalRefundValue, order_id]);
+        } else {
+            // Just mark as processed if value didn't change (rare)
+            await conn.query(`UPDATE orders SET is_steadfast_partial_returned = 1 WHERE id = ?`, [order_id]);
+        }
 
         await conn.commit();
-        res.json({ success: true, message: "Partial stock returned to inventory!" });
+        res.json({ success: true, message: "Stock returned & Order Value Updated!" });
 
     } catch (err) {
         await conn.rollback();

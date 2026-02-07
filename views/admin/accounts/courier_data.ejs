@@ -1,93 +1,34 @@
 <% if (!can('acc_sales', 'write')) { %>
     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r shadow-sm">
         <div class="flex">
-            <div class="flex-shrink-0">
-                <span class="material-icons-outlined text-yellow-400">lock</span>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm text-yellow-700">
-                    <span class="font-bold">View Only Mode:</span> You do not have permission to sync financial data.
-                </p>
-            </div>
+            <div class="flex-shrink-0"><span class="material-icons-outlined text-yellow-400">lock</span></div>
+            <div class="ml-3"><p class="text-sm text-yellow-700"><span class="font-bold">View Only:</span> No write permissions.</p></div>
         </div>
     </div>
-    <% } %>
+<% } %>
+
+<div class="flex flex-col md:flex-row justify-between items-end mb-8">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Courier Settlements</h1>
+        <p class="text-sm text-gray-500 mt-1">Manage payouts from Steadfast Courier.</p>
+    </div>
     
-    <div class="flex flex-col md:flex-row justify-between items-end mb-8">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Courier Settlements</h1>
-            <p class="text-sm text-gray-500 mt-1">Real-time financial reconciliation with Steadfast Courier.</p>
-        </div>
-        <% if (can('acc_sales', 'write')) { %>
-        <button id="btnSync" class="bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
-            <span class="material-icons-outlined text-[18px]" id="syncIcon">sync</span>
-            <span id="syncText">Sync Latest Payments</span>
-        </button>
-        <% } %>
-    </div>
-        <span class="material-icons-outlined text-[18px]" id="syncIcon">sync</span>
-        <span id="syncText">Sync Latest Payments</span>
+    <button onclick="loadPendingBatches()" class="text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+        <span class="material-icons-outlined text-[18px]">refresh</span>
+        Check for New Payments
     </button>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div id="pendingSection" class="mb-10">
+    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+        Pending Actions (Unclaimed Payouts)
+    </h3>
     
-    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 group">
-        <div class="flex justify-between items-start">
-            <div>
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total COD Received</p>
-                <h3 class="text-3xl font-bold text-gray-900 mt-2 group-hover:text-green-600 transition-colors">
-                    ৳ <%= stats.totalReceived.toLocaleString() %>
-                </h3>
-            </div>
-            <div class="p-2 bg-green-50 rounded-lg text-green-600">
-                <span class="material-icons-outlined text-xl">payments</span>
-            </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm">
-            <span class="text-gray-400">From last 100 settled orders</span>
-        </div>
-    </div>
-
-    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 group">
-        <div class="flex justify-between items-start">
-            <div>
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Delivery Fees Paid</p>
-                <h3 class="text-3xl font-bold text-gray-900 mt-2 group-hover:text-red-600 transition-colors">
-                    ৳ <%= stats.totalDeliveryCost.toLocaleString() %>
-                </h3>
-            </div>
-            <div class="p-2 bg-red-50 rounded-lg text-red-600">
-                <span class="material-icons-outlined text-xl">local_shipping</span>
-            </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm">
-            <span class="text-red-600 font-medium text-xs bg-red-50 px-2 py-0.5 rounded border border-red-100">
-                Expense
-            </span>
-            <span class="text-gray-400 ml-2">Deducted by courier</span>
-        </div>
-    </div>
-
-    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 group">
-        <div class="flex justify-between items-start">
-            <div>
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Net Cash In Bank</p>
-                <% const net = stats.totalReceived - stats.totalDeliveryCost; %>
-                <h3 class="text-3xl font-bold text-gray-900 mt-2 group-hover:text-blue-600 transition-colors">
-                    ৳ <%= net.toLocaleString() %>
-                </h3>
-            </div>
-            <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
-                <span class="material-icons-outlined text-xl">account_balance_wallet</span>
-            </div>
-        </div>
-        <div class="mt-4 flex items-center text-sm">
-            <span class="text-blue-600 font-medium flex items-center">
-                <span class="material-icons-outlined text-[14px] mr-1">check_circle</span>
-                Verified
-            </span>
-            <span class="text-gray-400 ml-2">Actual deposit amount</span>
+    <div id="pendingContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <span class="material-icons-outlined text-2xl animate-spin mb-2">sync</span>
+            <p>Checking Steadfast...</p>
         </div>
     </div>
 </div>
@@ -95,9 +36,17 @@
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
         <h2 class="text-lg font-bold text-gray-800">Settlement History</h2>
-        <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded border border-blue-200 uppercase tracking-wide">
-            Auto-Synced
-        </span>
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <p class="text-xs text-gray-400">Total Collected</p>
+                <p class="font-bold text-gray-900">৳<%= stats.totalReceived.toLocaleString() %></p>
+            </div>
+            <div class="w-px h-8 bg-gray-200"></div>
+            <div class="text-right">
+                <p class="text-xs text-gray-400">Net Income</p>
+                <p class="font-bold text-blue-600">৳<%= (stats.totalReceived - stats.totalDeliveryCost - stats.totalCodFees).toLocaleString() %></p>
+            </div>
+        </div>
     </div>
 
     <div class="overflow-x-auto">
@@ -115,7 +64,8 @@
                 <% orders.forEach(order => { 
                     const cod = parseFloat(order.cod_received || 0);
                     const charge = parseFloat(order.courier_delivery_charge || 0);
-                    const netOrder = cod - charge;
+                    const codFee = cod * 0.01;
+                    const netOrder = cod - charge - codFee;
                 %>
                 <tr class="hover:bg-gray-50 transition-colors group">
                     <td class="px-6 py-4">
@@ -130,25 +80,17 @@
                         <a href="/admin/orders/web-orders?q=<%= order.order_number %>" class="text-sm font-bold text-blue-600 hover:underline font-mono">
                             <%= order.order_number %>
                         </a>
-                        <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                            <span class="material-icons-outlined text-[12px]">person</span>
-                            <%= order.guest_name %>
-                        </div>
+                        <div class="text-xs text-gray-500 mt-0.5"><%= order.guest_name %></div>
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex flex-col items-end gap-1">
-                            <span class="text-xs text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-medium">
-                                COD: +৳<%= cod %>
-                            </span>
-                            <span class="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 font-medium">
-                                Fee: -৳<%= charge %>
-                            </span>
+                            <span class="text-[10px] text-gray-400">COD: <b class="text-green-600">+<%= cod %></b></span>
+                            <span class="text-[10px] text-gray-400">Fee: <b class="text-red-600">-<%= charge %></b></span>
+                            <span class="text-[10px] text-gray-400">1%: <b class="text-orange-600">-<%= codFee.toFixed(2) %></b></span>
                         </div>
                     </td>
                     <td class="px-6 py-4 text-right">
-                        <span class="text-sm font-bold text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded">
-                            ৳<%= netOrder %>
-                        </span>
+                        <span class="text-sm font-bold text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded">৳<%= netOrder.toFixed(2) %></span>
                     </td>
                     <td class="px-6 py-4 text-center">
                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
@@ -157,87 +99,225 @@
                     </td>
                 </tr>
                 <% }); %>
-                
-                <% if(orders.length === 0) { %>
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-400">
-                            <div class="flex flex-col items-center justify-center">
-                                <span class="material-icons-outlined text-4xl mb-2 text-gray-300">receipt_long</span>
-                                <p>No settled orders found yet.</p>
-                                <p class="text-xs mt-1">Click "Sync Latest Payments" to pull data from Steadfast.</p>
-                            </div>
-                        </td>
-                    </tr>
-                <% } %>
             </tbody>
         </table>
     </div>
 </div>
 
+<div id="batchModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closeBatchModal()"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
+                
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b border-gray-100">
+                    <h3 class="text-lg font-bold leading-6 text-gray-900" id="modalTitle">Batch Details</h3>
+                    <button type="button" class="text-gray-400 hover:text-gray-500" onclick="closeBatchModal()">
+                        <span class="material-icons-outlined">close</span>
+                    </button>
+                </div>
+
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="modalSummary">
+                        </div>
+
+                    <div class="border rounded-lg overflow-hidden max-h-60 overflow-y-auto mb-6">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Collected</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Deductions</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Net</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="modalItemsTable">
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex-1">
+                            <h4 class="text-sm font-bold text-blue-900">Receive Money</h4>
+                            <p class="text-xs text-blue-700">Select where this payout was deposited.</p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <select id="depositAccount" class="bg-white border border-blue-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                <option value="" disabled selected>Select Account (Bank/Bkash)</option>
+                                <% accounts.forEach(acc => { %>
+                                    <option value="<%= acc.id %>"><%= acc.bank_name %> - <%= acc.account_name %></option>
+                                <% }); %>
+                            </select>
+                            <button id="btnConfirmReceive" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md whitespace-nowrap flex items-center gap-2">
+                                <span class="material-icons-outlined text-[18px]">download</span>
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    document.getElementById('btnSync').addEventListener('click', async function() {
-        const btn = this;
-        const icon = document.getElementById('syncIcon');
-        const text = document.getElementById('syncText');
-        
-        // Loading State
-        btn.disabled = true;
-        btn.classList.add('opacity-75', 'cursor-not-allowed');
-        icon.classList.add('animate-spin');
-        text.innerText = 'Connecting to Steadfast...';
+    // 1. Initial Load
+    document.addEventListener('DOMContentLoaded', loadPendingBatches);
+
+    // 2. Load Pending Batches via AJAX
+    async function loadPendingBatches() {
+        const container = document.getElementById('pendingContainer');
+        container.innerHTML = `<div class="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-xl animate-pulse">Loading payouts...</div>`;
 
         try {
-            // [FIXED] Added CSRF-Token to headers
-            const res = await fetch('/admin/accounts/sync-steadfast', { 
+            const res = await fetch('/admin/accounts/settlements/pending'); // Ensure this route matches
+            const data = await res.json();
+
+            if(data.success && data.batches.length > 0) {
+                container.innerHTML = '';
+                data.batches.forEach(batch => {
+                    // Create Card HTML
+                    const html = `
+                        <div class="bg-white p-5 rounded-xl border-l-4 border-yellow-400 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded">PENDING</span>
+                                    <h4 class="text-lg font-bold text-gray-900 mt-2">Batch #${batch.id}</h4>
+                                    <p class="text-xs text-gray-500">${new Date(batch.created_at).toLocaleDateString()}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-400">Total COD</p>
+                                    <p class="text-xl font-bold text-gray-900">৳${parseFloat(batch.cod_amount).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-50">
+                                <span class="text-xs text-gray-400 font-mono">Orders: ${batch.total_consignment || '?'}</span>
+                                <button onclick="openBatchModal('${batch.id}')" class="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    View Details <span class="material-icons-outlined text-[16px]">arrow_forward</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+            } else {
+                container.innerHTML = `
+                    <div class="col-span-full py-8 text-center bg-white rounded-xl border border-gray-100">
+                        <span class="material-icons-outlined text-4xl text-green-200 mb-2">check_circle</span>
+                        <p class="text-gray-500 font-medium">All caught up!</p>
+                        <p class="text-xs text-gray-400">No pending payouts found.</p>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div class="col-span-full text-red-500 text-center py-4">Failed to load batches.</div>`;
+        }
+    }
+
+    // 3. Open Modal & Load Details
+    async function openBatchModal(batchId) {
+        document.getElementById('batchModal').classList.remove('hidden');
+        document.getElementById('modalTitle').innerText = `Review Batch #${batchId}`;
+        document.getElementById('btnConfirmReceive').setAttribute('onclick', `processBatch('${batchId}')`);
+        
+        const tbody = document.getElementById('modalItemsTable');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">Loading details...</td></tr>';
+
+        try {
+            const res = await fetch(`/admin/accounts/settlements/batch/${batchId}`);
+            const data = await res.json();
+
+            if(data.success) {
+                tbody.innerHTML = '';
+                let totalNet = 0;
+                let totalCod = 0;
+
+                data.items.forEach(item => {
+                    const cod = parseFloat(item.cod_amount);
+                    const fee = parseFloat(item.delivery_charge);
+                    const codCharge = cod * 0.01;
+                    const net = cod - fee - codCharge;
+                    
+                    totalCod += cod;
+                    totalNet += net;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 text-xs font-mono font-medium text-gray-900">${item.invoice}</td>
+                            <td class="px-4 py-2 text-xs text-right text-green-600 font-bold">+${cod}</td>
+                            <td class="px-4 py-2 text-xs text-right text-red-600">- ${(fee + codCharge).toFixed(2)}</td>
+                            <td class="px-4 py-2 text-xs text-right font-bold text-gray-900">৳${net.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                // Update Summary Stats
+                document.getElementById('modalSummary').innerHTML = `
+                    <div class="bg-gray-50 p-3 rounded text-center">
+                        <p class="text-xs text-gray-400">Orders</p>
+                        <p class="text-lg font-bold text-gray-800">${data.items.length}</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded text-center">
+                        <p class="text-xs text-gray-400">Gross COD</p>
+                        <p class="text-lg font-bold text-green-600">৳${totalCod.toLocaleString()}</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded text-center border border-blue-100 bg-blue-50">
+                        <p class="text-xs text-blue-600">Net Payout</p>
+                        <p class="text-xl font-bold text-blue-700">৳${totalNet.toLocaleString()}</p>
+                    </div>
+                `;
+            }
+        } catch(e) {
+            alert("Error loading details: " + e.message);
+        }
+    }
+
+    function closeBatchModal() {
+        document.getElementById('batchModal').classList.add('hidden');
+    }
+
+    // 4. Submit Process
+    async function processBatch(batchId) {
+        const accountId = document.getElementById('depositAccount').value;
+        const btn = document.getElementById('btnConfirmReceive');
+
+        if(!accountId) {
+            alert("Please select the Bank/Bkash account where you received this money.");
+            return;
+        }
+
+        if(!confirm("Are you sure? This will add the net amount to your selected account.")) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-outlined animate-spin text-[18px]">sync</span> Processing...';
+
+        try {
+            const res = await fetch('/admin/accounts/settlements/process', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'CSRF-Token': '<%= csrfToken %>' 
-                }
+                    'CSRF-Token': '<%= csrfToken %>' // Ensure this variable exists in render
+                },
+                body: JSON.stringify({ batch_id: batchId, target_account_id: accountId })
             });
 
-            // Handle non-JSON responses (Server Crash/HTML Error)
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const textErr = await res.text();
-                console.error("Server HTML Response:", textErr);
-                throw new Error("Server Error (500). Check console logs.");
-            }
-
             const data = await res.json();
-            
-            if (data.success) {
-                // Success State
-                btn.classList.remove('bg-gray-900');
-                btn.classList.add('bg-green-600');
-                icon.innerText = 'check';
-                icon.classList.remove('animate-spin');
-                text.innerText = 'Sync Complete!';
-                
-                setTimeout(() => window.location.reload(), 1500);
+
+            if(data.success) {
+                alert("Success! Money Received.");
+                closeBatchModal();
+                loadPendingBatches(); // Refresh Cards
+                window.location.reload(); // Refresh History Table
             } else {
-                throw new Error(data.message || "Unknown error");
-            }
-
-        } catch (err) {
-            console.error(err);
-            // Error State
-            btn.classList.remove('bg-gray-900');
-            btn.classList.add('bg-red-600');
-            icon.innerText = 'error';
-            icon.classList.remove('animate-spin');
-            text.innerText = 'Sync Failed';
-            
-            alert('Sync Error: ' + err.message);
-
-            // Reset button after 3 seconds
-            setTimeout(() => {
+                alert("Error: " + data.message);
                 btn.disabled = false;
-                btn.classList.remove('opacity-75', 'cursor-not-allowed', 'bg-red-600');
-                btn.classList.add('bg-gray-900');
-                icon.innerText = 'sync';
-                text.innerText = 'Sync Latest Payments';
-            }, 3000);
+                btn.innerText = 'Confirm';
+            }
+        } catch(e) {
+            console.error(e);
+            alert("System Error.");
+            btn.disabled = false;
         }
-    });
+    }
 </script>

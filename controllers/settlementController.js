@@ -1,90 +1,120 @@
 const db = require('../config/database');
 const steadfast = require('../config/steadfast');
 
-exports.syncSettlements = async (req, res) => {
+// 1. Fetch Pending Batches (For the Cards)
+exports.getPendingBatches = async (req, res) => {
+    try {
+        // A. Get all batches from Steadfast API
+        const response = await steadfast.getPayments();
+        let apiBatches = [];
+        if (Array.isArray(response)) apiBatches = response;
+        else if (response.data) apiBatches = response.data;
+
+        // B. Get already processed batches from our DB
+        const [processed] = await db.query("SELECT batch_id FROM settlement_batches");
+        const processedIds = new Set(processed.map(p => String(p.batch_id)));
+
+        // C. Filter: Only show batches we haven't touched yet
+        const pendingBatches = apiBatches.filter(b => !processedIds.has(String(b.id)));
+
+        res.json({ success: true, batches: pendingBatches });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 2. Get Details for a Specific Batch (For the Modal)
+exports.getBatchDetails = async (req, res) => {
+    try {
+        const batchId = req.params.id;
+        const details = await steadfast.getPaymentDetails(batchId);
+        
+        let items = [];
+        if (details && Array.isArray(details.consignments)) items = details.consignments;
+        else if (details && Array.isArray(details.data)) items = details.data;
+        else if (Array.isArray(details)) items = details;
+
+        res.json({ success: true, items: items });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 3. Process & Receive Money (The Action)
+exports.processBatch = async (req, res) => {
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
-        // 1. Fetch Payment Batches from Steadfast
-        const paymentsResponse = await steadfast.getPayments();
+        const { batch_id, target_account_id } = req.body;
         
-        let payments = [];
-        // Handle different API response structures
-        if (Array.isArray(paymentsResponse)) payments = paymentsResponse;
-        else if (paymentsResponse.data) payments = paymentsResponse.data;
+        // A. Double check duplication
+        const [exists] = await conn.query("SELECT id FROM settlement_batches WHERE batch_id = ?", [batch_id]);
+        if (exists.length > 0) throw new Error("This batch has already been processed!");
 
-        let processedOrders = 0;
-        let processedBatches = 0;
+        // B. Fetch details again to be safe
+        const details = await steadfast.getPaymentDetails(batch_id);
+        let items = [];
+        if (details && Array.isArray(details.consignments)) items = details.consignments;
+        else if (details && Array.isArray(details.data)) items = details.data;
+        else if (Array.isArray(details)) items = details;
 
-        // 2. Loop through each payment batch
-        // We limit to the last 5 batches to ensure speed, as older ones are likely already synced.
-        const recentPayments = payments.slice(0, 5); 
+        let totalNetDeposit = 0;
+        let processedCount = 0;
 
-        for (const batch of recentPayments) {
-            const paymentId = batch.id; // Adjust based on actual API key (e.g., 'id' or 'payment_id')
-
-            // Fetch details (the list of orders in this check)
-            const details = await steadfast.getPaymentDetails(paymentId);
+        // C. Loop through items
+        for (const item of items) {
+            const invoice = item.invoice;
             
-            let consignments = [];
-            if (details && Array.isArray(details.consignments)) consignments = details.consignments;
-            else if (details && Array.isArray(details.data)) consignments = details.data;
-            else if (Array.isArray(details)) consignments = details;
+            // Find order (Lock row)
+            const [orders] = await conn.query("SELECT id, settled_at FROM orders WHERE order_number = ? FOR UPDATE", [invoice]);
+            
+            if (orders.length > 0) {
+                const order = orders[0];
+                if (order.settled_at) continue; // Skip if already settled individually
 
-            if (consignments.length === 0) continue;
+                // Calcs
+                const grossCOD = parseFloat(item.cod_amount) || 0;
+                const deliveryCharge = parseFloat(item.delivery_charge) || 0;
+                const codFee = grossCOD * 0.01; 
+                const netPayout = grossCOD - deliveryCharge - codFee;
 
-            for (const item of consignments) {
-                // item contains: invoice, cod_amount, delivery_charge, status
-                const invoice = item.invoice;
+                totalNetDeposit += netPayout;
 
-                // Find the order in our DB (Locking the row for safety)
-                const [orders] = await conn.query("SELECT id, status, settled_at FROM orders WHERE order_number = ? FOR UPDATE", [invoice]);
+                // Update Order
+                await conn.query(`
+                    UPDATE orders 
+                    SET status = 'delivered', 
+                        payment_status = 'paid',
+                        courier_delivery_charge = ?,
+                        cod_received = ?, 
+                        gateway_fee = gateway_fee + ?,
+                        settled_at = NOW(),
+                        bank_account_id = ?
+                    WHERE id = ?
+                `, [deliveryCharge, grossCOD, codFee, target_account_id, order.id]);
 
-                if (orders.length > 0) {
-                    const order = orders[0];
-
-                    // SKIP if already settled (We don't want to double count revenue)
-                    if (order.settled_at) continue;
-
-                    // 3. Status Mapping
-                    let newStatus = 'delivered'; // Default success
-                    if (item.status === 'partial_delivered') newStatus = 'Partially_Delivered';
-                    else if (item.status === 'cancelled') newStatus = 'cancelled';
-
-                    // 4. Financial Calculations
-                    const grossCOD = parseFloat(item.cod_amount) || 0;
-                    const deliveryCharge = parseFloat(item.delivery_charge) || 0;
-                    
-                    // [NEW] Calculate COD Fee (1% of Cash Collected)
-                    const codFee = grossCOD * 0.01; 
-
-                    // 5. Update Database
-                    // [UPDATED] We use `gateway_fee = gateway_fee + ?` to ADD to any existing fees (like advance fees)
-                    await conn.query(`
-                        UPDATE orders 
-                        SET status = ?, 
-                            payment_status = 'paid',
-                            courier_delivery_charge = ?,
-                            cod_received = ?, 
-                            gateway_fee = gateway_fee + ?,
-                            settled_at = NOW() 
-                        WHERE id = ?
-                    `, [newStatus, deliveryCharge, grossCOD, codFee, order.id]);
-
-                    processedOrders++;
-                }
+                processedCount++;
             }
-            processedBatches++;
         }
 
+        // D. Deposit to Bank
+        if (totalNetDeposit > 0) {
+            await conn.query(`UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?`, [totalNetDeposit, target_account_id]);
+        }
+
+        // E. Record Batch as "Settled"
+        await conn.query(`INSERT INTO settlement_batches (batch_id, amount, deposit_account_id) VALUES (?, ?, ?)`, [batch_id, totalNetDeposit, target_account_id]);
+
         await conn.commit();
-        res.json({ success: true, message: `Synced ${processedOrders} orders from ${processedBatches} batches.` });
+        res.json({ success: true, message: `Received ৳${totalNetDeposit.toLocaleString()} for ${processedCount} orders.` });
 
     } catch (err) {
         await conn.rollback();
-        console.error("Settlement Sync Error:", err);
-        res.status(500).json({ success: false, message: "Sync failed: " + err.message });
+        console.error(err);
+        res.status(500).json({ success: false, message: "Error: " + err.message });
     } finally {
         conn.release();
     }

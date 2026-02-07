@@ -5,16 +5,21 @@ const settlementController = require('../controllers/settlementController');
 const authController = require('../controllers/authController');
 const salesController = require('../controllers/salesController');
 const marketingController = require('../controllers/marketingController');
-const checkPermission = require('../middleware/permissionMiddleware'); // CORRECT IMPORT
+const checkPermission = require('../middleware/permissionMiddleware'); 
 
 router.get('/overview', authController.isLoggedIn, checkPermission('acc_overview'), accountController.getOverview);
 
 // Settings Page (List Accounts)
 router.get('/settings', authController.isLoggedIn, checkPermission('acc_settings'), accountController.getSettings);
 
-// Courier Data & Sync (Overview)
+// Courier Data Page
 router.get('/courier-data', authController.isLoggedIn, checkPermission('acc_overview'), accountController.getCourierData);
-router.post('/sync-steadfast', authController.isLoggedIn, checkPermission('acc_overview'), settlementController.syncSettlements);
+
+// [NEW] Settlement Routes (Batch System)
+// These replace the old 'sync-steadfast' route that was crashing your server
+router.get('/settlements/pending', authController.isLoggedIn, checkPermission('acc_overview'), settlementController.getPendingBatches);
+router.get('/settlements/batch/:id', authController.isLoggedIn, checkPermission('acc_overview'), settlementController.getBatchDetails);
+router.post('/settlements/process', authController.isLoggedIn, checkPermission('acc_overview'), settlementController.processBatch);
 
 // --- EXPENSE ROUTES ---
 router.get('/expenses', authController.isLoggedIn, checkPermission('acc_expenses'), accountController.getExpenses);
