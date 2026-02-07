@@ -52,13 +52,24 @@
                         <tfoot class="bg-gray-50">
                             <tr>
                                 <td colspan="6" class="px-4 py-2">
-                                    <div class="flex gap-2">
-                                        <select id="matSelectPicker" class="flex-1 border-gray-300 rounded text-sm p-1.5">
-                                            <option value="">Select Category First...</option>
-                                        </select>
-                                        <button type="button" onclick="addMatToTable()" class="bg-purple-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-purple-700">
-                                            + Add Item
-                                        </button>
+                                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+                                        <div class="md:col-span-5">
+                                            <select id="matSelectName" class="w-full border-gray-300 rounded text-sm p-2" onchange="filterMatVariants()" disabled>
+                                                <option value="">Select Material...</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="md:col-span-5">
+                                            <select id="matSelectVariant" class="w-full border-gray-300 rounded text-sm p-2" disabled>
+                                                <option value="">Select Variant...</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="md:col-span-2">
+                                            <button type="button" onclick="addMatToTable()" class="w-full bg-purple-600 text-white px-3 py-2 rounded text-sm font-bold hover:bg-purple-700 flex items-center justify-center gap-1">
+                                                <span class="material-icons-outlined text-sm">add</span> Add
+                                            </button>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -112,27 +123,70 @@
         renderMatTable();
     }
 
+    // 1. Load Materials when Category changes
     async function loadMaterialsForPO(catId) {
-        const picker = document.getElementById('matSelectPicker');
-        picker.innerHTML = '<option>Loading...</option>';
+        const matSelect = document.getElementById('matSelectName');
+        const varSelect = document.getElementById('matSelectVariant');
         
-        if(!catId) { picker.innerHTML = '<option>Select Category First...</option>'; return; }
+        // Reset Dropdowns
+        matSelect.innerHTML = '<option>Loading...</option>';
+        matSelect.disabled = true;
+        varSelect.innerHTML = '<option value="">Select Material First</option>';
+        varSelect.disabled = true;
+        
+        if(!catId) {
+            matSelect.innerHTML = '<option value="">Select Category First</option>';
+            return; 
+        }
 
         try {
             const res = await fetch(`/admin/purchase-orders/api/search-materials?category_id=${catId}`);
             rawMaterialsCache = await res.json();
             
-            picker.innerHTML = '<option value="">-- Select Variant --</option>';
-            rawMaterialsCache.forEach(m => {
-                // We create a composite ID for the dropdown
-                picker.innerHTML += `<option value="${m.var_id}">${m.mat_name} - ${m.var_name} (Stock: ${m.stock_quantity} ${m.unit})</option>`;
+            // Extract Unique Materials from the list
+            const uniqueMats = [];
+            const seen = new Set();
+            
+            rawMaterialsCache.forEach(item => {
+                if(!seen.has(item.mat_id)) {
+                    seen.add(item.mat_id);
+                    uniqueMats.push({ id: item.mat_id, name: item.mat_name });
+                }
             });
-        } catch(e) { console.error(e); }
+
+            // Populate Material Dropdown
+            matSelect.innerHTML = '<option value="">-- Select Material --</option>';
+            uniqueMats.forEach(m => {
+                matSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+            });
+            matSelect.disabled = false;
+
+        } catch(e) { console.error(e); matSelect.innerHTML = '<option>Error loading</option>'; }
     }
 
+    // 2. Load Variants when Material changes
+    function filterMatVariants() {
+        const matId = document.getElementById('matSelectName').value;
+        const varSelect = document.getElementById('matSelectVariant');
+        
+        varSelect.innerHTML = '<option value="">-- Select Variant --</option>';
+        varSelect.disabled = true;
+
+        if(!matId) return;
+
+        // Filter cache for selected material
+        const variants = rawMaterialsCache.filter(m => m.mat_id == matId);
+        
+        variants.forEach(v => {
+            varSelect.innerHTML += `<option value="${v.var_id}">${v.var_name} (Stock: ${v.stock_quantity} ${v.unit})</option>`;
+        });
+        varSelect.disabled = false;
+    }
+
+    // 3. Add to Table
     function addMatToTable() {
-        const varId = document.getElementById('matSelectPicker').value;
-        if(!varId) return;
+        const varId = document.getElementById('matSelectVariant').value;
+        if(!varId) { alert("Please select a variant."); return; }
 
         const item = rawMaterialsCache.find(m => m.var_id == varId);
         if(!item) return;

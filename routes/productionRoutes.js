@@ -10,7 +10,9 @@ router.use(authController.isLoggedIn);
 // Material Management
 router.get('/materials', checkPermission('product_manage'), productionController.getMaterials);
 router.post('/materials/add', checkPermission('product_manage'), productionController.createMaterial);
-router.post('/materials/stock', checkPermission('product_manage'), productionController.addMaterialStock);
+
+// [REMOVED] The stock route is gone because we use Purchase Orders now
+// router.post('/materials/stock', ...); 
 
 router.post('/categories/add', checkPermission('product_manage'), productionController.createCategory);
 router.post('/variants/add', checkPermission('product_manage'), productionController.createVariant);
