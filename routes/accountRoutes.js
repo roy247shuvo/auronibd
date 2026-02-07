@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer'); // [NEW] Import Multer
+const upload = multer({ storage: multer.memoryStorage() }); // [NEW] Configure Memory Storage
+
 const accountController = require('../controllers/accountController');
 const settlementController = require('../controllers/settlementController');
 const authController = require('../controllers/authController');
@@ -16,9 +19,15 @@ router.get('/settings', authController.isLoggedIn, checkPermission('acc_settings
 router.get('/courier-data', authController.isLoggedIn, checkPermission('acc_overview'), accountController.getCourierData);
 
 // [NEW] Settlement Routes (Batch System)
-// These replace the old 'sync-steadfast' route that was crashing your server
 router.get('/settlements/pending', authController.isLoggedIn, checkPermission('acc_overview'), settlementController.getPendingBatches);
-router.get('/settlements/batch/:id', authController.isLoggedIn, checkPermission('acc_overview'), settlementController.getBatchDetails);
+
+// [FIX] Removed 'getBatchDetails' as it is no longer used in the new workflow
+// router.get('/settlements/batch/:id', ...); 
+
+// [NEW] Verify Batch Route (Requires Multer for File Upload)
+router.post('/settlements/verify', authController.isLoggedIn, checkPermission('acc_overview'), upload.single('file'), settlementController.verifyBatch);
+
+// [UPDATED] Process Batch Route (Standard JSON)
 router.post('/settlements/process', authController.isLoggedIn, checkPermission('acc_overview'), settlementController.processBatch);
 
 // --- EXPENSE ROUTES ---
