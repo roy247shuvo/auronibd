@@ -82,57 +82,7 @@ exports.createVariant = async (req, res) => {
     }
 };
 
-// Add Stock to a Variant (Purchasing)
-// [CRITICAL] Updates Weighted Average Cost (AVCO)
-exports.addMaterialStock = async (req, res) => {
-    const conn = await db.getConnection();
-    try {
-        await conn.beginTransaction();
-        
-        // We now add stock to a VARIANT, not the parent material
-        const { variant_id, quantity, total_cost } = req.body;
-        const qty = parseFloat(quantity);
-        const cost = parseFloat(total_cost); // Total bill for this lot
-        const unitCost = cost / qty;
 
-        // 1. Get Current Variant State (Lock row)
-        const [v] = await conn.query("SELECT * FROM raw_material_variants WHERE id = ? FOR UPDATE", [variant_id]);
-        if (v.length === 0) throw new Error("Variant not found");
-        
-        const currentQty = parseFloat(v[0].stock_quantity || 0);
-        const currentAvg = parseFloat(v[0].average_cost || 0);
-
-        // 2. Calculate New Weighted Average Cost
-        // Formula: ((OldQty * OldAvg) + (NewQty * NewUnitCost)) / (OldQty + NewQty)
-        const currentTotalValue = currentQty * currentAvg;
-        const newTotalValue = currentTotalValue + cost;
-        const newTotalQty = currentQty + qty;
-        const newAvgCost = newTotalQty > 0 ? (newTotalValue / newTotalQty) : 0;
-
-        // 3. Update Variant Database
-        await conn.query(`
-            UPDATE raw_material_variants 
-            SET stock_quantity = ?, average_cost = ? 
-            WHERE id = ?
-        `, [newTotalQty, newAvgCost, variant_id]);
-
-        // 4. Log Transaction (Audit Trail)
-        await conn.query(`
-            INSERT INTO raw_material_logs (raw_material_id, variant_id, type, quantity_change, cost_price, created_at)
-            VALUES (?, ?, 'purchase', ?, ?, NOW())
-        `, [v[0].raw_material_id, variant_id, qty, unitCost]);
-
-        await conn.commit();
-        res.redirect('/admin/production/materials?success=Stock Added & Cost Averaged');
-
-    } catch (err) {
-        await conn.rollback();
-        console.error(err);
-        res.redirect('/admin/production/materials?error=Stock update failed: ' + err.message);
-    } finally {
-        conn.release();
-    }
-};
 
 // ==========================================
 // SECTION 2: PRODUCTION RUNS (The Factory)

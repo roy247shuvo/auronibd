@@ -34,13 +34,16 @@ exports.getPOList = async (req, res) => {
         
         const [vendors] = await db.query("SELECT * FROM vendors ORDER BY name ASC");
         const [accounts] = await db.query("SELECT * FROM bank_accounts WHERE status = 'active' ORDER BY account_name ASC");
+        
+        // [NEW] Fetch Categories for Material PO Modal
+        const [categories] = await db.query("SELECT * FROM material_categories ORDER BY name ASC");
 
         res.render('admin/orders/purchase_orders', { 
             title: 'Purchase Orders',
             orders, 
             vendors,
             accounts,
-            // Pass current filters back to view to keep inputs filled
+            categories, // [NEW] Passed to view
             query: req.query 
         });
     } catch (err) {
@@ -69,7 +72,29 @@ exports.searchProductForPO = async (req, res) => {
     }
 };
 
-// 3. Get Variants for Snapshot (Modal 2)
+
+// [NEW] 3. Get Raw Materials for PO (API for Modal)
+exports.getMaterialsForPO = async (req, res) => {
+    try {
+        const catId = req.query.category_id;
+        
+        // Fetch Materials + Variants
+        const [materials] = await db.query(`
+            SELECT m.id as mat_id, m.name as mat_name, m.unit,
+                   v.id as var_id, v.name as var_name, v.stock_quantity
+            FROM raw_materials m
+            JOIN raw_material_variants v ON m.id = v.raw_material_id
+            WHERE m.category_id = ?
+            ORDER BY m.name, v.name
+        `, [catId]);
+
+        res.json(materials);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to load materials" });
+    }
+};
+
+// 4. Get Variants for Snapshot (Modal 2)
 exports.getProductVariantsSnapshot = async (req, res) => {
     try {
         const productId = req.params.id;
@@ -105,13 +130,16 @@ exports.getProductVariantsSnapshot = async (req, res) => {
     }
 };
 
-// 4. Create Purchase Order (Final Save)
+// 5. Create Purchase Order (Final Save)
 exports.createPurchaseOrder = async (req, res) => {
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
-        const { vendor_id, items, payment } = req.body; 
         
+        // [UPDATED] Added 'type' destructuring
+        const { vendor_id, items, payment, type } = req.body; 
+        const poType = type || 'product';
+
         // Generate PO Number
         const poNumber = 'PO-' + Date.now();
         
@@ -122,20 +150,32 @@ exports.createPurchaseOrder = async (req, res) => {
         const paidAmount = payment ? parseFloat(payment.amount) : 0;
         const createdBy = req.session.user ? req.session.user.name : 'System';
 
-        // 1. Insert Header
+        // 1. Insert Header [UPDATED] Added 'type' column
         const [poResult] = await conn.query(`
-            INSERT INTO purchase_orders (po_number, vendor_id, total_amount, paid_amount, status)
-            VALUES (?, ?, ?, ?, 'pending')
-        `, [poNumber, vendor_id, totalAmount, paidAmount]);
+            INSERT INTO purchase_orders (po_number, vendor_id, total_amount, paid_amount, status, type)
+            VALUES (?, ?, ?, ?, 'pending', ?)
+        `, [poNumber, vendor_id, totalAmount, paidAmount, poType]);
         
         const poId = poResult.insertId;
 
-        // 2. Insert Items
+        // 2. Insert Items [UPDATED] Check type
         for (const item of items) {
-            await conn.query(`
-                INSERT INTO purchase_order_items (po_id, product_id, variant_id, quantity, buying_price)
-                VALUES (?, ?, ?, ?, ?)
-            `, [poId, item.product_id, item.variant_id, item.qty, item.cost]);
+            if (poType === 'product') {
+                await conn.query(`
+                    INSERT INTO purchase_order_items (po_id, product_id, variant_id, quantity, buying_price)
+                    VALUES (?, ?, ?, ?, ?)
+                `, [poId, item.product_id, item.variant_id, item.qty, item.cost]);
+            } else {
+                // Raw Material Item (item.id is variant_id)
+                // Fetch parent material ID first
+                const [vData] = await conn.query("SELECT raw_material_id FROM raw_material_variants WHERE id = ?", [item.id]);
+                const parentId = vData[0]?.raw_material_id;
+
+                await conn.query(`
+                    INSERT INTO purchase_order_items (po_id, raw_material_id, raw_material_variant_id, quantity, buying_price)
+                    VALUES (?, ?, ?, ?, ?)
+                `, [poId, parentId, item.id, item.qty, item.cost]);
+            }
         }
 
         // 3. Handle Payment (If Added)
@@ -167,7 +207,7 @@ exports.createPurchaseOrder = async (req, res) => {
     }
 };
 
-// 5. Receive PO (The Logic that adds STOCK)
+// 6. Receive PO (The Logic that adds STOCK)
 exports.receivePurchaseOrder = async (req, res) => {
     const conn = await db.getConnection();
     try {
@@ -180,28 +220,52 @@ exports.receivePurchaseOrder = async (req, res) => {
 
         if(po[0].status === 'received') throw new Error("PO already received");
 
-        for (const item of items) {
-            // 1. Generate Batch Number (Unique per Product)
-            // Get last batch count for this product to increment
-            const [bCount] = await conn.query("SELECT COUNT(*) as c FROM inventory_batches WHERE product_id = ?", [item.product_id]);
-            const batchNum = `BATCH-${item.product_id}-${bCount[0].c + 1}`;
+        // === TYPE A: PRODUCTS (Creates Batches) ===
+        if (po[0].type === 'product') {
+            for (const item of items) {
+                const [bCount] = await conn.query("SELECT COUNT(*) as c FROM inventory_batches WHERE product_id = ?", [item.product_id]);
+                const batchNum = `BATCH-${item.product_id}-${bCount[0].c + 1}`;
 
-            // 2. Create Batch Entry
-            await conn.query(`
-                INSERT INTO inventory_batches 
-                (batch_number, product_id, variant_id, po_id, vendor_id, buying_price, initial_quantity, remaining_quantity)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `, [batchNum, item.product_id, item.variant_id, poId, po[0].vendor_id, item.buying_price, item.quantity, item.quantity]);
+                await conn.query(`
+                    INSERT INTO inventory_batches 
+                    (batch_number, product_id, variant_id, po_id, vendor_id, buying_price, initial_quantity, remaining_quantity)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                `, [batchNum, item.product_id, item.variant_id, poId, po[0].vendor_id, item.buying_price, item.quantity, item.quantity]);
 
-            // 3. Update Product Variant Total Stock Cache
-            await conn.query(`
-                UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?
-            `, [item.quantity, item.variant_id]);
+                await conn.query(`UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?`, [item.quantity, item.variant_id]);
+                await conn.query(`UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?`, [item.quantity, item.product_id]);
+            }
+        } 
+        // === TYPE B: MATERIALS (Updates AVCO) ===
+        else {
+            for (const item of items) {
+                const variantId = item.raw_material_variant_id;
+                const newQty = parseFloat(item.quantity);
+                const newCost = parseFloat(item.buying_price);
+                const newTotalValue = newQty * newCost;
 
-            // 4. Update Main Product Total Stock Cache
-            await conn.query(`
-                UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?
-            `, [item.quantity, item.product_id]);
+                // 1. Get Current State
+                const [v] = await conn.query("SELECT stock_quantity, average_cost, raw_material_id FROM raw_material_variants WHERE id = ? FOR UPDATE", [variantId]);
+                
+                const currentQty = parseFloat(v[0].stock_quantity || 0);
+                const currentAvg = parseFloat(v[0].average_cost || 0);
+                const currentTotalValue = currentQty * currentAvg;
+
+                // 2. Calculate New Weighted Average
+                const finalTotalQty = currentQty + newQty;
+                const finalAvgCost = finalTotalQty > 0 ? ((currentTotalValue + newTotalValue) / finalTotalQty) : 0;
+
+                // 3. Update Database
+                await conn.query(`
+                    UPDATE raw_material_variants SET stock_quantity = ?, average_cost = ? WHERE id = ?
+                `, [finalTotalQty, finalAvgCost, variantId]);
+
+                // 4. Log
+                await conn.query(`
+                    INSERT INTO raw_material_logs (raw_material_id, variant_id, type, quantity_change, cost_price, reference_id, created_at)
+                    VALUES (?, ?, 'purchase', ?, ?, ?, NOW())
+                `, [v[0].raw_material_id, variantId, newQty, newCost, poId]);
+            }
         }
 
         // Mark PO as Received
@@ -219,7 +283,7 @@ exports.receivePurchaseOrder = async (req, res) => {
     }
 };
 
-// 6. NEW: Add Payment to Existing PO
+// 7. NEW: Add Payment to Existing PO
 exports.addPayment = async (req, res) => {
     const conn = await db.getConnection();
     try {
@@ -256,7 +320,7 @@ exports.addPayment = async (req, res) => {
     }
 };
 
-// 7. NEW: Get PO Details (Grouped by Product)
+// 8. NEW: Get PO Details (Grouped by Product)
 exports.getPODetails = async (req, res) => {
     try {
         const poId = req.params.id;
@@ -271,18 +335,26 @@ exports.getPODetails = async (req, res) => {
 
         if (po.length === 0) return res.status(404).json({ error: "PO not found" });
 
-        // 2. Fetch Items (Joined with Batch Info if received)
-        const [items] = await db.query(`
-            SELECT poi.*, 
-                   p.name as product_name, 
-                   pv.sku as variant_sku, pv.color, pv.size,
-                   ib.batch_number
-            FROM purchase_order_items poi
-            JOIN products p ON poi.product_id = p.id
-            LEFT JOIN product_variants pv ON poi.variant_id = pv.id
-            LEFT JOIN inventory_batches ib ON (poi.po_id = ib.po_id AND poi.variant_id = ib.variant_id)
-            WHERE poi.po_id = ?
-        `, [poId]);
+        // 2. Fetch Items based on Type
+        let items = [];
+        if (po[0].type === 'product') {
+            [items] = await db.query(`
+                SELECT poi.*, p.name as product_name, pv.sku as variant_sku, pv.color, pv.size, ib.batch_number
+                FROM purchase_order_items poi
+                JOIN products p ON poi.product_id = p.id
+                LEFT JOIN product_variants pv ON poi.variant_id = pv.id
+                LEFT JOIN inventory_batches ib ON (poi.po_id = ib.po_id AND poi.variant_id = ib.variant_id)
+                WHERE poi.po_id = ?
+            `, [poId]);
+        } else {
+            [items] = await db.query(`
+                SELECT poi.*, m.name as product_name, v.name as variant_sku, m.unit as size
+                FROM purchase_order_items poi
+                JOIN raw_materials m ON poi.raw_material_id = m.id
+                LEFT JOIN raw_material_variants v ON poi.raw_material_variant_id = v.id
+                WHERE poi.po_id = ?
+            `, [poId]);
+        }
 
         // 3. Group Items by Product
         const groupedItems = {};

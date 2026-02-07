@@ -53,7 +53,7 @@
             </form>
 
             <% if (can('prod_po', 'write')) { %>
-            <button onclick="openPOCreator()" class="bg-black text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition shadow-lg whitespace-nowrap">
+            <button onclick="document.getElementById('poTypeModal').classList.remove('hidden')" class="bg-black text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition shadow-lg whitespace-nowrap">
                 <span class="material-icons-outlined text-sm">add</span>
                 Create New PO
             </button>
@@ -165,11 +165,41 @@
 </div>
 
 <%- include('./modals/create_material_po') %>
+<div id="poTypeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full text-center">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Create Purchase Order</h2>
+        <p class="text-gray-500 mb-8">What are you purchasing today?</p>
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="openRealPOCreator('product')" class="p-6 border-2 border-gray-100 hover:border-blue-500 rounded-xl hover:bg-blue-50 transition">
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span class="material-icons-outlined text-2xl">inventory_2</span>
+                </div>
+                <h3 class="font-bold text-gray-800">Finished Products</h3>
+            </button>
+            <button onclick="openRealPOCreator('material')" class="p-6 border-2 border-gray-100 hover:border-purple-500 rounded-xl hover:bg-purple-50 transition">
+                <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span class="material-icons-outlined text-2xl">texture</span>
+                </div>
+                <h3 class="font-bold text-gray-800">Raw Materials</h3>
+            </button>
+        </div>
+        <button onclick="document.getElementById('poTypeModal').classList.add('hidden')" class="mt-8 text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
+    </div>
+</div>
+
+<%- include('./modals/create_material_po') %>
 <%- include('./modals/create_po') %>
 <%- include('./modals/payment_modal') %>
 <%- include('./modals/view_po_details') %>
 
 <script>
+    // [NEW] Logic to switch modals
+    function openRealPOCreator(type) {
+        document.getElementById('poTypeModal').classList.add('hidden');
+        if(type === 'product') openPOCreator();
+        else openMaterialPOCreator();
+    }
+
     async function receivePO(id) {
          if(!confirm('Are you sure you received these items? This will add stock to inventory batches.')) return;
          try {
