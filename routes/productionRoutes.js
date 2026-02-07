@@ -12,6 +12,9 @@ router.get('/materials', checkPermission('product_manage'), productionController
 router.post('/materials/add', checkPermission('product_manage'), productionController.createMaterial);
 router.post('/materials/stock', checkPermission('product_manage'), productionController.addMaterialStock);
 
+router.post('/categories/add', checkPermission('product_manage'), productionController.createCategory);
+router.post('/variants/add', checkPermission('product_manage'), productionController.createVariant);
+
 // Production Workflow
 router.get('/', checkPermission('product_manage'), productionController.getDashboard);
 router.get('/create', checkPermission('product_manage'), productionController.createRunPage);

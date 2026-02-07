@@ -1,103 +1,81 @@
 <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">Raw Materials Inventory</h1>
-    <button onclick="document.getElementById('addMaterialModal').classList.remove('hidden')" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 flex items-center gap-2">
-        <span class="material-icons-outlined">add</span> Add Material
-    </button>
-</div>
-
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <table class="w-full text-left border-collapse">
-        <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
-            <tr>
-                <th class="px-6 py-4">Material Name</th>
-                <th class="px-6 py-4">Stock Level</th>
-                <th class="px-6 py-4">Avg Cost (FIFO)</th>
-                <th class="px-6 py-4">Total Value</th>
-                <th class="px-6 py-4 text-right">Actions</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-            <% materials.forEach(m => { 
-                const stock = parseFloat(m.stock_quantity);
-                const cost = parseFloat(m.average_cost);
-            %>
-            <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 font-medium text-gray-900">
-                    <%= m.name %>
-                    <span class="block text-xs text-gray-400 font-normal"><%= m.unit %></span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="font-mono font-bold <%= stock < m.alert_threshold ? 'text-red-600' : 'text-gray-700' %>">
-                        <%= stock.toFixed(2) %> <%= m.unit %>
-                    </span>
-                </td>
-                <td class="px-6 py-4 font-mono text-sm">৳<%= cost.toFixed(2) %></td>
-                <td class="px-6 py-4 font-mono font-bold text-green-600">৳<%= (stock * cost).toFixed(2) %></td>
-                <td class="px-6 py-4 text-right">
-                    <button onclick="openStockModal('<%= m.id %>', '<%= m.name %>')" class="text-blue-600 hover:text-blue-800 text-sm font-bold bg-blue-50 px-3 py-1 rounded">
-                        + Add Stock
-                    </button>
-                </td>
-            </tr>
-            <% }); %>
-        </tbody>
-    </table>
-</div>
-
-<div id="addMaterialModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-8 w-full max-w-md">
-        <h2 class="text-xl font-bold mb-4">Create Raw Material</h2>
-        <form action="/admin/production/materials/add" method="POST">
-            <div class="mb-4">
-                <label class="block text-sm font-medium mb-1">Name</label>
-                <input type="text" name="name" class="w-full border rounded p-2" required placeholder="e.g., White Cotton Fabric">
-            </div>
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Unit</label>
-                    <input type="text" name="unit" class="w-full border rounded p-2" required placeholder="e.g., Yards">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Low Stock Alert</label>
-                    <input type="number" name="alert_threshold" class="w-full border rounded p-2" value="10">
-                </div>
-            </div>
-            <div class="flex justify-end gap-2">
-                <button type="button" onclick="this.closest('#addMaterialModal').classList.add('hidden')" class="px-4 py-2 border rounded text-gray-600">Cancel</button>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Create</button>
-            </div>
-        </form>
+    <h1 class="text-2xl font-bold text-gray-800">Raw Materials</h1>
+    <div class="flex gap-2">
+        <button onclick="toggleModal('categoryModal')" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50">+ Category</button>
+        <button onclick="toggleModal('materialModal')" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800">+ New Material</button>
     </div>
 </div>
 
-<div id="stockModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-8 w-full max-w-md">
-        <h2 class="text-xl font-bold mb-2">Purchase Stock</h2>
-        <p class="text-sm text-gray-500 mb-4" id="stockModalTitle"></p>
-        
-        <form action="/admin/production/materials/stock" method="POST">
-            <input type="hidden" name="id" id="stockId">
-            <div class="mb-4">
-                <label class="block text-sm font-medium mb-1">Quantity Purchased</label>
-                <input type="number" step="0.01" name="quantity" class="w-full border rounded p-2" required>
+<div class="space-y-6">
+    <% categories.forEach(cat => { %>
+        <% const catMats = materials.filter(m => m.category_id === cat.id); %>
+        <% if(catMats.length > 0) { %>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="font-bold text-gray-700 uppercase text-xs tracking-wider"><%= cat.name %></h3>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium mb-1">Total Bill Amount (BDT)</label>
-                <input type="number" step="0.01" name="total_cost" class="w-full border rounded p-2" required>
-                <p class="text-xs text-gray-400 mt-1">This updates the Average Cost automatically.</p>
+            
+            <div class="divide-y divide-gray-100">
+                <% catMats.forEach(m => { %>
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-lg text-gray-900"><%= m.name %></h4>
+                            <p class="text-xs text-gray-500"><%= m.description || 'No description' %> • Unit: <%= m.unit %></p>
+                        </div>
+                        <button onclick="openVariantModal('<%= m.id %>', '<%= m.name %>')" class="text-blue-600 text-xs font-bold hover:underline bg-blue-50 px-3 py-1.5 rounded">
+                            + Add Variant (Color/Type)
+                        </button>
+                    </div>
+
+                    <% if(m.variants && m.variants.length > 0) { %>
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                            <tr>
+                                <th class="px-4 py-2 rounded-l-lg">Variant</th>
+                                <th class="px-4 py-2">Stock</th>
+                                <th class="px-4 py-2">Avg Cost</th>
+                                <th class="px-4 py-2 text-right rounded-r-lg">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% m.variants.forEach(v => { %>
+                            <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                                <td class="px-4 py-3 font-medium text-gray-900"><%= v.name %></td>
+                                <td class="px-4 py-3 font-mono <%= v.stock_quantity < v.alert_threshold ? 'text-red-600 font-bold' : 'text-gray-600' %>">
+                                    <%= parseFloat(v.stock_quantity).toFixed(2) %> <%= m.unit %>
+                                </td>
+                                <td class="px-4 py-3 font-mono text-gray-500">৳<%= parseFloat(v.average_cost).toFixed(2) %></td>
+                                <td class="px-4 py-3 text-right">
+                                    <button onclick="openStockModal('<%= v.id %>', '<%= m.name %> - <%= v.name %>')" class="text-green-600 hover:text-green-800 font-bold text-xs">
+                                        + Purchase Stock
+                                    </button>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                    <% } else { %>
+                        <p class="text-sm text-orange-500 italic bg-orange-50 p-2 rounded inline-block">No variants yet. Add 'Red', 'Blue' etc.</p>
+                    <% } %>
+                </div>
+                <% }); %>
             </div>
-            <div class="flex justify-end gap-2">
-                <button type="button" onclick="document.getElementById('stockModal').classList.add('hidden')" class="px-4 py-2 border rounded text-gray-600">Cancel</button>
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Confirm Purchase</button>
-            </div>
-        </form>
-    </div>
+        </div>
+        <% } %>
+    <% }); %>
 </div>
 
 <script>
-    function openStockModal(id, name) {
-        document.getElementById('stockId').value = id;
-        document.getElementById('stockModalTitle').innerText = 'Adding stock for: ' + name;
-        document.getElementById('stockModal').classList.remove('hidden');
-    }
+function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+function openVariantModal(id, name) {
+    document.getElementById('varMatId').value = id;
+    document.getElementById('varModalTitle').innerText = 'Add Variant for ' + name;
+    toggleModal('variantModal');
+}
+function openStockModal(id, name) {
+    document.getElementById('stockVarId').value = id;
+    document.getElementById('stockModalTitle').innerText = 'Purchase: ' + name;
+    toggleModal('stockModal');
+}
 </script>
