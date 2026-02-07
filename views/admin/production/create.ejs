@@ -1,17 +1,24 @@
-<div class="max-w-4xl mx-auto">
+<div class="max-w-5xl mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">New Production Run</h1>
-        <a href="/admin/production" class="text-gray-500 hover:text-gray-900">Back to Dashboard</a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Start Production</h1>
+            <p class="text-sm text-gray-500">Manufacture finished goods from raw materials.</p>
+        </div>
+        <a href="/admin/production" class="text-gray-500 hover:text-gray-900 text-sm font-medium">Back to Dashboard</a>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         <div class="lg:col-span-2 space-y-6">
+            
             <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">1. What are we making?</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Product</label>
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                    Output Product
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Product to Make</label>
                         <select id="targetProduct" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 bg-gray-50">
                             <% products.forEach(p => { %>
                                 <option value="<%= p.id %>-<%= p.variant_id %>">
@@ -21,33 +28,44 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity to Produce</label>
-                        <input type="number" id="qtyProduced" value="1" min="1" class="w-full border-gray-300 rounded-lg p-2.5" onchange="calculateTotal()">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                        <input type="number" id="qtyProduced" value="1" min="1" class="w-full border-gray-300 rounded-lg p-2.5 font-bold text-center" onchange="calculateTotal()">
                     </div>
                 </div>
             </div>
 
             <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                 <div class="flex justify-between items-center mb-4 border-b pb-2">
-                    <h3 class="font-bold text-gray-800">2. Raw Materials (Ingredients)</h3>
-                    <button type="button" onclick="addMaterialRow()" class="text-sm text-blue-600 font-bold hover:underline">+ Add Material</button>
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                        Raw Materials
+                    </h3>
+                    <button type="button" onclick="addMaterialRow()" class="text-sm text-blue-600 font-bold hover:bg-blue-50 px-3 py-1 rounded transition">
+                        + Add Material
+                    </button>
                 </div>
                 
-                <div id="materialList" class="space-y-3">
+                <div id="materialList" class="space-y-4">
                     </div>
             </div>
 
             <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">3. Additional Costs</h3>
-                <div class="grid grid-cols-2 gap-4">
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                    Costs & Info
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Total Labor/Printing Cost</label>
-                        <input type="number" id="laborCost" value="0" class="w-full border-gray-300 rounded-lg p-2.5" onchange="calculateTotal()">
-                        <p class="text-xs text-gray-400 mt-1">Total amount paid to workers/printers for this batch.</p>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Labor / Printing / Other Cost</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">৳</span>
+                            <input type="number" id="laborCost" value="0" class="w-full border-gray-300 rounded-lg pl-8 p-2.5" onchange="calculateTotal()">
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Total external cost for this batch.</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Run Note</label>
-                        <input type="text" id="runNote" placeholder="e.g. Eid Collection Batch 1" class="w-full border-gray-300 rounded-lg p-2.5">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Run Note / Batch Name</label>
+                        <input type="text" id="runNote" placeholder="e.g. Eid Batch #001" class="w-full border-gray-300 rounded-lg p-2.5">
                     </div>
                 </div>
             </div>
@@ -56,22 +74,22 @@
         <div class="lg:col-span-1">
             <div class="bg-gray-900 text-white p-6 rounded-xl shadow-lg sticky top-6">
                 <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
-                    <span class="material-icons-outlined">calculate</span> Cost Estimator
+                    <span class="material-icons-outlined">receipt_long</span> Cost Summary
                 </h3>
                 
                 <div class="space-y-3 mb-6 border-b border-gray-700 pb-6">
                     <div class="flex justify-between text-sm text-gray-400">
-                        <span>Material Cost:</span>
+                        <span>Raw Materials:</span>
                         <span class="text-white font-mono" id="displayMatCost">৳0.00</span>
                     </div>
                     <div class="flex justify-between text-sm text-gray-400">
-                        <span>Labor/Print:</span>
+                        <span>Labor & Services:</span>
                         <span class="text-white font-mono" id="displayLaborCost">৳0.00</span>
                     </div>
                 </div>
 
                 <div class="mb-6">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Batch Cost</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Production Cost</p>
                     <p class="text-3xl font-bold text-green-400 font-mono" id="displayGrandTotal">৳0.00</p>
                 </div>
 
@@ -80,8 +98,8 @@
                     <p class="text-xl font-bold text-white font-mono" id="displayUnitCost">৳0.00</p>
                 </div>
 
-                <button onclick="submitRun()" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2">
-                    Start Production
+                <button onclick="submitRun()" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-lg">
+                    <span>Start Production</span>
                     <span class="material-icons-outlined text-sm">arrow_forward</span>
                 </button>
             </div>
@@ -90,69 +108,185 @@
 </div>
 
 <script>
-    const allMaterials = <%- JSON.stringify(materials) %>;
+    // This is the flat list from the controller
+    const rawData = <%- JSON.stringify(materials) %>;
+    
+    // Process Data into Hierarchy: Category -> Material -> Variant
+    const categories = {}; // {id: "Name"}
+    const matByCategory = {}; // {catId: [{id, name, unit}]}
+    const varByMaterial = {}; // {matId: [{id, name, stock, cost}]}
+
+    rawData.forEach(item => {
+        // 1. Categories
+        const cId = item.category_id || 'uncat';
+        const cName = item.category_name || 'Uncategorized';
+        categories[cId] = cName;
+
+        // 2. Materials
+        if (!matByCategory[cId]) matByCategory[cId] = [];
+        const matExists = matByCategory[cId].find(m => m.id === item.material_id);
+        if (!matExists) {
+            matByCategory[cId].push({ id: item.material_id, name: item.material_name, unit: item.unit });
+        }
+
+        // 3. Variants
+        if (!varByMaterial[item.material_id]) varByMaterial[item.material_id] = [];
+        varByMaterial[item.material_id].push({
+            id: item.variant_id,
+            name: item.variant_name,
+            stock: parseFloat(item.stock_quantity),
+            cost: parseFloat(item.average_cost)
+        });
+    });
 </script>
 
 <script>
     function addMaterialRow() {
-        const div = document.createElement('div');
-        div.className = 'flex items-end gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 material-row';
+        const container = document.getElementById('materialList');
+        const rowId = 'row-' + Date.now();
         
-        let options = '<option value="" disabled selected>Select Material</option>';
-        allMaterials.forEach(m => {
-            options += `<option value="${m.id}" data-cost="${m.average_cost}" data-unit="${m.unit}">${m.name} (Stock: ${m.stock_quantity})</option>`;
+        // Build Category Options
+        let catOptions = '<option value="" disabled selected>Category</option>';
+        Object.entries(categories).forEach(([id, name]) => {
+            catOptions += `<option value="${id}">${name}</option>`;
         });
 
+        const div = document.createElement('div');
+        div.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 relative material-row animate-fade-in';
+        div.id = rowId;
         div.innerHTML = `
-            <div class="flex-1">
-                <label class="text-xs text-gray-500 block mb-1">Material</label>
-                <select class="w-full border rounded p-1.5 text-sm mat-select" onchange="updateRowCost(this)">
-                    ${options}
-                </select>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                
+                <div class="md:col-span-3">
+                    <label class="text-[10px] uppercase font-bold text-gray-500 block mb-1">Category</label>
+                    <select class="w-full text-xs border rounded p-2 cat-select" onchange="onCatChange(this)">
+                        ${catOptions}
+                    </select>
+                </div>
+
+                <div class="md:col-span-3">
+                    <label class="text-[10px] uppercase font-bold text-gray-500 block mb-1">Material</label>
+                    <select class="w-full text-xs border rounded p-2 mat-select" disabled onchange="onMatChange(this)">
+                        <option value="">Select Category First</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-3">
+                    <label class="text-[10px] uppercase font-bold text-gray-500 block mb-1">Variant</label>
+                    <select class="w-full text-xs border rounded p-2 var-select" disabled onchange="onVarChange(this)">
+                        <option value="">Select Material First</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="text-[10px] uppercase font-bold text-gray-500 block mb-1">Use Qty</label>
+                    <input type="number" step="0.01" class="w-full text-xs border rounded p-2 font-bold text-center use-qty" placeholder="0" oninput="calculateTotal()">
+                </div>
+
+                <div class="md:col-span-1 text-right">
+                    <button onclick="removeRow('${rowId}')" class="text-red-400 hover:text-red-600 p-1">
+                        <span class="material-icons-outlined text-lg">delete</span>
+                    </button>
+                </div>
             </div>
-            <div class="w-24">
-                <label class="text-xs text-gray-500 block mb-1">Qty Used</label>
-                <input type="number" step="0.01" class="w-full border rounded p-1.5 text-sm mat-qty" oninput="calculateTotal()" placeholder="0">
+
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 text-xs">
+                <div class="text-gray-500">
+                    Remaining Stock: <span class="font-bold text-gray-800 stock-display">--</span>
+                </div>
+                <div class="text-gray-500">
+                    Est. Cost: <span class="font-bold text-blue-600 cost-display">৳0.00</span>
+                </div>
             </div>
-            <div class="w-24 text-right">
-                <label class="text-xs text-gray-500 block mb-1">Cost (Est)</label>
-                <div class="font-mono text-sm font-bold text-gray-700 pt-1 mat-cost-display">৳0.00</div>
-            </div>
-            <button onclick="this.parentElement.remove(); calculateTotal()" class="text-red-500 hover:bg-red-50 p-1 rounded">
-                <span class="material-icons-outlined text-lg">delete</span>
-            </button>
+            
+            <input type="hidden" class="hidden-unit-cost" value="0">
         `;
-        document.getElementById('materialList').appendChild(div);
+        container.appendChild(div);
     }
 
-    function updateRowCost(select) {
+    function removeRow(id) {
+        document.getElementById(id).remove();
         calculateTotal();
     }
 
+    // EVENT: Category Changed
+    function onCatChange(select) {
+        const row = select.closest('.material-row');
+        const matSelect = row.querySelector('.mat-select');
+        const varSelect = row.querySelector('.var-select');
+        const catId = select.value;
+
+        // Reset Children
+        matSelect.innerHTML = '<option value="" disabled selected>Select Material</option>';
+        matSelect.disabled = false;
+        varSelect.innerHTML = '<option value="">Select Material First</option>';
+        varSelect.disabled = true;
+
+        // Populate Materials
+        const mats = matByCategory[catId] || [];
+        mats.forEach(m => {
+            matSelect.innerHTML += `<option value="${m.id}" data-unit="${m.unit}">${m.name}</option>`;
+        });
+    }
+
+    // EVENT: Material Changed
+    function onMatChange(select) {
+        const row = select.closest('.material-row');
+        const varSelect = row.querySelector('.var-select');
+        const matId = select.value;
+
+        // Reset Child
+        varSelect.innerHTML = '<option value="" disabled selected>Select Variant</option>';
+        varSelect.disabled = false;
+
+        // Populate Variants
+        const vars = varByMaterial[matId] || [];
+        vars.forEach(v => {
+            varSelect.innerHTML += `<option value="${v.id}" data-stock="${v.stock}" data-cost="${v.cost}">${v.name}</option>`;
+        });
+    }
+
+    // EVENT: Variant Changed
+    function onVarChange(select) {
+        const row = select.closest('.material-row');
+        const option = select.options[select.selectedIndex];
+        
+        const stock = parseFloat(option.dataset.stock || 0);
+        const cost = parseFloat(option.dataset.cost || 0);
+        
+        // Update UI
+        const stockDisplay = row.querySelector('.stock-display');
+        stockDisplay.innerText = stock.toFixed(2);
+        
+        // Warn low stock
+        if(stock <= 0) stockDisplay.className = "font-bold text-red-600 stock-display";
+        else stockDisplay.className = "font-bold text-green-600 stock-display";
+
+        // Store Cost
+        row.querySelector('.hidden-unit-cost').value = cost;
+        calculateTotal();
+    }
+
+    // MASTER CALCULATOR
     function calculateTotal() {
         let matTotal = 0;
+
         document.querySelectorAll('.material-row').forEach(row => {
-            const select = row.querySelector('.mat-select');
-            const qtyInput = row.querySelector('.mat-qty');
-            const display = row.querySelector('.mat-cost-display');
+            const cost = parseFloat(row.querySelector('.hidden-unit-cost').value || 0);
+            const qty = parseFloat(row.querySelector('.use-qty').value || 0);
             
-            if (select.selectedIndex > 0) {
-                const costPerUnit = parseFloat(select.options[select.selectedIndex].dataset.cost);
-                const qty = parseFloat(qtyInput.value) || 0;
-                const lineTotal = costPerUnit * qty;
-                
-                matTotal += lineTotal;
-                display.innerText = '৳' + lineTotal.toFixed(2);
-            }
+            const lineTotal = cost * qty;
+            matTotal += lineTotal;
+
+            row.querySelector('.cost-display').innerText = '৳' + lineTotal.toFixed(2);
         });
 
-        const labor = parseFloat(document.getElementById('laborCost').value) || 0;
+        const labor = parseFloat(document.getElementById('laborCost').value || 0);
         const grandTotal = matTotal + labor;
-        const qtyProduced = parseFloat(document.getElementById('qtyProduced').value) || 1;
-        const unitCost = grandTotal / qtyProduced;
+        const qtyProduced = parseFloat(document.getElementById('qtyProduced').value || 1);
+        const unitCost = qtyProduced > 0 ? (grandTotal / qtyProduced) : 0;
 
         document.getElementById('displayMatCost').innerText = '৳' + matTotal.toFixed(2);
-        document.getElementById('displayLaborCost').innerText = '৳' + labor.toFixed(2);
         document.getElementById('displayGrandTotal').innerText = '৳' + grandTotal.toFixed(2);
         document.getElementById('displayUnitCost').innerText = '৳' + unitCost.toFixed(2);
     }
@@ -163,13 +297,32 @@
         btn.innerText = 'Processing...';
 
         const materials = [];
+        let validationError = false;
+
         document.querySelectorAll('.material-row').forEach(row => {
-            const select = row.querySelector('.mat-select');
-            const qty = row.querySelector('.mat-qty').value;
-            if(select.value && qty) {
-                materials.push({ id: select.value, qty: qty });
+            const varSelect = row.querySelector('.var-select');
+            const qtyInput = row.querySelector('.use-qty');
+            
+            if(varSelect.value && qtyInput.value > 0) {
+                // Check stock
+                const stock = parseFloat(varSelect.options[varSelect.selectedIndex].dataset.stock);
+                if(parseFloat(qtyInput.value) > stock) {
+                    alert(`Insufficient stock for ${varSelect.options[varSelect.selectedIndex].text}`);
+                    validationError = true;
+                }
+
+                materials.push({ id: varSelect.value, qty: qtyInput.value });
             }
         });
+
+        if(materials.length === 0) {
+            alert("Please add at least one material.");
+            btn.disabled = false; return;
+        }
+
+        if(validationError) {
+            btn.disabled = false; return;
+        }
 
         const payload = {
             product_variant: document.getElementById('targetProduct').value,
@@ -182,22 +335,24 @@
         try {
             const res = await fetch('/admin/production/create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    // CSRF TOKEN FOR AJAX
+                    'CSRF-Token': '<%= csrfToken %>' 
+                },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
             
             if(data.success) window.location.href = data.redirect;
-            else alert('Error: ' + data.message);
+            else { alert('Error: ' + data.message); btn.disabled = false; btn.innerText = 'Try Again'; }
         } catch(e) {
             console.error(e);
             alert('System Error');
-        } finally {
             btn.disabled = false;
-            btn.innerText = 'Start Production';
         }
     }
 
-    // Add first row by default
+    // Add first row init
     addMaterialRow();
 </script>

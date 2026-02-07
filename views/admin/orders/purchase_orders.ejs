@@ -137,6 +137,34 @@
     </div>
 </div>
 
+<div id="poTypeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full text-center">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Create Purchase Order</h2>
+        <p class="text-gray-500 mb-8">What are you purchasing today?</p>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="openRealPOCreator('product')" class="group relative p-6 border-2 border-gray-100 hover:border-blue-500 rounded-xl transition-all hover:bg-blue-50">
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <span class="material-icons-outlined text-2xl">inventory_2</span>
+                </div>
+                <h3 class="font-bold text-gray-800">Finished Products</h3>
+                <p class="text-xs text-gray-500 mt-1">Sarees, Panjabis, etc.</p>
+            </button>
+
+            <button onclick="openRealPOCreator('material')" class="group relative p-6 border-2 border-gray-100 hover:border-purple-500 rounded-xl transition-all hover:bg-purple-50">
+                <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <span class="material-icons-outlined text-2xl">texture</span>
+                </div>
+                <h3 class="font-bold text-gray-800">Raw Materials</h3>
+                <p class="text-xs text-gray-500 mt-1">Fabric, Boxes, Buttons</p>
+            </button>
+        </div>
+
+        <button onclick="document.getElementById('poTypeModal').classList.add('hidden')" class="mt-8 text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
+    </div>
+</div>
+
+<%- include('./modals/create_material_po') %>
 <%- include('./modals/create_po') %>
 <%- include('./modals/payment_modal') %>
 <%- include('./modals/view_po_details') %>
