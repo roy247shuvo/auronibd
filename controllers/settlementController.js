@@ -71,11 +71,26 @@ exports.getBatchDetails = async (req, res) => {
         console.log(`--- DETAILS FOR BATCH ${batchId} ---`);
         
         const response = await steadfast.getPaymentDetails(batchId);
-        // console.log("Full Details Response:", JSON.stringify(response, null, 2)); // Uncomment to debug
+        // console.log("Full Details Response:", JSON.stringify(response, null, 2)); 
 
         // USE DEEP SEARCH TO FIND THE ORDERS
         const rawItems = findDataArray(response);
         console.log(`Found ${rawItems.length} items in batch.`);
+
+        // [NEW] 1. FETCH LOCAL DELIVERY CHARGES (Since API doesn't provide them)
+        const invoiceNumbers = rawItems.map(i => i.invoice).filter(inv => inv);
+        let localCharges = {};
+
+        if (invoiceNumbers.length > 0) {
+            // Create placeholders for SQL: ?,?,?
+            const placeholders = invoiceNumbers.map(() => '?').join(',');
+            const [rows] = await db.query(
+                `SELECT order_number, courier_delivery_charge FROM orders WHERE order_number IN (${placeholders})`, 
+                invoiceNumbers
+            );
+            // Create a lookup map: { 'INV-101': 120, 'INV-102': 60 }
+            rows.forEach(r => { localCharges[r.order_number] = r.courier_delivery_charge; });
+        }
 
         // B. Normalize Items & Calculate 1% Fee on (Collected - Delivery)
         const items = rawItems.map(item => {
@@ -83,8 +98,12 @@ exports.getBatchDetails = async (req, res) => {
             
             const cod = parseFloat(item.cod_amount || item.amount || item.collection_amount || 0);
             
-            // [FIX] Added 'bill' (List View) and 'payable_delivery_charge' (Summary View)
-            const delivery = parseFloat(item.bill || item.payable_delivery_charge || item.shipping_charge || item.delivery_charge || item.charge || item.cost || 0);
+            // [FIX] Try API first, if 0, use LOCAL DATABASE value
+            let delivery = parseFloat(item.delivery_fee || item.bill || item.payable_delivery_charge || item.shipping_charge || item.delivery_charge || 0);
+            
+            if (delivery === 0 && localCharges[invoice]) {
+                delivery = parseFloat(localCharges[invoice]);
+            }
             
             // [NEW LOGIC] Fee is 1% of (Collected - Delivery Charge)
             // Example: (1000 - 100) * 1% = 9 TK
@@ -118,85 +137,129 @@ exports.getBatchDetails = async (req, res) => {
     }
 };
 
-// 3. Process Batch (The Settlement Action)
+// 3. Process Batch (The File Upload & Confirmation)
 exports.processBatch = async (req, res) => {
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
+        // 1. Validate Inputs
         const { batch_id, target_account_id } = req.body;
-        console.log(`Processing Batch ${batch_id}...`);
+        const file = req.file;
 
-        // Check duplicate
+        if (!file) throw new Error("Please upload the payment file.");
+        
+        // 2. Validate Filename (Security Check)
+        // Expected: "2026-02-07-payment-SFC-28108027.xlsx"
+        if (!file.originalname.includes(batch_id)) {
+            throw new Error(`File name mismatch! It must contain the Batch ID: ${batch_id}`);
+        }
+
+        // 3. Check Duplicate Processing
         const [exists] = await conn.query("SELECT id FROM settlement_batches WHERE batch_id = ?", [batch_id]);
-        if (exists.length > 0) throw new Error("Batch already processed.");
+        if (exists.length > 0) throw new Error("This batch has already been processed.");
 
-        // Fetch Data
+        // 4. Fetch API Data (The "truth" for Batch Totals)
         const response = await steadfast.getPaymentDetails(batch_id);
-        const rawItems = findDataArray(response);
+        const apiItems = findDataArray(response);
+        
+        if (apiItems.length === 0) throw new Error("API returned no orders for this batch.");
 
-        let totalNetDeposit = 0;
+        // 5. Parse Uploaded File (The "truth" for Delivery Charges)
+        const fileRows = parseCSV(file.buffer);
+        console.log(`Parsed ${fileRows.length} rows from file.`);
+
+        // Create a Lookup Map from the File:  Invoice -> { Shipping, COD }
+        const fileMap = {};
+        fileRows.forEach(row => {
+            // CSV Header mapping: 'Invoice', 'Shipping Charge', 'COD Amount'
+            // We use standard keys assuming the CSV headers match your snippet
+            if (row['Invoice']) {
+                fileMap[row['Invoice']] = {
+                    shipping: parseFloat(row['Shipping Charge'] || 0),
+                    cod: parseFloat(row['COD Amount'] || 0)
+                };
+            }
+        });
+
+        // 6. Process Orders
         let processedCount = 0;
+        let totalCalculatedFee = 0; // Just for tracking
 
-        for (const item of rawItems) {
-            const invoice = item.invoice || item.invoice_id || item.consignment_id;
-            const trackingCode = item.tracking_code;
+        for (const apiItem of apiItems) {
+            const invoice = apiItem.invoice; 
+            if (!invoice) continue;
 
-            if (!invoice && !trackingCode) continue;
+            // A. MATCHING LOGIC
+            const fileData = fileMap[invoice];
+            if (!fileData) {
+                throw new Error(`Order ${invoice} found in API but MISSING in uploaded file.`);
+            }
 
-            const grossCOD = parseFloat(item.cod_amount || item.amount || 0);
-            
-            // [FIX] Added 'bill' and 'payable_delivery_charge' here too
-            const deliveryCharge = parseFloat(item.bill || item.payable_delivery_charge || item.shipping_charge || item.delivery_charge || item.charge || 0);
-            
-            // [NEW LOGIC] Calculate 1% Fee manually for Database
+            // B. VERIFY COD (Security Check)
+            const apiCOD = parseFloat(apiItem.cod_amount || 0);
+            if (Math.abs(apiCOD - fileData.cod) > 1) { // Allow 1 TK variance
+                throw new Error(`COD Mismatch for ${invoice}! API: ${apiCOD}, File: ${fileData.cod}`);
+            }
+
+            // C. CALCULATE VALUES
+            const deliveryCharge = fileData.shipping; // Sourced from Excel
+            const grossCOD = apiCOD;
+
+            // Calculate 1% Fee (Individual Order Record)
             let baseForFee = grossCOD - deliveryCharge;
             if (baseForFee < 0) baseForFee = 0;
             const codFee = baseForFee * 0.01;
+            totalCalculatedFee += codFee;
 
-            // Try to find order by Invoice OR Tracking Code
-            // We use 'OR' to be safe
-            const [orders] = await conn.query(`
-                SELECT id, settled_at 
-                FROM orders 
-                WHERE order_number = ? OR (tracking_code = ? AND tracking_code IS NOT NULL)
-                FOR UPDATE
-            `, [invoice, trackingCode || 'INVALID_CODE']);
-            
-            if (orders.length > 0) {
-                const order = orders[0];
-                if (order.settled_at) {
-                    console.log(`Skipping Order ${order.id}: Already settled.`);
-                    continue;
-                }
+            // D. UPDATE DATABASE
+            // We update the order with the Excel Delivery Charge and calculated Fee
+            await conn.query(`
+                UPDATE orders 
+                SET status = 'delivered', 
+                    payment_status = 'paid',
+                    courier_delivery_charge = ?,
+                    cod_received = ?, 
+                    gateway_fee = gateway_fee + ?,
+                    settled_at = NOW(),
+                    bank_account_id = ?
+                WHERE order_number = ?
+            `, [deliveryCharge, grossCOD, codFee, target_account_id, invoice]);
 
-                const netPayout = grossCOD - deliveryCharge - codFee;
-                totalNetDeposit += netPayout;
-
-                await conn.query(`
-                    UPDATE orders 
-                    SET status = 'delivered', 
-                        payment_status = 'paid',
-                        courier_delivery_charge = ?,
-                        cod_received = ?, 
-                        gateway_fee = gateway_fee + ?,
-                        settled_at = NOW(),
-                        bank_account_id = ?
-                    WHERE id = ?
-                `, [deliveryCharge, grossCOD, codFee, target_account_id, order.id]);
-
-                processedCount++;
-            }
+            processedCount++;
         }
 
-        if (totalNetDeposit > 0) {
-            await conn.query(`UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?`, [totalNetDeposit, target_account_id]);
+        // 7. FINAL DEPOSIT (The "Bank Truth")
+        // We calculate the Net Deposit using the API Summary, NOT the sum of individual rows
+        // Summing API items to get the true batch total
+        const batchTotalCOD = apiItems.reduce((sum, i) => sum + parseFloat(i.cod_amount || 0), 0);
+        
+        // We assume the API returns the final payout amount in the summary.
+        // If 'response.total' exists (from your snippet it was 12841), use it.
+        // Otherwise calculate: Total COD - Total Shipping (from file sum) - Total Fee (from API sum or file calc)
+        
+        // Let's rely on the API 'summary' object if available, or calculate "Safe Net"
+        // Based on your snippet: "total": 12841 is available in the payment summary object
+        let finalDepositAmount = 0;
+        if (response.total) {
+            finalDepositAmount = parseFloat(response.total);
+        } else if (response.data && response.data.total) {
+            finalDepositAmount = parseFloat(response.data.total);
+        } else {
+            // Fallback: This shouldn't happen based on your logs
+            throw new Error("Could not determine Final Net Amount from API.");
         }
 
-        await conn.query(`INSERT INTO settlement_batches (batch_id, amount, deposit_account_id) VALUES (?, ?, ?)`, [batch_id, totalNetDeposit, target_account_id]);
+        // Deposit into Bank
+        if (finalDepositAmount > 0) {
+            await conn.query(`UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?`, [finalDepositAmount, target_account_id]);
+        }
+
+        // Record the Batch
+        await conn.query(`INSERT INTO settlement_batches (batch_id, amount, deposit_account_id) VALUES (?, ?, ?)`, [batch_id, finalDepositAmount, target_account_id]);
 
         await conn.commit();
-        res.json({ success: true, message: `Processed ${processedCount} orders. Deposit: ${totalNetDeposit}` });
+        res.json({ success: true, message: `Successfully verified & processed ${processedCount} orders. Deposited: ${finalDepositAmount}` });
 
     } catch (err) {
         await conn.rollback();
@@ -206,3 +269,29 @@ exports.processBatch = async (req, res) => {
         conn.release();
     }
 };
+
+// --- HELPER: Native CSV Parser (No library needed) ---
+function parseCSV(buffer) {
+    const text = buffer.toString();
+    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    
+    return lines.slice(1).map(line => {
+        const row = {};
+        let current = '';
+        let inQuotes = false;
+        let colIndex = 0;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') { inQuotes = !inQuotes; }
+            else if (char === ',' && !inQuotes) {
+                row[headers[colIndex]] = current.trim().replace(/"/g, ''); // Clean quotes
+                current = '';
+                colIndex++;
+            } else { current += char; }
+        }
+        row[headers[colIndex]] = current.trim().replace(/"/g, ''); // Last column
+        return row;
+    });
+}

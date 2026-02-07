@@ -137,9 +137,19 @@
                         </table>
                     </div>
 
+                    <div class="mb-6 bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">1. Upload Payment File (Excel/CSV)</label>
+                        <div class="flex items-center gap-4">
+                            <input type="file" id="settlementFile" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <span class="font-bold text-red-500">*</span> Filename MUST contain the Batch ID shown above.
+                        </p>
+                    </div>
+
                     <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-4">
                         <div class="flex-1">
-                            <h4 class="text-sm font-bold text-blue-900">Receive Money</h4>
+                            <h4 class="text-sm font-bold text-blue-900">2. Receive Money</h4>
                             <p class="text-xs text-blue-700">Select where this payout was deposited.</p>
                         </div>
                         <div class="flex items-center gap-2 w-full md:w-auto">
@@ -150,8 +160,8 @@
                                 <% }); %>
                             </select>
                             <button id="btnConfirmReceive" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md whitespace-nowrap flex items-center gap-2">
-                                <span class="material-icons-outlined text-[18px]">download</span>
-                                Confirm
+                                <span class="material-icons-outlined text-[18px]">verified</span>
+                                Verify & Confirm
                             </button>
                         </div>
                     </div>
@@ -194,7 +204,7 @@
                             <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-50">
                                 <span class="text-xs text-gray-400 font-mono">Orders: ${batch.total_consignment || '?'}</span>
                                 <button onclick="openBatchModal('${batch.id}')" class="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    View Details <span class="material-icons-outlined text-[16px]">arrow_forward</span>
+                                    <span class="material-icons-outlined text-[18px]">upload_file</span> Confirm Payment
                                 </button>
                             </div>
                         </div>
@@ -283,29 +293,49 @@
         document.getElementById('batchModal').classList.add('hidden');
     }
 
-    // 4. Submit Process
+    // 4. Submit Process (Now with File Upload)
     async function processBatch(batchId) {
         const accountId = document.getElementById('depositAccount').value;
+        const fileInput = document.getElementById('settlementFile');
         const btn = document.getElementById('btnConfirmReceive');
 
+        // [VALIDATION] Check Account
         if(!accountId) {
-            alert("Please select the Bank/Bkash account where you received this money.");
+            alert("Please select the Bank/Bkash account.");
             return;
         }
 
-        if(!confirm("Are you sure? This will add the net amount to your selected account.")) return;
+        // [VALIDATION] Check File
+        if(fileInput.files.length === 0) {
+            alert("Please upload the Steadfast Payment Excel file to verify.");
+            return;
+        }
+
+        const fileName = fileInput.files[0].name;
+        if(!fileName.includes(batchId)) {
+            alert(`Filename mismatch! The file must contain the Batch ID: "${batchId}"`);
+            return;
+        }
+
+        if(!confirm("Are you sure? We will verify the Excel data against the API and deposit the net amount.")) return;
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="material-icons-outlined animate-spin text-[18px]">sync</span> Processing...';
+        btn.innerHTML = '<span class="material-icons-outlined animate-spin text-[18px]">sync</span> Verifying...';
 
         try {
+            // [NEW] Use FormData to send file + data
+            const formData = new FormData();
+            formData.append('batch_id', batchId);
+            formData.append('target_account_id', accountId);
+            formData.append('file', fileInput.files[0]);
+
             const res = await fetch('/admin/accounts/settlements/process', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'CSRF-Token': '<%= csrfToken %>' // Ensure this variable exists in render
+                    // 'Content-Type': 'multipart/form-data', // Do NOT set this manually, fetch does it
+                    'CSRF-Token': '<%= csrfToken %>' 
                 },
-                body: JSON.stringify({ batch_id: batchId, target_account_id: accountId })
+                body: formData // Send FormData instead of JSON
             });
 
             const data = await res.json();
