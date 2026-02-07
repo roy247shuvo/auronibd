@@ -77,18 +77,26 @@ exports.getBatchDetails = async (req, res) => {
         const rawItems = findDataArray(response);
         console.log(`Found ${rawItems.length} items in batch.`);
 
+        // B. Normalize Items & Calculate 1% Fee on (Collected - Delivery)
         const items = rawItems.map(item => {
+            const invoice = item.invoice || item.invoice_id || item.consignment_id || item.tracking_code || 'N/A';
+            
+            const cod = parseFloat(item.cod_amount || item.amount || item.collection_amount || 0);
+            
+            // [FIX] Added 'bill' (List View) and 'payable_delivery_charge' (Summary View)
+            const delivery = parseFloat(item.bill || item.payable_delivery_charge || item.shipping_charge || item.delivery_charge || item.charge || item.cost || 0);
+            
+            // [NEW LOGIC] Fee is 1% of (Collected - Delivery Charge)
+            // Example: (1000 - 100) * 1% = 9 TK
+            let baseForFee = cod - delivery;
+            if (baseForFee < 0) baseForFee = 0;
+            const fee = baseForFee * 0.01;
+
             return {
-                // Key Identifiers
-                invoice: item.invoice || item.invoice_id || item.consignment_id || item.tracking_code || 'N/A',
-                tracking_code: item.tracking_code || '',
-                
-                // Financials (Based on CSV & Standard API)
-                cod_amount: parseFloat(item.cod_amount || item.amount || item.collection_amount || 0),
-                // "Shipping Charge" from CSV usually maps to 'shipping_charge' or 'delivery_charge'
-                delivery_charge: parseFloat(item.shipping_charge || item.delivery_charge || item.charge || item.cost || 0),
-                cod_charge: parseFloat(item.cod_charge || item.cod_fee || 0),
-                
+                invoice: invoice,
+                cod_amount: cod,
+                delivery_charge: delivery,
+                cod_charge: fee, 
                 status: item.status || 'delivered'
             };
         });
@@ -137,8 +145,14 @@ exports.processBatch = async (req, res) => {
             if (!invoice && !trackingCode) continue;
 
             const grossCOD = parseFloat(item.cod_amount || item.amount || 0);
-            const deliveryCharge = parseFloat(item.shipping_charge || item.delivery_charge || item.charge || 0);
-            const codFee = parseFloat(item.cod_charge || item.cod_fee || 0);
+            
+            // [FIX] Added 'bill' and 'payable_delivery_charge' here too
+            const deliveryCharge = parseFloat(item.bill || item.payable_delivery_charge || item.shipping_charge || item.delivery_charge || item.charge || 0);
+            
+            // [NEW LOGIC] Calculate 1% Fee manually for Database
+            let baseForFee = grossCOD - deliveryCharge;
+            if (baseForFee < 0) baseForFee = 0;
+            const codFee = baseForFee * 0.01;
 
             // Try to find order by Invoice OR Tracking Code
             // We use 'OR' to be safe

@@ -118,7 +118,7 @@
                 </div>
 
                 <div class="px-4 py-5 sm:p-6">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="modalSummary">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6" id="modalSummary">
                         </div>
 
                     <div class="border rounded-lg overflow-hidden max-h-60 overflow-y-auto mb-6">
@@ -127,7 +127,8 @@
                                 <tr>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
                                     <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Collected</th>
-                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Deductions</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Delivery</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">COD 1%</th>
                                     <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Net</th>
                                 </tr>
                             </thead>
@@ -230,41 +231,46 @@
 
             if(data.success) {
                 tbody.innerHTML = '';
-                let totalNet = 0;
-                let totalCod = 0;
+                
+                // The Controller now calculates everything perfectly for us
+                const s = data.summary;
 
                 data.items.forEach(item => {
-                    const cod = parseFloat(item.cod_amount);
-                    const fee = parseFloat(item.delivery_charge);
-                    const codCharge = cod * 0.01;
-                    const net = cod - fee - codCharge;
-                    
-                    totalCod += cod;
-                    totalNet += net;
+                    // Recalculate net for display just to be safe, or use controller data
+                    const net = item.cod_amount - item.delivery_charge - item.cod_charge;
 
                     tbody.innerHTML += `
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-2 text-xs font-mono font-medium text-gray-900">${item.invoice}</td>
-                            <td class="px-4 py-2 text-xs text-right text-green-600 font-bold">+${cod}</td>
-                            <td class="px-4 py-2 text-xs text-right text-red-600">- ${(fee + codCharge).toFixed(2)}</td>
+                            <td class="px-4 py-2 text-xs text-right text-green-600 font-bold">+${item.cod_amount.toLocaleString()}</td>
+                            <td class="px-4 py-2 text-xs text-right text-red-600">-${item.delivery_charge}</td>
+                            <td class="px-4 py-2 text-xs text-right text-orange-600">-${item.cod_charge.toFixed(2)}</td>
                             <td class="px-4 py-2 text-xs text-right font-bold text-gray-900">৳${net.toFixed(2)}</td>
                         </tr>
                     `;
                 });
 
-                // Update Summary Stats
+                // Update Summary Stats (The 5 Cards you asked for)
                 document.getElementById('modalSummary').innerHTML = `
-                    <div class="bg-gray-50 p-3 rounded text-center">
-                        <p class="text-xs text-gray-400">Orders</p>
-                        <p class="text-lg font-bold text-gray-800">${data.items.length}</p>
+                    <div class="bg-gray-50 p-2 rounded text-center">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold">Orders</p>
+                        <p class="text-base font-bold text-gray-800">${s.total_orders}</p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded text-center">
-                        <p class="text-xs text-gray-400">Gross COD</p>
-                        <p class="text-lg font-bold text-green-600">৳${totalCod.toLocaleString()}</p>
+                    <div class="bg-gray-50 p-2 rounded text-center">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold">Gross COD</p>
+                        <p class="text-base font-bold text-gray-800">৳${s.total_cod.toLocaleString()}</p>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded text-center border border-blue-100 bg-blue-50">
-                        <p class="text-xs text-blue-600">Net Payout</p>
-                        <p class="text-xl font-bold text-blue-700">৳${totalNet.toLocaleString()}</p>
+                    <div class="bg-gray-50 p-2 rounded text-center">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold">Total Delivery</p>
+                        <p class="text-base font-bold text-red-600">-৳${s.total_delivery.toLocaleString()}</p>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded text-center">
+                        <p class="text-[10px] text-gray-400 uppercase font-bold">Total COD 1%</p>
+                        <p class="text-base font-bold text-orange-600">-৳${s.total_fee.toLocaleString()}</p>
+                    </div>
+                    <div class="bg-blue-50 p-2 rounded text-center border border-blue-100">
+                        <p class="text-[10px] text-blue-600 font-bold uppercase">Net Payout</p>
+                        <p class="text-xl font-bold text-blue-700">৳${s.net_payout.toLocaleString()}</p>
                     </div>
                 `;
             }
