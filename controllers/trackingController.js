@@ -36,19 +36,18 @@ async function getGlobalData() {
     return { brands, categories, collections, colors };
 }
 
-// === THE VIBE ENGINE (Message Variations) ===
+// === THE VIBE ENGINE (Auroni Aesthetic Bangla Edition) ===
 const getVibeMessage = (steadfastMsg) => {
     const msg = (steadfastMsg || "").toLowerCase();
     
-    // 1. Order Created
+    // 1. Order Created (Handover)
     if (msg.includes('created by sender')) {
         const msgs = [
-            "We have handed over your order to Steadfast! 📦",
-            "Packed with love & handed to the courier! 💖",
-            "Your goodie bag is officially on its way! 🚀",
-            "Mission started! Parcel is with Steadfast now.",
-            "A new journey begins! Your parcel has left our hands. ✨",
-            "Order packed, labeled, and ready to roll! 🏎️"
+            "আপনার শখের শাড়িটি পরম যত্নে প্যাকেট করা হয়েছে, যাত্রাপথে পা বাড়াল বলে। 🌸",
+            "অরণীর ভালোবাসা নিয়ে প্যাকেটটি এখন কুরিয়ারের হাতে। শীঘ্রই দেখা হবে! ✨",
+            "একটি নতুন গল্পের শুরু! আপনার পার্সেলটি আমাদের স্টুডিও থেকে বিদায় নিল। 🦋",
+            "সুন্দর কিছুর জন্য অপেক্ষা করার আনন্দই আলাদা। যাত্রা শুরু হলো! 📦",
+            "প্যাকেজিং শেষ, গায়ে মেখে নতুনের ঘ্রাণ, আপনার ঠিকানায় ছুটল এবার। 🚀"
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
@@ -56,12 +55,10 @@ const getVibeMessage = (steadfastMsg) => {
     // 2. Pending / Processing
     if (msg.includes('updated as pending')) {
         const msgs = [
-            "Steadfast received your order and is preparing to ship! ⚙️",
-            "Your parcel is in the queue, getting ready to fly! ✈️",
-            "Paperwork done! Getting ready for the journey.",
-            "Steadfast says: 'We got this!' (Processing)",
-            "Sorting hat says... it's going to you! Processing now. 🪄",
-            "Logistics magic in progress. Hang tight!"
+            "যাত্রার প্রস্তুতি চলছে, খুব শীঘ্রই এটি উড়াল দেবে আপনার আঙ্গিনায়। 🕊️",
+            "কাগজপত্রের কাজ শেষ, এখন শুধু আপনার কাছে পৌঁছানোর অপেক্ষা। 📝",
+            "সবকিছু গুছিয়ে নেওয়া হচ্ছে, যেন নিখুঁতভাবে আপনার হাতে পৌঁছায়। 🎀",
+            "অপেক্ষা মধুর, যদি গন্তব্যে থাকে কাঙ্ক্ষিত কিছু। প্রসেসিং চলছে! ⏳"
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
@@ -70,12 +67,10 @@ const getVibeMessage = (steadfastMsg) => {
     if (msg.includes('sent to') && msg.includes('warehouse')) {
         const place = msg.split('sent to')[1].split('.')[0].trim(); 
         const msgs = [
-            `Steadfast sent your parcel to their BIG sorting area: ${place} 🏭`,
-            `On the move! Heading to ${place} warehouse. 🚚`,
-            `Zoom! Your parcel is travelling to ${place}.`,
-            `Next stop: ${place} Hub!`,
-            `Big truck alert! Moving towards the ${place} center. 🚛`,
-            `Leaving the nest, heading to ${place} for sorting.`
+            `বাতাসে আনন্দের ঘ্রাণ, আপনার প্যাকেটটি এখন ${place} এর পথে। 🚚`,
+            `গন্তব্যের দিকে আরও এক ধাপ! ${place} এর ওয়্যারহাউজে যাচ্ছে আপনার শাড়ি। 🌬️`,
+            `শহর থেকে শহরে, আপনার ভালোবাসা এখন ${place} এর দিকে।`,
+            `দ্রুতগামী যানে চড়ে, আপনার পার্সেল এখন ${place} এর পথে। 🚛`
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
@@ -83,40 +78,34 @@ const getVibeMessage = (steadfastMsg) => {
     // 4. Received at Warehouse
     if (msg.includes('received at') && msg.includes('warehouse')) {
         const msgs = [
-            "Steadfast never sleeps! They received your parcel and are loading the truck. 🚛",
-            "Safe and sound at the warehouse. Next step: Delivery!",
-            "Scanned and ready at the Hub. Getting closer!",
-            "Your parcel is chilling at the warehouse, but not for long!",
-            "Check-in complete at the sorting facility. All systems go! ✅",
-            "Warehouse vibes! Your package is safe and being sorted."
+            "কিছুক্ষণ বিশ্রাম! ওয়্যারহাউজে নিরাপদে পৌঁছেছে আপনার প্যাকেট। 🏡",
+            "সযত্নে রাখা আছে, শীঘ্রই আবার যাত্রা শুরু হবে আপনার ঠিকানায়। 💖",
+            "মাঝপথের বিরতি। আপনার শাড়িটি এখন সুরক্ষিত আছে আমাদের হাবে। ✅",
+            "ধুলোবালি থেকে দূরে, নিরাপদে পৌঁছে গেছে সর্টিং সেন্টারে। 🛡️"
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
 
-    // 5. Sent to Local Hub (Place Name)
+    // 5. Sent to Local Hub (In Transit to Customer Area)
     if (msg.includes('sent to') && !msg.includes('warehouse')) {
         const place = msg.split('sent to')[1].split('.')[0].trim();
         const msgs = [
-            `Your parcel is going FAST to ${place}! 🏎️`,
-            `Almost there! En route to ${place}.`,
-            `Leaving the hub, heading towards ${place}.`,
-            `Road trip! Destination: ${place}.`,
-            `Speedy delivery mode: ON. Next stop: ${place}. ⚡`,
-            `Closer than ever! It's on the way to ${place}.`
+            `অপেক্ষা আর মাত্র কিছু সময়ের, ${place} এর দিকে দ্রুত ছুটে চলছে। 🎀`,
+            `দূরত্ব কমছে! আপনার শাড়িটি এখন ${place} এর খুব কাছে। ⚡`,
+            `মন ভালো করা খবর! ${place} এর দিকে রওনা দিয়েছে আপনার পার্সেল। 🏎️`,
+            `আর বেশি দেরি নেই, ${place} পৌঁছালেই আপনার দরজায় কড়া নাড়বে। 🔔`
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
 
-    // 6. Received at Local Hub
+    // 6. Received at Local Hub (Arrived in City/Area)
     if (msg.includes('received at') && !msg.includes('warehouse')) {
         const place = msg.split('received at')[1].split('.')[0].trim();
         const msgs = [
-            `Yes! Your parcel is at ${place}. Just a little more! 📍`,
-            `Landed at ${place}! The rider will pick it up soon.`,
-            `Your parcel has arrived in your area (${place}).`,
-            `Touchdown in ${place}! Prepare your excitement.`,
-            `Local hub reached: ${place}. It smells like new clothes! 👗`,
-            `Hello ${place}! Your package has arrived in the neighborhood.`
+            `শহরে স্বাগতম! আপনার প্যাকেটটি এখন ${place} এ পৌঁছে গেছে। 🏙️`,
+            `আপনার খুব কাছেই! ${place} হাবে অপেক্ষা করছে আপনার ভালোবাসা। 💖`,
+            `এইতো চলে এসেছি! ${place} এর বাতাসে এখন আপনার শাড়ির ঘ্রাণ। 🌸`,
+            `আপনার এলাকার খুব কাছেই এখন! ${place} হাবে ল্যান্ড করেছে। 📍`
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
@@ -124,11 +113,10 @@ const getVibeMessage = (steadfastMsg) => {
     // 7. Assigned to Rider
     if (msg.includes('assigned by rider')) {
         const msgs = [
-            "Keep your phone close! The Rider will call you soon. 📞",
-            "Rider assigned! Get ready to pick up the phone. 📱",
-            "Your personal delivery hero is on the way! Watch your phone.",
-            "Ring ring! That might be your rider soon. 🔔",
-            "Final stretch! A rider has picked up your parcel."
+            "ফোনটি কাছে রাখুন আপু, রাইডার আপনার ঠিকানায় আসছেন সুখবর নিয়ে। 📞",
+            "আজই সেই দিন! রাইডারের হাতে আপনার প্যাকেট, শীঘ্রই দেখা হবে। 🎁",
+            "দরজায় কান পাতুন, আপনার শখের শাড়ি নিয়ে রাইডার আসছেন! 🛵",
+            "হাতে পাওয়ার অপেক্ষা শেষ হতে চলল! রাইডার বেরিয়ে পড়েছেন। 📱"
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
@@ -136,11 +124,10 @@ const getVibeMessage = (steadfastMsg) => {
     // 8. Rider Note / Hold
     if (msg.includes('rider note') || msg.includes('hold')) {
         const msgs = [
-            "Delivery man wrote a message. Check the details below! 📝",
-            "Update from the road: See the rider's note.",
-            "Small pause: The rider left a specific note.",
-            "Hold up! Check the status message for details.",
-            "Important update from your delivery partner. 👇"
+            "একটু থামতে হলো, রাইডার একটি বার্তা দিয়েছেন। দয়া করে চেক করুন। 📝",
+            "সামান্য বিলম্ব, কিন্তু চিন্তা করবেন না। আমরা খেয়াল রাখছি। 🌸",
+            "রাইডার আপনাকে খুঁজে পাননি অথবা যোগাযোগ করতে চাইছেন। 👇",
+            "একটি ছোট নোট আছে আপনার জন্য, নিচে দেখে নিন। 👀"
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
@@ -148,12 +135,10 @@ const getVibeMessage = (steadfastMsg) => {
     // 9. Delivered
     if (msg.includes('delivered')) {
         const msgs = [
-            "Yes! You received your order. Are you happy? Like our page! 💙",
-            "Mission Accomplished! Enjoy your Niche Boutique outfit. ✨",
-            "Delivered! We hope you look fabulous. Send us a pic! 📸",
-            "Knock knock! It's there. Thanks for shopping with us!",
-            "Happiness delivered. Time to unbox! 🎁",
-            "It’s yours now! Wear it, love it, flaunt it."
+            "অবশেষে আপনার হাতে! শাড়িটি পরে আপনাকে নিশ্চয়ই অপরূপ লাগবে। ছবি পাঠাতে ভুলবেন না! 📸✨",
+            "আপনার মুখে হাসি ফোটানোটাই আমাদের সার্থকতা। অরণীর সাথে থাকার জন্য ধন্যবাদ। ❤️",
+            "মিশন সফল! আশা করি নতুন শাড়িটি আপনার মন ভালো করে দেবে। 💙",
+            "খুশির সংবাদ! ডেলিভারি সম্পন্ন হয়েছে। সুন্দর মুহূর্ত কাটুক অরণীর সাথে। 🎉"
         ];
         return msgs[Math.floor(Math.random() * msgs.length)];
     }
