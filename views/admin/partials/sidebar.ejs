@@ -94,6 +94,23 @@
         </div>
         <% } %>
 
+        <% if (can('prod_inventory', 'read')) { %> 
+        <div class="menu-item">
+            <button onclick="toggleMenu('menu-production')" class="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-all">
+                <div class="flex items-center">
+                    <span class="material-icons-outlined text-[20px] mr-3 text-gray-400">precision_manufacturing</span>
+                    Production
+                </div>
+                <span id="icon-menu-production" class="material-icons-outlined text-[16px] text-gray-400 transition-transform">add</span>
+            </button>
+            <div id="menu-production" class="hidden pl-10 pr-2 py-1 space-y-1">
+                <a href="/admin/production" class="block py-2 text-sm text-gray-500 hover:text-red-600">Dashboard</a>
+                <a href="/admin/production/create" class="block py-2 text-sm text-gray-500 hover:text-red-600">New Run</a>
+                <a href="/admin/production/materials" class="block py-2 text-sm text-gray-500 hover:text-red-600">Raw Materials</a>
+            </div>
+        </div>
+        <% } %>
+
         <% if (can('cust_list', 'read') || can('vend_list', 'read')) { %>
         <div class="menu-item">
             <button onclick="toggleMenu('menu-customers')" class="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-all">

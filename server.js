@@ -209,6 +209,7 @@ app.use('/admin/settings', require('./routes/adminSettingRoutes'));
 app.use('/admin/accounts', require('./routes/accountRoutes'));
 app.use('/admin/vendors', require('./routes/vendorRoutes'));
 app.use('/admin/purchase-orders', require('./routes/purchaseOrderRoutes'));
+app.use('/admin/production', require('./routes/productionRoutes'));
 app.use('/admin/pos', require('./routes/posRoutes'));
 app.use('/admin/customers', require('./routes/customerRoutes'));
 app.use('/admin/campaigns', require('./routes/campaignRoutes'));

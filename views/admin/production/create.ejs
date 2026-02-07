@@ -1,0 +1,203 @@
+<div class="max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">New Production Run</h1>
+        <a href="/admin/production" class="text-gray-500 hover:text-gray-900">Back to Dashboard</a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">1. What are we making?</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Product</label>
+                        <select id="targetProduct" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 bg-gray-50">
+                            <% products.forEach(p => { %>
+                                <option value="<%= p.id %>-<%= p.variant_id %>">
+                                    <%= p.name %> (<%= p.color %> - <%= p.size %>) - SKU: <%= p.sku %>
+                                </option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity to Produce</label>
+                        <input type="number" id="qtyProduced" value="1" min="1" class="w-full border-gray-300 rounded-lg p-2.5" onchange="calculateTotal()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="font-bold text-gray-800">2. Raw Materials (Ingredients)</h3>
+                    <button type="button" onclick="addMaterialRow()" class="text-sm text-blue-600 font-bold hover:underline">+ Add Material</button>
+                </div>
+                
+                <div id="materialList" class="space-y-3">
+                    </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">3. Additional Costs</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Total Labor/Printing Cost</label>
+                        <input type="number" id="laborCost" value="0" class="w-full border-gray-300 rounded-lg p-2.5" onchange="calculateTotal()">
+                        <p class="text-xs text-gray-400 mt-1">Total amount paid to workers/printers for this batch.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Run Note</label>
+                        <input type="text" id="runNote" placeholder="e.g. Eid Collection Batch 1" class="w-full border-gray-300 rounded-lg p-2.5">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-1">
+            <div class="bg-gray-900 text-white p-6 rounded-xl shadow-lg sticky top-6">
+                <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
+                    <span class="material-icons-outlined">calculate</span> Cost Estimator
+                </h3>
+                
+                <div class="space-y-3 mb-6 border-b border-gray-700 pb-6">
+                    <div class="flex justify-between text-sm text-gray-400">
+                        <span>Material Cost:</span>
+                        <span class="text-white font-mono" id="displayMatCost">৳0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-400">
+                        <span>Labor/Print:</span>
+                        <span class="text-white font-mono" id="displayLaborCost">৳0.00</span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Batch Cost</p>
+                    <p class="text-3xl font-bold text-green-400 font-mono" id="displayGrandTotal">৳0.00</p>
+                </div>
+
+                <div class="mb-8">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Cost Per Unit</p>
+                    <p class="text-xl font-bold text-white font-mono" id="displayUnitCost">৳0.00</p>
+                </div>
+
+                <button onclick="submitRun()" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2">
+                    Start Production
+                    <span class="material-icons-outlined text-sm">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const allMaterials = <%- JSON.stringify(materials) %>;
+</script>
+
+<script>
+    function addMaterialRow() {
+        const div = document.createElement('div');
+        div.className = 'flex items-end gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 material-row';
+        
+        let options = '<option value="" disabled selected>Select Material</option>';
+        allMaterials.forEach(m => {
+            options += `<option value="${m.id}" data-cost="${m.average_cost}" data-unit="${m.unit}">${m.name} (Stock: ${m.stock_quantity})</option>`;
+        });
+
+        div.innerHTML = `
+            <div class="flex-1">
+                <label class="text-xs text-gray-500 block mb-1">Material</label>
+                <select class="w-full border rounded p-1.5 text-sm mat-select" onchange="updateRowCost(this)">
+                    ${options}
+                </select>
+            </div>
+            <div class="w-24">
+                <label class="text-xs text-gray-500 block mb-1">Qty Used</label>
+                <input type="number" step="0.01" class="w-full border rounded p-1.5 text-sm mat-qty" oninput="calculateTotal()" placeholder="0">
+            </div>
+            <div class="w-24 text-right">
+                <label class="text-xs text-gray-500 block mb-1">Cost (Est)</label>
+                <div class="font-mono text-sm font-bold text-gray-700 pt-1 mat-cost-display">৳0.00</div>
+            </div>
+            <button onclick="this.parentElement.remove(); calculateTotal()" class="text-red-500 hover:bg-red-50 p-1 rounded">
+                <span class="material-icons-outlined text-lg">delete</span>
+            </button>
+        `;
+        document.getElementById('materialList').appendChild(div);
+    }
+
+    function updateRowCost(select) {
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        let matTotal = 0;
+        document.querySelectorAll('.material-row').forEach(row => {
+            const select = row.querySelector('.mat-select');
+            const qtyInput = row.querySelector('.mat-qty');
+            const display = row.querySelector('.mat-cost-display');
+            
+            if (select.selectedIndex > 0) {
+                const costPerUnit = parseFloat(select.options[select.selectedIndex].dataset.cost);
+                const qty = parseFloat(qtyInput.value) || 0;
+                const lineTotal = costPerUnit * qty;
+                
+                matTotal += lineTotal;
+                display.innerText = '৳' + lineTotal.toFixed(2);
+            }
+        });
+
+        const labor = parseFloat(document.getElementById('laborCost').value) || 0;
+        const grandTotal = matTotal + labor;
+        const qtyProduced = parseFloat(document.getElementById('qtyProduced').value) || 1;
+        const unitCost = grandTotal / qtyProduced;
+
+        document.getElementById('displayMatCost').innerText = '৳' + matTotal.toFixed(2);
+        document.getElementById('displayLaborCost').innerText = '৳' + labor.toFixed(2);
+        document.getElementById('displayGrandTotal').innerText = '৳' + grandTotal.toFixed(2);
+        document.getElementById('displayUnitCost').innerText = '৳' + unitCost.toFixed(2);
+    }
+
+    async function submitRun() {
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.innerText = 'Processing...';
+
+        const materials = [];
+        document.querySelectorAll('.material-row').forEach(row => {
+            const select = row.querySelector('.mat-select');
+            const qty = row.querySelector('.mat-qty').value;
+            if(select.value && qty) {
+                materials.push({ id: select.value, qty: qty });
+            }
+        });
+
+        const payload = {
+            product_variant: document.getElementById('targetProduct').value,
+            quantity: document.getElementById('qtyProduced').value,
+            labor_cost: document.getElementById('laborCost').value,
+            note: document.getElementById('runNote').value,
+            materials: materials
+        };
+
+        try {
+            const res = await fetch('/admin/production/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if(data.success) window.location.href = data.redirect;
+            else alert('Error: ' + data.message);
+        } catch(e) {
+            console.error(e);
+            alert('System Error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Start Production';
+        }
+    }
+
+    // Add first row by default
+    addMaterialRow();
+</script>
