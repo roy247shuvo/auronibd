@@ -39,7 +39,7 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Material Variant</th>
+                                <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Material</th>
                                 <th class="px-4 py-2 text-center text-xs font-bold text-gray-500 uppercase">Current Stock</th>
                                 <th class="px-4 py-2 text-center text-xs font-bold text-gray-500 uppercase">Purchase Qty</th>
                                 <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Unit Cost</th>
@@ -55,7 +55,7 @@
                                     <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
                                         <div class="md:col-span-5">
                                             <select id="matSelectName" class="w-full border-gray-300 rounded text-sm p-2" onchange="filterMatVariants()" disabled>
-                                                <option value="">Select Material...</option>
+                                                <option value="">Select Category First</option>
                                             </select>
                                         </div>
                                         
@@ -123,15 +123,15 @@
         renderMatTable();
     }
 
-    // 1. Load Materials when Category changes
+    // 1. Fetch data when Category is selected
     async function loadMaterialsForPO(catId) {
         const matSelect = document.getElementById('matSelectName');
         const varSelect = document.getElementById('matSelectVariant');
         
-        // Reset Dropdowns
+        // Reset UI
         matSelect.innerHTML = '<option>Loading...</option>';
         matSelect.disabled = true;
-        varSelect.innerHTML = '<option value="">Select Material First</option>';
+        varSelect.innerHTML = '<option value="">Select Variant...</option>';
         varSelect.disabled = true;
         
         if(!catId) {
@@ -140,10 +140,13 @@
         }
 
         try {
+            // CALL THE API
             const res = await fetch(`/admin/purchase-orders/api/search-materials?category_id=${catId}`);
+            if(!res.ok) throw new Error("Failed to load");
+            
             rawMaterialsCache = await res.json();
             
-            // Extract Unique Materials from the list
+            // Extract Unique Material Names
             const uniqueMats = [];
             const seen = new Set();
             
@@ -154,17 +157,20 @@
                 }
             });
 
-            // Populate Material Dropdown
+            // Populate Name Dropdown
             matSelect.innerHTML = '<option value="">-- Select Material --</option>';
             uniqueMats.forEach(m => {
                 matSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`;
             });
             matSelect.disabled = false;
 
-        } catch(e) { console.error(e); matSelect.innerHTML = '<option>Error loading</option>'; }
+        } catch(e) { 
+            console.error(e); 
+            matSelect.innerHTML = '<option>Error loading products</option>'; 
+        }
     }
 
-    // 2. Load Variants when Material changes
+    // 2. Filter Variants when Material Name is selected
     function filterMatVariants() {
         const matId = document.getElementById('matSelectName').value;
         const varSelect = document.getElementById('matSelectVariant');
@@ -174,7 +180,7 @@
 
         if(!matId) return;
 
-        // Filter cache for selected material
+        // Filter the cache
         const variants = rawMaterialsCache.filter(m => m.mat_id == matId);
         
         variants.forEach(v => {
@@ -191,11 +197,10 @@
         const item = rawMaterialsCache.find(m => m.var_id == varId);
         if(!item) return;
 
-        // Check duplicate
         if(matPoItems.find(i => i.id == varId)) { alert('Item already added'); return; }
 
         matPoItems.push({
-            id: item.var_id, // raw_material_variant_id
+            id: item.var_id, 
             name: `${item.mat_name} - ${item.var_name}`,
             unit: item.unit,
             stock: item.stock_quantity,
@@ -261,9 +266,9 @@
         if(matPoItems.length === 0) return alert('Add at least one material');
 
         const payload = {
-            type: 'material', // CRITICAL FLAG
+            type: 'material',
             vendor_id: vendorId,
-            items: matPoItems, // [{id: var_id, qty, cost}]
+            items: matPoItems,
             payment: null
         };
 
