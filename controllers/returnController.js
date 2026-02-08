@@ -1,10 +1,10 @@
 const db = require('../config/database');
 
-// 1. Show the "Partial Returns" Page
+// 1. Show the "Return Manager" Page (Updated for Tabs)
 exports.getReturnsPage = async (req, res) => {
     try {
-        // [FIXED] Changed ORDER BY o.updated_at to o.created_at
-        const [orders] = await db.query(`
+        // A. Fetch Partial Returns (Existing Logic)
+        const [partialOrders] = await db.query(`
             SELECT o.*, 
                    GROUP_CONCAT(CONCAT(oi.product_name, ' (', oi.size, ') x', oi.quantity) SEPARATOR '||') as item_summary
             FROM orders o
@@ -15,10 +15,22 @@ exports.getReturnsPage = async (req, res) => {
             ORDER BY o.created_at DESC
         `);
 
+        // B. Fetch Pending Returns (Full Returns waiting for arrival)
+        const [pendingOrders] = await db.query(`
+            SELECT o.*, 
+                   GROUP_CONCAT(CONCAT(oi.product_name, ' (', oi.size, ') x', oi.quantity) SEPARATOR '||') as item_summary
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            WHERE o.status = 'Pending_return'
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        `);
+
         res.render('admin/orders/returns_manager', {
-            title: 'Steadfast Partial Returns',
+            title: 'Return Manager',
             layout: 'admin/layout',
-            orders,
+            partialOrders,
+            pendingOrders,
             user: req.session.user
         });
 
@@ -97,6 +109,50 @@ exports.processRestock = async (req, res) => {
 
         await conn.commit();
         res.json({ success: true, message: "Stock returned & Order Value Updated!" });
+
+    } catch (err) {
+        await conn.rollback();
+        console.error(err);
+        res.status(500).json({ success: false, message: err.message });
+    } finally {
+        conn.release();
+    }
+};
+
+// 4. Process Full Return (Logic for "Confirm Received" Button)
+exports.processFullReturn = async (req, res) => {
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+        const { order_id } = req.body;
+
+        // 1. Get All Items in Order
+        const [items] = await conn.query("SELECT * FROM order_items WHERE order_id = ?", [order_id]);
+
+        // 2. Restock Logic
+        for (const item of items) {
+            // A. Restock Variant
+            await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?", [item.quantity, item.variant_id]);
+            // B. Restock Main Product
+            await conn.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?", [item.quantity, item.product_id]);
+            // C. Mark Item as Returned
+            await conn.query("UPDATE order_items SET returned_quantity = ? WHERE id = ?", [item.quantity, item.id]);
+        }
+
+        // 3. Update Order Financials (Zero out for full return)
+        await conn.query(`
+            UPDATE orders 
+            SET status = 'Returned',
+                product_subtotal = 0.00,
+                delivery_charge = 0.00,
+                total_amount = 0.00,
+                final_due = 0.00,
+                is_steadfast_partial_returned = 1
+            WHERE id = ?
+        `, [order_id]);
+
+        await conn.commit();
+        res.json({ success: true, message: "Order marked as Returned & Stock Added!" });
 
     } catch (err) {
         await conn.rollback();

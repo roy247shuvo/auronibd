@@ -35,5 +35,6 @@ router.get('/label-settings', checkPermission('orders_label'), orderController.g
 router.get('/returns', checkPermission('orders_return'), returnController.getReturnsPage);
 router.get('/returns/items/:order_id', checkPermission('orders_return'), returnController.getOrderItems);
 router.post('/returns/process', checkPermission('orders_return'), returnController.processRestock);
+router.post('/returns/full-process', checkPermission('orders_return'), returnController.processFullReturn);
 
 module.exports = router;

@@ -15,32 +15,75 @@
     <% } %>
 
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Steadfast Partial Returns</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Return Manager</h1>
         <p class="text-sm text-gray-500 mt-1">
-            Fix inventory for orders marked "Partially Delivered" by the courier API.
+            Manage full cancellations and partial returns from courier.
         </p>
     </div>
 </div>
 
-<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+<div class="mb-6 flex space-x-4 border-b border-gray-200">
+    <button onclick="switchTab('full')" id="tab-btn-full" class="pb-2 px-4 border-b-2 font-bold text-sm transition text-blue-600 border-blue-600">
+        Returned (Pending)
+        <span class="ml-1 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs"><%= pendingOrders.length %></span>
+    </button>
+    <button onclick="switchTab('partial')" id="tab-btn-partial" class="pb-2 px-4 border-b-2 border-transparent text-gray-500 font-medium text-sm hover:text-gray-700 transition">
+        Partial Returns
+        <span class="ml-1 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs"><%= partialOrders.length %></span>
+    </button>
+</div>
+
+<div id="view-full" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <table class="w-full text-left border-collapse">
         <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-bold border-b border-gray-100">
             <tr>
                 <th class="px-6 py-4">Order #</th>
-                <th class="px-6 py-4">Status</th>
+                <th class="px-6 py-4">Items (To Restock)</th>
+                <th class="px-6 py-4 text-right">Action</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            <% pendingOrders.forEach(order => { %>
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-bold font-mono">
+                    <%= order.order_number %>
+                    <div class="text-xs text-orange-600 font-sans mt-1">Pending Return</div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                    <%= order.item_summary ? order.item_summary.replace(/\|\|/g, ', ') : 'No Items' %>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <% if (can('orders_return', 'write')) { %>
+                    <button onclick="confirmFullReturn(<%= order.id %>, '<%= order.order_number %>')" 
+                            class="bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200 text-xs font-bold px-3 py-1.5 rounded shadow-sm transition flex items-center gap-1 ml-auto">
+                        <span class="material-icons-outlined text-sm">inventory_2</span> Confirm Received
+                    </button>
+                    <% } %>
+                </td>
+            </tr>
+            <% }) %>
+            <% if(pendingOrders.length === 0) { %>
+            <tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No pending full returns.</td></tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+<div id="view-partial" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hidden">
+    <table class="w-full text-left border-collapse">
+        <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-bold border-b border-gray-100">
+            <tr>
+                <th class="px-6 py-4">Order #</th>
                 <th class="px-6 py-4">Items Summary</th>
                 <th class="px-6 py-4 text-right">Action</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-            <% orders.forEach(order => { %>
+            <% partialOrders.forEach(order => { %>
             <tr class="hover:bg-gray-50 group">
                 <td class="px-6 py-4 font-bold font-mono">
                     <%= order.order_number %>
-                    <div class="text-xs text-gray-400 font-sans mt-1"><%= new Date(order.created_at).toLocaleDateString() %></div>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">Partial</span>
+                    <div class="text-xs text-blue-600 font-sans mt-1">Partial Delivery</div>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600">
                     <%= order.item_summary ? order.item_summary.replace(/\|\|/g, ', ') : 'No Items' %>
@@ -55,12 +98,63 @@
                 </td>
             </tr>
             <% }) %>
-            <% if(orders.length === 0) { %>
-            <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No pending partial returns found.</td></tr>
+            <% if(partialOrders.length === 0) { %>
+            <tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No pending partial returns found.</td></tr>
             <% } %>
         </tbody>
     </table>
 </div>
+
+<script>
+    function switchTab(tab) {
+        const fullView = document.getElementById('view-full');
+        const partialView = document.getElementById('view-partial');
+        const btnFull = document.getElementById('tab-btn-full');
+        const btnPartial = document.getElementById('tab-btn-partial');
+
+        if(tab === 'full') {
+            fullView.classList.remove('hidden');
+            partialView.classList.add('hidden');
+            btnFull.classList.add('text-blue-600', 'border-blue-600');
+            btnFull.classList.remove('text-gray-500', 'border-transparent');
+            btnPartial.classList.add('text-gray-500', 'border-transparent');
+            btnPartial.classList.remove('text-blue-600', 'border-blue-600');
+        } else {
+            fullView.classList.add('hidden');
+            partialView.classList.remove('hidden');
+            btnPartial.classList.add('text-blue-600', 'border-blue-600');
+            btnPartial.classList.remove('text-gray-500', 'border-transparent');
+            btnFull.classList.add('text-gray-500', 'border-transparent');
+            btnFull.classList.remove('text-blue-600', 'border-blue-600');
+        }
+    }
+
+    async function confirmFullReturn(id, orderNum) {
+        if(!confirm(`Confirm that Order #${orderNum} has arrived back to you?\n\nThis will:\n1. Restock ALL items.\n2. Mark order as Returned.\n3. Reset revenue to 0.`)) return;
+
+        try {
+            const res = await fetch('/admin/orders/returns/full-process', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ order_id: id })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert("Error: " + data.message);
+            }
+        } catch(e) {
+            console.error(e);
+            alert("System Error");
+        }
+    }
+</script>
 
 <div id="returnModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
