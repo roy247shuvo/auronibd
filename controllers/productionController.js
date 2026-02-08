@@ -244,8 +244,6 @@ exports.finalizeRun = async (req, res) => {
     try {
         await conn.beginTransaction();
         const { id } = req.params;
-        // [NEW] Get actual costs from modal
-        const actualLabor = parseFloat(req.body.actual_labor_cost) || 0;
         const accountId = req.body.payment_account_id;
 
         // 1. Get Run Details
@@ -253,11 +251,17 @@ exports.finalizeRun = async (req, res) => {
         if (!run.length || run[0].status === 'completed') throw new Error("Invalid run or already completed");
         const r = run[0];
 
-        // 2. Process Financials (Deduct Labor Cost)
+        // 2. Calculate Previously Entered Labor Cost
+        // Formula: (Total Run Cost) - (Sum of Materials Used)
+        const [matSumCheck] = await conn.query("SELECT SUM(total_cost) as m_total FROM production_materials WHERE production_id = ?", [id]);
+        const materialCostOnly = parseFloat(matSumCheck[0].m_total || 0);
+        const laborCost = parseFloat(r.total_cost) - materialCostOnly;
+
+        // 3. Process Financials (Deduct Calculated Labor)
         let nbTrxId = null;
-        if (actualLabor > 0 && accountId) {
+        if (laborCost > 0 && accountId) {
             // A. Deduct Money
-            await conn.query("UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?", [actualLabor, accountId]);
+            await conn.query("UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?", [laborCost, accountId]);
             
             // B. Generate Transaction ID
             const [settings] = await conn.query("SELECT last_nb_trx_sequence FROM shop_settings LIMIT 1");
@@ -265,20 +269,12 @@ exports.finalizeRun = async (req, res) => {
             nbTrxId = `NBTRX${String(nextSeq).padStart(4, '0')}`;
             await conn.query("UPDATE shop_settings SET last_nb_trx_sequence = ?", [nextSeq]);
 
-            // C. Log Transaction (Using vendor_payments as a generic outgoing log to avoid P&L double counting)
-            // Note: We leave po_id NULL. This ensures it's recorded but doesn't mess up Purchase Orders.
+            // C. Log Transaction
             await conn.query(`
                 INSERT INTO vendor_payments (nb_trx_id, account_id, amount, payment_date, created_by, note)
                 VALUES (?, ?, ?, NOW(), ?, ?)
-            `, [nbTrxId, accountId, actualLabor, req.session.user.name, `Production Labor - Run #${r.run_number}`]);
+            `, [nbTrxId, accountId, laborCost, req.session.user.name, `Production Labor - Run #${r.run_number}`]);
         }
-
-        // 3. Recalculate Final Unit Cost
-        // Fetch material cost sum
-        const [matSum] = await conn.query("SELECT SUM(total_cost) as m_total FROM production_materials WHERE production_id = ?", [id]);
-        const materialTotal = parseFloat(matSum[0].m_total || 0);
-        const grandTotal = materialTotal + actualLabor;
-        const finalUnitCost = r.quantity_produced > 0 ? (grandTotal / r.quantity_produced) : 0;
 
         // 4. Deduct Raw Materials (The "Real" Consumption)
         const [mats] = await conn.query("SELECT * FROM production_materials WHERE production_id = ?", [id]);

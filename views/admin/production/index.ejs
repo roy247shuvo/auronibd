@@ -55,7 +55,11 @@
             </div>
         </div>
 
-        <button onclick="openCompleteModal('<%= run.id %>', '<%= run.run_number %>', <%= run.total_cost - (run.total_cost * 0.8) %>)" 
+        <button onclick="openCompleteModal('<%= run.id %>', '<%= run.run_number %>')" 
+                class="w-full mt-2 bg-gray-900 text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-800 flex items-center justify-center gap-2">
+            <span class="material-icons-outlined text-[16px]">check_circle</span>
+            Complete & Stock
+        </button>
                 class="w-full mt-2 bg-gray-900 text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-800 flex items-center justify-center gap-2">
             <span class="material-icons-outlined text-[16px]">check_circle</span>
             Complete & Stock
@@ -74,20 +78,28 @@
         <form id="completeForm" method="POST" class="p-6">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             
-            <div class="mb-4">
-                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Actual Labor / Other Costs</label>
-                <div class="relative">
-                    <span class="absolute left-3 top-2.5 text-gray-500">৳</span>
-                    <input type="number" step="0.01" name="actual_labor_cost" id="modalLaborCost" class="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-black outline-none" placeholder="0.00">
-                </div>
-                <p class="text-xs text-gray-400 mt-1">This amount will be added to Product Cost.</p>
-            </div>
-
             <div class="mb-6">
+                <div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs mb-4 border border-blue-100">
+                    <strong>Note:</strong> The Labor Cost entered during creation will be automatically deducted.
+                </div>
+
                 <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Pay From Account</label>
                 <select name="payment_account_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-black outline-none">
-                    <option value="">-- None (Record Cost Only) --</option>
+                    <option value="">-- Do Not Deduct (Record Only) --</option>
                     <% if(typeof accounts !== 'undefined') { %>
+                        <% accounts.forEach(acc => { %>
+                            <option value="<%= acc.id %>"><%= acc.account_name %> (<%= acc.bank_name %>)</option>
+                        <% }); %>
+                    <% } %>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Select the account used to pay the labor/service charges.</p>
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg flex items-center justify-center gap-2">
+                <span class="material-icons-outlined">inventory_2</span>
+                Confirm & Stock
+            </button>
+        </form>
                         <% accounts.forEach(acc => { %>
                             <option value="<%= acc.id %>"><%= acc.account_name %> (<%= acc.bank_name %>)</option>
                         <% }); %>
@@ -105,15 +117,9 @@
 </div>
 
 <script>
-    function openCompleteModal(id, runNumber, estimatedLabor) {
-        // Update Form Action
+    function openCompleteModal(id, runNumber) {
         document.getElementById('completeForm').action = `/admin/production/finalize/${id}`;
-        // Update Title
         document.getElementById('modalRunTitle').innerText = `Complete ${runNumber}`;
-        // Optional: Pre-fill the estimated labor cost if you want
-        // document.getElementById('modalLaborCost').value = estimatedLabor.toFixed(2);
-        
-        // Show Modal
         document.getElementById('completeModal').classList.remove('hidden');
     }
 </script>
