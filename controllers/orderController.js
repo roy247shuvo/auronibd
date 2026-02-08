@@ -633,8 +633,10 @@ exports.handleWebhook = async (req, res) => {
         // Only update main status if notification_type is 'delivery_status'
         if (notification_type === 'delivery_status') {
             let dbStatus = null;
-            if (status === 'delivered') dbStatus = 'delivered';
-            else if (status === 'partial_delivered') dbStatus = 'Partially_Delivered';
+            
+            // [UPDATED] Treat 'approval_pending' same as final status
+            if (status === 'delivered' || status === 'delivered_approval_pending') dbStatus = 'delivered';
+            else if (status === 'partial_delivered' || status === 'partial_delivered_approval_pending') dbStatus = 'Partially_Delivered';
             else if (status === 'cancelled') dbStatus = 'Pending_return'; 
             
             if (dbStatus) {
@@ -659,20 +661,80 @@ exports.getLabelSettings = async (req, res) => {
     res.render('admin/orders/label_settings', { title: 'Label Settings', layout: 'admin/layout' });
 };
 
+// [NEW] Manual Sync Trigger (Called from Web UI)
+exports.manualSyncStatus = async (req, res) => {
+    try {
+        // [UPDATED] Pass selected IDs if they exist
+        await exports.syncSteadfastStatus(req.body.order_ids); 
+        res.json({ success: true, message: "Sync Check Completed." });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// [NEW] Get Full Order Details (Smart Search: ID or Order Number)
+exports.getOrderDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // 1. Determine if input is ID or Order Number
+        let queryCondition = 'o.id = ?';
+        if (isNaN(id)) {
+            queryCondition = 'o.order_number = ?';
+        }
+
+        // 2. Fetch Order
+        const [orders] = await db.query(`
+            SELECT o.*, c.full_name, c.phone, c.address 
+            FROM orders o 
+            LEFT JOIN customers c ON o.customer_id = c.id 
+            WHERE ${queryCondition}
+        `, [id]);
+        
+        if (orders.length === 0) return res.status(404).json({ success: false, message: "Order not found" });
+        const order = orders[0];
+
+        // 3. Fetch Items (Use the found order's REAL ID)
+        const [items] = await db.query(`SELECT * FROM order_items WHERE order_id = ?`, [order.id]);
+
+        // 4. Fetch Timeline
+        const [timeline] = await db.query(`
+            SELECT * FROM order_timelines WHERE order_id = ? ORDER BY timestamp DESC
+        `, [order.id]);
+
+        res.json({ success: true, order, items, timeline });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "Server Error: " + err.message });
+    }
+};
+
 // 12. Backup Poller: Sync Status (Called by Server Interval)
-exports.syncSteadfastStatus = async () => {
+// [UPDATED] Accepts optional specificIds
+exports.syncSteadfastStatus = async (specificIds = null) => {
     try {
         console.log(`[${new Date().toLocaleString()}] 🔄 Starting Steadfast Sync...`);
         
-        // 1. Find orders that are "Active" with courier
-        // We exclude final states like delivered, returned, or cancelled to save API calls
-        const [orders] = await db.query(`
+        // 1. Build Query Dynamically
+        let query = `
             SELECT id, order_number, courier_consignment_id, status 
             FROM orders 
             WHERE sent_to_courier = 'yes' 
             AND courier_consignment_id IS NOT NULL
-            AND status NOT IN ('delivered', 'Returned', 'cancelled', 'Partially_Delivered', 'Pending_return')
-        `);
+        `;
+        const params = [];
+
+        if (specificIds && specificIds.length > 0) {
+            // FORCE MODE: Sync selected IDs regardless of current status
+            query += ` AND id IN (?)`;
+            params.push(specificIds);
+        } else {
+            // AUTO MODE: Exclude final states to save resources
+            query += ` AND status NOT IN ('delivered', 'Returned', 'cancelled', 'Partially_Delivered', 'Pending_return')`;
+        }
+
+        const [orders] = await db.query(query, params);
 
         if(orders.length === 0) return console.log("No active courier orders to sync.");
 
@@ -686,8 +748,9 @@ exports.syncSteadfastStatus = async () => {
                 let dbStatus = null;
 
                 // Map Steadfast Status to Our DB Status
-                if (apiStatus === 'delivered') dbStatus = 'delivered';
-                else if (apiStatus === 'partial_delivered') dbStatus = 'Partially_Delivered';
+                // [UPDATED] Treat 'approval_pending' same as final status
+                if (apiStatus === 'delivered' || apiStatus === 'delivered_approval_pending') dbStatus = 'delivered';
+                else if (apiStatus === 'partial_delivered' || apiStatus === 'partial_delivered_approval_pending') dbStatus = 'Partially_Delivered';
                 else if (apiStatus === 'cancelled') dbStatus = 'Pending_return';
                 
                 // Only update if we have a valid mapping AND it's different from current

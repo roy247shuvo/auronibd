@@ -22,6 +22,13 @@
         
         <div class="flex flex-wrap gap-2 justify-center md:justify-end">
             <% if (can('orders_web', 'write')) { %>
+            <button onclick="syncOrders()" id="btn-sync" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs font-bold uppercase flex items-center gap-2 transition-colors">
+                <span class="material-icons-outlined text-sm">sync</span> Sync Status
+            </button>
+            <% } %>
+
+            <% if (can('orders_web', 'write')) { %>
             <button onclick="sendToSteadfast()" id="btn-steadfast" disabled 
                     class="bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed px-4 py-2 rounded text-xs font-bold uppercase flex items-center gap-2 transition-colors">
                 <span class="material-icons-outlined text-sm">local_shipping</span> Send to Courier
@@ -278,12 +285,27 @@
             </div>
 
             <div class="shrink-0 border-l border-gray-100 pl-4 flex items-center gap-2">
-                <% if (can('orders_web', 'write')) { %>
-                <button onclick="openEditModal('<%= order.id %>')" 
-                        class="w-8 h-8 bg-gray-50 rounded-full hover:bg-black hover:text-white flex items-center justify-center text-gray-500 transition" 
-                        title="Edit Order">
-                    <span class="material-icons-outlined text-[16px]">edit</span>
+                <button onclick="openViewModal('<%= order.id %>')" 
+                        class="w-8 h-8 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white flex items-center justify-center text-blue-600 transition" 
+                        title="View Details">
+                    <span class="material-icons-outlined text-[16px]">visibility</span>
                 </button>
+
+                <% 
+                   const lockedStatuses = ['shipped', 'delivered', 'Partially_Delivered', 'Pending_return', 'Returned', 'cancelled'];
+                   const isLocked = lockedStatuses.includes(order.status);
+                %>
+
+                <% if (can('orders_web', 'write') && !isLocked) { %>
+                    <button onclick="openEditModal('<%= order.id %>')" 
+                            class="w-8 h-8 bg-gray-50 rounded-full hover:bg-black hover:text-white flex items-center justify-center text-gray-500 transition" 
+                            title="Edit Order">
+                        <span class="material-icons-outlined text-[16px]">edit</span>
+                    </button>
+                <% } else if (isLocked) { %>
+                    <div class="w-8 h-8 flex items-center justify-center text-gray-300 cursor-not-allowed" title="Editing Locked">
+                        <span class="material-icons-outlined text-[16px]">lock</span>
+                    </div>
                 <% } %>
             </div>
 
@@ -294,7 +316,219 @@
 
 <%- include('./modals/create_order') %>
 
+<div id="viewOrderModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center opacity-0 transition-opacity duration-300" style="z-index: 9999;">
+    <div class="bg-white w-full max-w-4xl h-[90vh] rounded-lg shadow-2xl flex flex-col relative transform scale-95 transition-transform duration-300">
+        
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800" id="viewOrderTitle">Order Details</h3>
+                <p class="text-xs text-gray-500 mt-0.5" id="viewOrderDate">Loading...</p>
+            </div>
+            <button onclick="closeViewModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition">
+                <span class="material-icons-outlined text-sm">close</span>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="flex flex-col md:flex-row gap-6">
+                
+                <div class="flex-1 flex flex-col gap-6">
+                    
+                    <div class="bg-blue-50/50 p-4 rounded border border-blue-100">
+                        <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">Customer Info</h4>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="block text-xs text-gray-400">Name</span>
+                                <span class="font-bold text-gray-800" id="viewName">-</span>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-gray-400">Phone</span>
+                                <span class="font-bold text-gray-800 font-mono" id="viewPhone">-</span>
+                            </div>
+                            <div class="col-span-2">
+                                <span class="block text-xs text-gray-400">Address</span>
+                                <span class="text-gray-800" id="viewAddress">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <span class="material-icons-outlined text-sm">shopping_bag</span> Order Items
+                        </h4>
+                        <div class="border border-gray-200 rounded overflow-hidden">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                                    <tr>
+                                        <th class="px-3 py-2">Item</th>
+                                        <th class="px-3 py-2 text-center">Qty</th>
+                                        <th class="px-3 py-2 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100" id="viewItemsTable">
+                                    </tbody>
+                                <tfoot class="bg-gray-50 font-bold text-gray-800">
+                                    <tr>
+                                        <td colspan="2" class="px-3 py-2 text-right">Subtotal</td>
+                                        <td class="px-3 py-2 text-right" id="viewSubtotal">0</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" class="px-3 py-2 text-right">Delivery</td>
+                                        <td class="px-3 py-2 text-right" id="viewDelivery">0</td>
+                                    </tr>
+                                    <tr class="text-lg">
+                                        <td colspan="2" class="px-3 py-2 text-right">Total</td>
+                                        <td class="px-3 py-2 text-right" id="viewTotal">0</td>
+                                    </tr>
+                                    <tr class="text-green-600">
+                                        <td colspan="2" class="px-3 py-2 text-right">Paid</td>
+                                        <td class="px-3 py-2 text-right" id="viewPaid">0</td>
+                                    </tr>
+                                    <tr class="text-red-600">
+                                        <td colspan="2" class="px-3 py-2 text-right">Due</td>
+                                        <td class="px-3 py-2 text-right" id="viewDue">0</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="viewNoteContainer" class="hidden">
+                         <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">Admin Note</h4>
+                         <div class="bg-yellow-50 p-3 rounded text-xs text-yellow-800 border border-yellow-200 whitespace-pre-line" id="viewNote"></div>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-80 shrink-0">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span class="material-icons-outlined text-sm">local_shipping</span> Shipment Timeline
+                    </h4>
+                    <div class="bg-gray-50 rounded border border-gray-200 p-4 h-full max-h-[500px] overflow-y-auto custom-scrollbar">
+                        <div class="relative border-l-2 border-gray-200 ml-2 space-y-6" id="viewTimeline">
+                            </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    // --- [NEW] VIEW MODAL LOGIC ---
+    // [FIXED] Attached to window to ensure button can find it
+    window.openViewModal = async function(orderId) {
+        console.log("Clicked View for Order:", orderId); 
+
+        const modal = document.getElementById('viewOrderModal');
+        const container = modal.querySelector('div');
+        
+        // 1. Show Modal (Force remove hidden class)
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex'; // Ensure it's visible even if class fails
+        
+        // Animation
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            container.classList.remove('scale-95');
+        }, 10);
+        
+        // 2. Reset Content
+        const itemsTable = document.getElementById('viewItemsTable');
+        const timelineDiv = document.getElementById('viewTimeline');
+        
+        if(itemsTable) itemsTable.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-400">Loading details...</td></tr>';
+        if(timelineDiv) timelineDiv.innerHTML = '<div class="pl-4 text-gray-400 text-sm">Loading timeline...</div>';
+
+        try {
+            // 3. Fetch Data
+            const res = await fetch(`/admin/orders/details/${orderId}`);
+            if(!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+            
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+            
+            const o = data.order;
+
+            // 4. Populate Header & Customer
+            document.getElementById('viewOrderTitle').innerText = `Order #${o.order_number}`;
+            document.getElementById('viewOrderDate').innerText = new Date(o.created_at).toLocaleString();
+            document.getElementById('viewName').innerText = o.guest_name || 'N/A';
+            document.getElementById('viewPhone').innerText = o.guest_phone || 'N/A';
+            document.getElementById('viewAddress').innerText = o.shipping_address || 'N/A';
+            
+            // 5. Populate Items
+            if(itemsTable) {
+                itemsTable.innerHTML = data.items.map(item => `
+                    <tr class="bg-white">
+                        <td class="px-3 py-2">
+                            <div class="flex items-center gap-2">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800">${item.product_name}</span>
+                                    <span class="text-xs text-gray-500">${item.size || '-'} / ${item.color || '-'}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-3 py-2 text-center text-gray-600">x${item.quantity}</td>
+                        <td class="px-3 py-2 text-right font-mono">${item.price * item.quantity}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // 6. Populate Totals
+            document.getElementById('viewSubtotal').innerText = o.product_subtotal;
+            document.getElementById('viewDelivery').innerText = o.delivery_charge;
+            document.getElementById('viewTotal').innerText = o.total_amount;
+            document.getElementById('viewPaid').innerText = o.paid_amount;
+            document.getElementById('viewDue').innerText = Math.max(0, o.total_amount - o.paid_amount);
+
+            // 7. Note
+            const noteContainer = document.getElementById('viewNoteContainer');
+            if(o.admin_note) {
+                document.getElementById('viewNote').innerText = o.admin_note;
+                if(noteContainer) noteContainer.classList.remove('hidden');
+            } else {
+                if(noteContainer) noteContainer.classList.add('hidden');
+            }
+
+            // 8. Populate Timeline
+            if(timelineDiv) {
+                if(data.timeline.length > 0) {
+                    timelineDiv.innerHTML = data.timeline.map((t, index) => `
+                        <div class="pl-4 relative">
+                            <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full ${index === 0 ? 'bg-blue-600 border-4 border-blue-100' : 'bg-gray-300'}"></div>
+                            <p class="text-xs font-bold text-gray-500 mb-0.5">${new Date(t.timestamp).toLocaleString()}</p>
+                            <p class="text-sm font-bold text-gray-800">${(t.status || 'Info').replace(/_/g, ' ').toUpperCase()}</p>
+                            <p class="text-xs text-gray-600 mt-1 bg-gray-100 p-2 rounded">${t.message || ''}</p>
+                            ${t.rider_name ? `<p class="text-[10px] text-blue-600 mt-1 font-bold">Rider: ${t.rider_name} (${t.rider_phone})</p>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    timelineDiv.innerHTML = '<div class="pl-4 text-gray-400 text-sm italic">No courier updates yet.</div>';
+                }
+            }
+
+        } catch (err) {
+            console.error("View Modal Error:", err);
+            alert("Failed to load details. See console.");
+            closeViewModal();
+        }
+    }
+
+    // [FIXED] Global Close Function
+    window.closeViewModal = function() {
+        const modal = document.getElementById('viewOrderModal');
+        const container = modal.querySelector('div');
+        
+        modal.classList.add('opacity-0');
+        container.classList.add('scale-95');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.style.display = ''; // Clear inline style
+        }, 300);
+    }
+
     // --- DATA INJECTION ---
     const allOrders = <%- JSON.stringify(orders) %>;
 
@@ -384,6 +618,43 @@
             selectStatus.disabled = true;
             btnSteadfast.disabled = true;
             btnPrint.disabled = true;
+        }
+    }
+
+    // [NEW] Sync Function
+    async function syncOrders() {
+        const btn = document.getElementById('btn-sync');
+        const icon = btn.querySelector('.material-icons-outlined');
+        
+        // [UPDATED] Get Selected IDs
+        const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+        const ids = Array.from(checkboxes).map(cb => cb.value);
+
+        // Visual Feedback
+        btn.disabled = true;
+        icon.classList.add('animate-spin'); // Adds rotation effect
+        
+        try {
+            const res = await fetch('/admin/orders/sync-steadfast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'CSRF-Token': '<%= csrfToken %>' },
+                // [UPDATED] Send IDs in body
+                body: JSON.stringify({ order_ids: ids })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                // Success: Reload page to show new statuses
+                window.location.reload(); 
+            } else {
+                alert("Sync Failed: " + data.message);
+                btn.disabled = false;
+                icon.classList.remove('animate-spin');
+            }
+        } catch(e) { 
+            alert('Network Error'); 
+            btn.disabled = false;
+            icon.classList.remove('animate-spin');
         }
     }
 

@@ -277,6 +277,15 @@ setInterval(async () => {
     }
 }, 24 * 60 * 60 * 1000); // Check every 24 Hours
 
+// === BACKUP STATUS SYNC (Runs every 30 Minutes) ===
+// If webhook fails, this manually checks Steadfast for status updates.
+setInterval(async () => {
+    try {
+        await orderController.syncSteadfastStatus();
+    } catch (err) {
+        console.error("Error in Backup Sync:", err);
+    }
+}, 30 * 60 * 1000);
 
 // Start Server
 const PORT = process.env.PORT || 3000;
