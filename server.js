@@ -277,17 +277,6 @@ setInterval(async () => {
     }
 }, 24 * 60 * 60 * 1000); // Check every 24 Hours
 
-// === STEADFAST SYNC (Every 30 Minutes) ===
-// Backup in case webhooks fail
-setInterval(() => {
-    orderController.syncSteadfastStatus();
-}, 30 * 60 * 1000);
-
-// === LIVE TRAFFIC CLEANER (Every 30 Seconds) ===
-setInterval(async () => {
-    // Remove visitors inactive for more than 1 minute
-    await db.query("DELETE FROM live_visitors WHERE last_active < (NOW() - INTERVAL 1 MINUTE)");
-}, 30 * 1000);
 
 // Start Server
 const PORT = process.env.PORT || 3000;
