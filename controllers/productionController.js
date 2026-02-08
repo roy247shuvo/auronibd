@@ -114,7 +114,10 @@ exports.getDashboard = async (req, res) => {
             title: 'Production Hub',
             layout: 'admin/layout',
             activeRuns,
-            history
+            history,
+            // [FIX] Pass messages from URL to View
+            error: req.query.error,
+            success: req.query.success
         });
     } catch (err) {
         console.error(err);
@@ -250,7 +253,7 @@ exports.finalizeRun = async (req, res) => {
         for (const m of mats) {
             // Deduct from VARIANT stock
             await conn.query(`
-                UPDATE raw_material_variants 
+               UPDATE raw_material_variants 
                 SET stock_quantity = stock_quantity - ? 
                 WHERE id = ?
             `, [m.quantity_used, m.material_variant_id]);
@@ -263,10 +266,10 @@ exports.finalizeRun = async (req, res) => {
         }
 
         // 3. Add Finished Goods Stock (FIFO Batch Creation)
-        // Note: 'supplier_price' is 0 because this is internal. 'buying_price' is the manufacturing cost.
+        // [FIXED] Removed 'supplier_price' as it does not exist in your database
         await conn.query(`
-            INSERT INTO inventory_batches (product_id, variant_id, supplier_price, buying_price, remaining_quantity, production_run_id, is_active)
-            VALUES (?, ?, 0, ?, ?, ?, 1)
+            INSERT INTO inventory_batches (product_id, variant_id, buying_price, remaining_quantity, production_run_id, is_active)
+            VALUES (?, ?, ?, ?, ?, 1)
         `, [r.target_product_id, r.target_variant_id, r.cost_per_unit, r.quantity_produced, id]);
 
         // 4. Update Main Product Stock Counters (For fast display)

@@ -664,8 +664,16 @@ exports.getBalanceSheet = async (req, res) => {
         let totalCash = 0;
         accounts.forEach(a => totalCash += parseFloat(a.current_balance));
 
+        // A. Finished Goods (Batches)
         const [inventory] = await db.query("SELECT SUM(remaining_quantity * buying_price) as total_value FROM inventory_batches WHERE is_active = 1");
-        const totalInventory = parseFloat(inventory[0].total_value) || 0;
+        const finishedGoods = parseFloat(inventory[0].total_value) || 0;
+
+        // B. Raw Materials (Weighted Average Cost)
+        const [materials] = await db.query("SELECT SUM(stock_quantity * average_cost) as total_value FROM raw_material_variants WHERE stock_quantity > 0");
+        const rawMaterials = parseFloat(materials[0].total_value) || 0;
+
+        // Total Inventory Asset
+        const totalInventory = finishedGoods + rawMaterials;
 
         const [receivables] = await db.query(`
             SELECT SUM(total_amount - IFNULL(paid_amount, 0)) as pending_money 
@@ -673,6 +681,7 @@ exports.getBalanceSheet = async (req, res) => {
             WHERE sent_to_courier = 'yes' AND settled_at IS NULL AND status NOT IN ('cancelled', 'Returned')
         `);
         const totalReceivables = parseFloat(receivables[0].pending_money) || 0;
+        
         const totalAssets = totalCash + totalInventory + totalReceivables;
 
         // --- LIABILITIES ---
@@ -684,7 +693,6 @@ exports.getBalanceSheet = async (req, res) => {
         const totalLiabilities = parseFloat(payables[0].owe_amount) || 0;
 
         // --- EQUITY ---
-        // Fetch all capital transactions
         const [capitalHistory] = await db.query(`
             SELECT ci.*, ba.account_name, ba.bank_name 
             FROM capital_investments ci
@@ -692,14 +700,12 @@ exports.getBalanceSheet = async (req, res) => {
             ORDER BY ci.investment_date DESC, ci.id DESC
         `);
 
-        // Calculate Net Capital (Deposits - Withdrawals)
         let totalCapital = 0;
         capitalHistory.forEach(tx => {
             if (tx.type === 'deposit') totalCapital += parseFloat(tx.amount);
             else totalCapital -= parseFloat(tx.amount);
         });
 
-        // Retained Earnings = Assets - Liabilities - Net Capital
         const retainedEarnings = totalAssets - totalLiabilities - totalCapital;
         const totalEquity = totalCapital + retainedEarnings;
 
@@ -707,9 +713,16 @@ exports.getBalanceSheet = async (req, res) => {
             title: 'Financial Health',
             layout: 'admin/layout',
             accounts,
-            history: capitalHistory, // Pass history to view
+            history: capitalHistory,
             stats: {
-                assets: { total: totalAssets, cash: totalCash, inventory: totalInventory, receivables: totalReceivables },
+                assets: { 
+                    total: totalAssets, 
+                    cash: totalCash, 
+                    // Break down inventory
+                    finished_goods: finishedGoods,
+                    raw_materials: rawMaterials,
+                    receivables: totalReceivables 
+                },
                 liabilities: { total: totalLiabilities },
                 equity: { total: totalEquity, capital: totalCapital, earnings: retainedEarnings }
             }
