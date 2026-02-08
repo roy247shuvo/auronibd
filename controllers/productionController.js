@@ -239,7 +239,7 @@ exports.storeRun = async (req, res) => {
     }
 };
 
-// Finalize Run (Complete, Pay Labor, & Stock Up)
+// Finalize Run (Complete, Auto-Pay Labor, & Stock Up)
 exports.finalizeRun = async (req, res) => {
     const conn = await db.getConnection();
     try {
@@ -252,48 +252,54 @@ exports.finalizeRun = async (req, res) => {
         if (!run.length || run[0].status === 'completed') throw new Error("Invalid run or already completed");
         const r = run[0];
 
-        // 2. Fetch the Saved Labor Cost directly from DB
+        // 2. Fetch the Saved Labor Cost
         const laborCost = parseFloat(r.labor_cost) || 0;
 
-        // 3. Process Financials (Deduct Calculated Labor)
-        let nbTrxId = null;
+        // 3. Process Financials (Deduct Labor Cost if Account Selected)
         if (laborCost > 0 && accountId) {
-            // A. Deduct Money
+            // A. Deduct Money from Bank
             await conn.query("UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?", [laborCost, accountId]);
             
             // B. Generate Transaction ID
             const [settings] = await conn.query("SELECT last_nb_trx_sequence FROM shop_settings LIMIT 1");
             const nextSeq = (settings[0]?.last_nb_trx_sequence || 0) + 1;
-            nbTrxId = `NBTRX${String(nextSeq).padStart(4, '0')}`;
+            const nbTrxId = `NBTRX${String(nextSeq).padStart(4, '0')}`;
             await conn.query("UPDATE shop_settings SET last_nb_trx_sequence = ?", [nextSeq]);
 
             // C. Log Transaction
-            // [FIX] We pass NULL for po_id because this is a Labor payment, not a Vendor PO payment
             await conn.query(`
                 INSERT INTO vendor_payments (nb_trx_id, po_id, account_id, amount, payment_date, created_by, note)
                 VALUES (?, NULL, ?, ?, NOW(), ?, ?)
             `, [nbTrxId, accountId, laborCost, req.session.user.name, `Production Labor - Run #${r.run_number}`]);
         }
 
-        // 4. Deduct Raw Materials (The "Real" Consumption)
+        // 4. Calculate Final Costs [MUST BE HERE]
+        const [matSum] = await conn.query("SELECT SUM(total_cost) as m_total FROM production_materials WHERE production_id = ?", [id]);
+        const materialTotal = parseFloat(matSum[0].m_total || 0);
+        
+        const grandTotal = materialTotal + laborCost;
+        // [DEFINITION] This defines the variable causing your error
+        const finalUnitCost = r.quantity_produced > 0 ? (grandTotal / r.quantity_produced) : 0;
+
+        // 5. Deduct Raw Materials (Inventory)
         const [mats] = await conn.query("SELECT * FROM production_materials WHERE production_id = ?", [id]);
         for (const m of mats) {
             await conn.query(`UPDATE raw_material_variants SET stock_quantity = stock_quantity - ? WHERE id = ?`, [m.quantity_used, m.material_variant_id]);
             await conn.query(`INSERT INTO raw_material_logs (raw_material_id, variant_id, type, quantity_change, reference_id, created_at) VALUES (?, ?, 'production_use', ?, ?, NOW())`, [m.raw_material_id, m.material_variant_id, -m.quantity_used, id]);
         }
 
-        // 5. Add Finished Goods Stock (Using NEW Final Unit Cost)
-        // [FIXED] Removed 'supplier_price' column
+        // 6. Add Finished Goods Stock (Assets)
+        // [USAGE] Now we can safely use finalUnitCost here
         await conn.query(`
             INSERT INTO inventory_batches (product_id, variant_id, buying_price, remaining_quantity, production_run_id, is_active)
             VALUES (?, ?, ?, ?, ?, 1)
         `, [r.target_product_id, r.target_variant_id, finalUnitCost, r.quantity_produced, id]);
 
-        // 6. Update Main Product Stock Counters
+        // 7. Update Live Stock Counters
         await conn.query(`UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?`, [r.quantity_produced, r.target_variant_id]);
         await conn.query(`UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?`, [r.quantity_produced, r.target_product_id]);
 
-        // 7. Mark Run as Completed (Save the actuals)
+        // 8. Mark Complete
         await conn.query(`
             UPDATE production_runs 
             SET status = 'completed', 
