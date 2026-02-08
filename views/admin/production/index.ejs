@@ -60,10 +60,6 @@
             <span class="material-icons-outlined text-[16px]">check_circle</span>
             Complete & Stock
         </button>
-                class="w-full mt-2 bg-gray-900 text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-800 flex items-center justify-center gap-2">
-            <span class="material-icons-outlined text-[16px]">check_circle</span>
-            Complete & Stock
-        </button>
     </div>
     <% }); %>
 </div>
@@ -72,7 +68,7 @@
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div class="bg-gray-900 px-6 py-4 flex justify-between items-center">
             <h3 class="text-white font-bold" id="modalRunTitle">Complete Production</h3>
-            <button onclick="document.getElementById('completeModal').classList.add('hidden')" class="text-gray-400 hover:text-white">&times;</button>
+            <button type="button" onclick="document.getElementById('completeModal').classList.add('hidden')" class="text-gray-400 hover:text-white">&times;</button>
         </div>
         
         <form id="completeForm" method="POST" class="p-6">
@@ -80,7 +76,7 @@
             
             <div class="mb-6">
                 <div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs mb-4 border border-blue-100">
-                    <strong>Note:</strong> The Labor Cost entered during creation will be automatically deducted.
+                    <strong>Note:</strong> The Labor Cost you entered during creation will be automatically deducted from the selected account.
                 </div>
 
                 <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Pay From Account</label>
@@ -98,19 +94,6 @@
             <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg flex items-center justify-center gap-2">
                 <span class="material-icons-outlined">inventory_2</span>
                 Confirm & Stock
-            </button>
-        </form>
-                        <% accounts.forEach(acc => { %>
-                            <option value="<%= acc.id %>"><%= acc.account_name %> (<%= acc.bank_name %>)</option>
-                        <% }); %>
-                    <% } %>
-                </select>
-                <p class="text-xs text-gray-400 mt-1">Select account to deduct money immediately.</p>
-            </div>
-
-            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg flex items-center justify-center gap-2">
-                <span class="material-icons-outlined">inventory_2</span>
-                Confirm & Add to Stock
             </button>
         </form>
     </div>

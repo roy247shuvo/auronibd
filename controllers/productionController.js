@@ -188,10 +188,11 @@ exports.storeRun = async (req, res) => {
         const runNumber = `PR-${new Date().getFullYear()}-${String(nextId).padStart(4, '0')}`;
 
         // 2. Create the Run Record
+        // [FIX] Added labor_cost column to save it permanently
         const [run] = await conn.query(`
-            INSERT INTO production_runs (run_number, status, target_product_id, target_variant_id, quantity_produced, note, created_by, start_date)
-            VALUES (?, 'in_progress', ?, ?, ?, ?, ?, NOW())
-        `, [runNumber, prodId, varId, targetQty, note, req.session.user.name]);
+            INSERT INTO production_runs (run_number, status, target_product_id, target_variant_id, quantity_produced, labor_cost, note, created_by, start_date)
+            VALUES (?, 'in_progress', ?, ?, ?, ?, ?, ?, NOW())
+        `, [runNumber, prodId, varId, targetQty, labor, note, req.session.user.name]);
         
         const runId = run.insertId;
         let totalMaterialCost = 0;
@@ -251,11 +252,8 @@ exports.finalizeRun = async (req, res) => {
         if (!run.length || run[0].status === 'completed') throw new Error("Invalid run or already completed");
         const r = run[0];
 
-        // 2. Calculate Previously Entered Labor Cost
-        // Formula: (Total Run Cost) - (Sum of Materials Used)
-        const [matSumCheck] = await conn.query("SELECT SUM(total_cost) as m_total FROM production_materials WHERE production_id = ?", [id]);
-        const materialCostOnly = parseFloat(matSumCheck[0].m_total || 0);
-        const laborCost = parseFloat(r.total_cost) - materialCostOnly;
+        // 2. Fetch the Saved Labor Cost directly from DB
+        const laborCost = parseFloat(r.labor_cost) || 0;
 
         // 3. Process Financials (Deduct Calculated Labor)
         let nbTrxId = null;
@@ -270,9 +268,10 @@ exports.finalizeRun = async (req, res) => {
             await conn.query("UPDATE shop_settings SET last_nb_trx_sequence = ?", [nextSeq]);
 
             // C. Log Transaction
+            // [FIX] We pass NULL for po_id because this is a Labor payment, not a Vendor PO payment
             await conn.query(`
-                INSERT INTO vendor_payments (nb_trx_id, account_id, amount, payment_date, created_by, note)
-                VALUES (?, ?, ?, NOW(), ?, ?)
+                INSERT INTO vendor_payments (nb_trx_id, po_id, account_id, amount, payment_date, created_by, note)
+                VALUES (?, NULL, ?, ?, NOW(), ?, ?)
             `, [nbTrxId, accountId, laborCost, req.session.user.name, `Production Labor - Run #${r.run_number}`]);
         }
 

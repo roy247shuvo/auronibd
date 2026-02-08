@@ -64,8 +64,8 @@
                         <p class="text-xs text-gray-400 mt-1">Total external cost for this batch.</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Run Note / Batch Name</label>
-                        <input type="text" id="runNote" placeholder="e.g. Eid Batch #001" class="w-full border-gray-300 rounded-lg p-2.5">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Run Note (Optional)</label>
+                        <input type="text" id="runNote" placeholder="e.g. For Dhanmondi Showroom" class="w-full border-gray-300 rounded-lg p-2.5">
                     </div>
                 </div>
             </div>
@@ -285,8 +285,11 @@
         const grandTotal = matTotal + labor;
         const qtyProduced = parseFloat(document.getElementById('qtyProduced').value || 1);
         const unitCost = qtyProduced > 0 ? (grandTotal / qtyProduced) : 0;
-
+        
         document.getElementById('displayMatCost').innerText = '৳' + matTotal.toFixed(2);
+        // [FIX] Update the Labor display line
+        document.getElementById('displayLaborCost').innerText = '৳' + labor.toFixed(2);
+        
         document.getElementById('displayGrandTotal').innerText = '৳' + grandTotal.toFixed(2);
         document.getElementById('displayUnitCost').innerText = '৳' + unitCost.toFixed(2);
     }
