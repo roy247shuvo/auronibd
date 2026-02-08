@@ -182,7 +182,8 @@ exports.getTransfers = async (req, res) => {
 
                 UNION ALL
 
-                -- 4. Customer Orders (Credit/Income)
+                -- 4. Customer Orders (Direct Payments like Cash/Bkash ONLY)
+                -- [FIX] We EXCLUDE orders that have 'settled_at' because they are handled in the Batch section below
                SELECT 
                     o.id as ref_id,
                     'customer_payment' as type,
@@ -200,7 +201,30 @@ exports.getTransfers = async (req, res) => {
                     CONVERT(o.order_number USING utf8mb4) as order_number
                 FROM orders o
                 JOIN bank_accounts ba ON o.bank_account_id = ba.id
-                WHERE o.paid_amount > 0 AND o.bank_account_id IS NOT NULL
+                WHERE o.paid_amount > 0 
+                AND o.bank_account_id IS NOT NULL 
+                AND o.settled_at IS NULL /* [CRITICAL] Don't double count settled orders */
+
+                UNION ALL
+
+                -- [NEW] 6. Courier Settlements (The Batch Deposit)
+                SELECT
+                    sb.id as ref_id,
+                    'settlement' as type,
+                    sb.deposit_account_id as account_id,
+                    ba.account_name,
+                    sb.amount,
+                    'credit' as direction,
+                    DATE(sb.settled_at) as t_date,
+                    CONVERT(CONCAT('Courier Settlement: ', sb.batch_id) USING utf8mb4) as note,
+                    CONVERT('System' USING utf8mb4) as created_by,
+                    CONVERT(sb.batch_id USING utf8mb4) as trx_id, /* Use Batch ID as Reference */
+                    CONVERT(CONCAT('NB-', sb.batch_id) USING utf8mb4) as nb_trx_id, /* Generate Virtual NB ID */
+                    CONVERT(NULL USING utf8mb4) as po_number,
+                    NULL as po_id,
+                    CONVERT(NULL USING utf8mb4) as order_number
+                FROM settlement_batches sb
+                JOIN bank_accounts ba ON sb.deposit_account_id = ba.id
 
                 UNION ALL
 

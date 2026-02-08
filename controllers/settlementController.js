@@ -255,13 +255,14 @@ exports.processBatch = async (req, res) => {
                 UPDATE orders 
                 SET status = 'delivered', 
                     payment_status = 'paid',
+                    paid_amount = ?,  /* [FIX] Mark as fully paid so it counts as revenue */
                     courier_delivery_charge = ?,
                     cod_received = ?, 
                     gateway_fee = gateway_fee + ?,
                     settled_at = NOW(),
                     bank_account_id = ?
                 WHERE order_number = ?
-            `, [item.delivery, item.cod, item.fee, target_account_id, item.invoice]);
+            `, [item.cod, item.delivery, item.cod, item.fee, target_account_id, item.invoice]);
 
             processedCount++;
         }
