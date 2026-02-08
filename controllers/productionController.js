@@ -110,12 +110,15 @@ exports.getDashboard = async (req, res) => {
             ORDER BY pr.completion_date DESC LIMIT 10
         `);
 
+        // [NEW] Fetch Accounts for the Payment Modal
+        const [accounts] = await db.query("SELECT * FROM bank_accounts WHERE status='active'");
+
         res.render('admin/production/index', {
             title: 'Production Hub',
             layout: 'admin/layout',
             activeRuns,
             history,
-            // [FIX] Pass messages from URL to View
+            accounts, // [NEW] Pass accounts to view
             error: req.query.error,
             success: req.query.success
         });
@@ -235,49 +238,75 @@ exports.storeRun = async (req, res) => {
     }
 };
 
-// Finalize Run (Complete & Stock Up)
+// Finalize Run (Complete, Pay Labor, & Stock Up)
 exports.finalizeRun = async (req, res) => {
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
         const { id } = req.params;
+        // [NEW] Get actual costs from modal
+        const actualLabor = parseFloat(req.body.actual_labor_cost) || 0;
+        const accountId = req.body.payment_account_id;
 
         // 1. Get Run Details
         const [run] = await conn.query("SELECT * FROM production_runs WHERE id = ?", [id]);
         if (!run.length || run[0].status === 'completed') throw new Error("Invalid run or already completed");
         const r = run[0];
 
-        // 2. Deduct Raw Materials (The "Real" Consumption)
-        const [mats] = await conn.query("SELECT * FROM production_materials WHERE production_id = ?", [id]);
-        
-        for (const m of mats) {
-            // Deduct from VARIANT stock
-            await conn.query(`
-               UPDATE raw_material_variants 
-                SET stock_quantity = stock_quantity - ? 
-                WHERE id = ?
-            `, [m.quantity_used, m.material_variant_id]);
+        // 2. Process Financials (Deduct Labor Cost)
+        let nbTrxId = null;
+        if (actualLabor > 0 && accountId) {
+            // A. Deduct Money
+            await conn.query("UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?", [actualLabor, accountId]);
+            
+            // B. Generate Transaction ID
+            const [settings] = await conn.query("SELECT last_nb_trx_sequence FROM shop_settings LIMIT 1");
+            const nextSeq = (settings[0]?.last_nb_trx_sequence || 0) + 1;
+            nbTrxId = `NBTRX${String(nextSeq).padStart(4, '0')}`;
+            await conn.query("UPDATE shop_settings SET last_nb_trx_sequence = ?", [nextSeq]);
 
-            // Log the usage
+            // C. Log Transaction (Using vendor_payments as a generic outgoing log to avoid P&L double counting)
+            // Note: We leave po_id NULL. This ensures it's recorded but doesn't mess up Purchase Orders.
             await conn.query(`
-                INSERT INTO raw_material_logs (raw_material_id, variant_id, type, quantity_change, reference_id, created_at)
-                VALUES (?, ?, 'production_use', ?, ?, NOW())
-            `, [m.raw_material_id, m.material_variant_id, -m.quantity_used, id]);
+                INSERT INTO vendor_payments (nb_trx_id, account_id, amount, payment_date, created_by, note)
+                VALUES (?, ?, ?, NOW(), ?, ?)
+            `, [nbTrxId, accountId, actualLabor, req.session.user.name, `Production Labor - Run #${r.run_number}`]);
         }
 
-        // 3. Add Finished Goods Stock (FIFO Batch Creation)
-        // [FIXED] Removed 'supplier_price' as it does not exist in your database
+        // 3. Recalculate Final Unit Cost
+        // Fetch material cost sum
+        const [matSum] = await conn.query("SELECT SUM(total_cost) as m_total FROM production_materials WHERE production_id = ?", [id]);
+        const materialTotal = parseFloat(matSum[0].m_total || 0);
+        const grandTotal = materialTotal + actualLabor;
+        const finalUnitCost = r.quantity_produced > 0 ? (grandTotal / r.quantity_produced) : 0;
+
+        // 4. Deduct Raw Materials (The "Real" Consumption)
+        const [mats] = await conn.query("SELECT * FROM production_materials WHERE production_id = ?", [id]);
+        for (const m of mats) {
+            await conn.query(`UPDATE raw_material_variants SET stock_quantity = stock_quantity - ? WHERE id = ?`, [m.quantity_used, m.material_variant_id]);
+            await conn.query(`INSERT INTO raw_material_logs (raw_material_id, variant_id, type, quantity_change, reference_id, created_at) VALUES (?, ?, 'production_use', ?, ?, NOW())`, [m.raw_material_id, m.material_variant_id, -m.quantity_used, id]);
+        }
+
+        // 5. Add Finished Goods Stock (Using NEW Final Unit Cost)
+        // [FIXED] Removed 'supplier_price' column
         await conn.query(`
             INSERT INTO inventory_batches (product_id, variant_id, buying_price, remaining_quantity, production_run_id, is_active)
             VALUES (?, ?, ?, ?, ?, 1)
-        `, [r.target_product_id, r.target_variant_id, r.cost_per_unit, r.quantity_produced, id]);
+        `, [r.target_product_id, r.target_variant_id, finalUnitCost, r.quantity_produced, id]);
 
-        // 4. Update Main Product Stock Counters (For fast display)
+        // 6. Update Main Product Stock Counters
         await conn.query(`UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?`, [r.quantity_produced, r.target_variant_id]);
         await conn.query(`UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?`, [r.quantity_produced, r.target_product_id]);
 
-        // 5. Mark Run as Completed
-        await conn.query(`UPDATE production_runs SET status = 'completed', completion_date = NOW() WHERE id = ?`, [id]);
+        // 7. Mark Run as Completed (Save the actuals)
+        await conn.query(`
+            UPDATE production_runs 
+            SET status = 'completed', 
+                completion_date = NOW(), 
+                total_cost = ?, 
+                cost_per_unit = ?
+            WHERE id = ?
+        `, [grandTotal, finalUnitCost, id]);
 
         await conn.commit();
         res.redirect('/admin/production?success=Production Completed & Stock Added');
