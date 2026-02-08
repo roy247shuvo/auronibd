@@ -252,8 +252,25 @@ exports.createManualOrder = async (req, res) => {
             
             // [UPDATED] Deduct stock for Pending, Confirmed, or Hold
             if (['pending', 'confirmed', 'hold'].includes(status)) {
+                // 1. Deduct Live Stock
                 await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE id = ?", [item.quantity, item.variant_id]);
                 await conn.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?", [item.quantity, item.product_id]);
+
+                // 2. [FIX] Deduct from Batches (FIFO)
+                let qtyToDeduct = item.quantity;
+                const [batches] = await conn.query(`
+                    SELECT id, remaining_quantity 
+                    FROM inventory_batches 
+                    WHERE variant_id = ? AND remaining_quantity > 0 
+                    ORDER BY created_at ASC
+                `, [item.variant_id]);
+
+                for (const batch of batches) {
+                    if (qtyToDeduct <= 0) break;
+                    const take = Math.min(qtyToDeduct, batch.remaining_quantity);
+                    await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity - ? WHERE id = ?`, [take, batch.id]);
+                    qtyToDeduct -= take;
+                }
             }
         }
 

@@ -410,11 +410,28 @@ exports.submitOrder = async (req, res) => {
             const [hold] = await conn.query("SELECT * FROM pos_holds WHERE user_id = ? AND variant_id = ?", [userId, item.variant_id]);
             
             if (hold.length > 0) {
-                // Stock was already physically deducted when added to cart.
-                // Just remove the hold record so it doesn't get "restored" later.
+                // Stock was already physically deducted from variants when added to cart.
+                // Just remove the hold record.
                 await conn.query("DELETE FROM pos_holds WHERE id = ?", [hold[0].id]);
                 
-                // Handle discrepancy (e.g. if Cart had 5 but Hold had 4)
+                // [FIX] Deduct from Batches (FIFO) even if held!
+                // The Hold logic only reserved the count, it didn't consume the batch cost.
+                let qtyToDeduct = item.quantity;
+                const [batches] = await conn.query(`
+                    SELECT id, remaining_quantity 
+                    FROM inventory_batches 
+                    WHERE variant_id = ? AND remaining_quantity > 0 
+                    ORDER BY created_at ASC FOR UPDATE
+                `, [item.variant_id]);
+                
+                for (const batch of batches) {
+                    if (qtyToDeduct <= 0) break;
+                    const take = Math.min(qtyToDeduct, batch.remaining_quantity);
+                    await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity - ? WHERE id = ?`, [take, batch.id]);
+                    qtyToDeduct -= take;
+                }
+
+                // Handle discrepancy (if Cart quantity > Hold quantity)
                 const diff = item.quantity - hold[0].quantity;
                 if (diff > 0) {
                     await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE id = ?", [diff, item.variant_id]);
