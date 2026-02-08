@@ -130,27 +130,31 @@ exports.getProductVariantsSnapshot = async (req, res) => {
     }
 };
 
-// 5. Create Purchase Order (Final Save)
+// 5. Create Purchase Order (Fixed: NaN Safety & Raw Materials)
 exports.createPurchaseOrder = async (req, res) => {
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
         
-        // [UPDATED] Added 'type' destructuring
         const { vendor_id, items, payment, type } = req.body; 
         const poType = type || 'product';
 
         // Generate PO Number
         const poNumber = 'PO-' + Date.now();
         
-        // Calculate Total
+        // [FIX 1] Calculate Total Safely (Prevent NaN if qty/cost is empty)
         let totalAmount = 0;
-        items.forEach(item => totalAmount += (item.qty * item.cost));
+        items.forEach(item => {
+            const q = parseFloat(item.qty) || 0;
+            const c = parseFloat(item.cost) || 0;
+            totalAmount += (q * c);
+        });
 
-        const paidAmount = payment ? parseFloat(payment.amount) : 0;
+        // [FIX 2] Sanitize Payment Amount
+        const paidAmount = (payment && payment.amount) ? (parseFloat(payment.amount) || 0) : 0;
         const createdBy = req.session.user ? req.session.user.name : 'System';
 
-        // 1. Insert Header [UPDATED] Added 'type' column
+        // 1. Insert Header
         const [poResult] = await conn.query(`
             INSERT INTO purchase_orders (po_number, vendor_id, total_amount, paid_amount, status, type)
             VALUES (?, ?, ?, ?, 'pending', ?)
@@ -158,23 +162,39 @@ exports.createPurchaseOrder = async (req, res) => {
         
         const poId = poResult.insertId;
 
-        // 2. Insert Items [UPDATED] Check type
+        // 2. Insert Items
         for (const item of items) {
+            // [FIX 3] Ensure qty and cost are valid numbers for every item row
+            const qty = parseFloat(item.qty) || 0;
+            const cost = parseFloat(item.cost) || 0;
+
             if (poType === 'product') {
                 await conn.query(`
                     INSERT INTO purchase_order_items (po_id, product_id, variant_id, quantity, buying_price)
                     VALUES (?, ?, ?, ?, ?)
-                `, [poId, item.product_id, item.variant_id, item.qty, item.cost]);
+                `, [poId, item.product_id, item.variant_id, qty, cost]);
             } else {
-                // Raw Material Item (item.id is variant_id)
-                // Fetch parent material ID first
-                const [vData] = await conn.query("SELECT raw_material_id FROM raw_material_variants WHERE id = ?", [item.id]);
-                const parentId = vData[0]?.raw_material_id;
+                // Raw Material Item Logic
+                const targetVariantId = item.variant_id || item.id;
 
+                if (!targetVariantId) {
+                    throw new Error("Missing Variant ID for a material item.");
+                }
+
+                // Fetch parent material ID first
+                const [vData] = await conn.query("SELECT raw_material_id FROM raw_material_variants WHERE id = ?", [targetVariantId]);
+                
+                if (vData.length === 0) {
+                    throw new Error(`Material Variant ID ${targetVariantId} not found in database.`);
+                }
+
+                const parentId = vData[0].raw_material_id;
+
+                // [FIX 4] Added product_id = 0 to satisfy Strict SQL Mode
                 await conn.query(`
-                    INSERT INTO purchase_order_items (po_id, raw_material_id, raw_material_variant_id, quantity, buying_price)
-                    VALUES (?, ?, ?, ?, ?)
-                `, [poId, parentId, item.id, item.qty, item.cost]);
+                    INSERT INTO purchase_order_items (po_id, product_id, raw_material_id, raw_material_variant_id, quantity, buying_price)
+                    VALUES (?, 0, ?, ?, ?, ?)
+                `, [poId, parentId, targetVariantId, qty, cost]);
             }
         }
 
@@ -182,13 +202,13 @@ exports.createPurchaseOrder = async (req, res) => {
         if (payment && paidAmount > 0) {
             await conn.query("UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?", [paidAmount, payment.accountId]);
             
-            // --- NEW: Generate Internal NB TRX ID ---
+            // Generate Internal NB TRX ID
             const [settings] = await conn.query("SELECT last_nb_trx_sequence FROM shop_settings LIMIT 1");
             const nextSeq = (settings[0].last_nb_trx_sequence || 0) + 1;
             const nbTrxId = `NBTRX${String(nextSeq).padStart(4, '0')}`;
             await conn.query("UPDATE shop_settings SET last_nb_trx_sequence = ?", [nextSeq]);
 
-            // Record Payment Log (Saving both IDs)
+            // Record Payment Log
             await conn.query(`
                 INSERT INTO vendor_payments (nb_trx_id, po_id, account_id, amount, payment_date, created_by, trx_id, note)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -200,8 +220,8 @@ exports.createPurchaseOrder = async (req, res) => {
 
     } catch (err) {
         await conn.rollback();
-        console.error(err);
-        res.status(500).json({ error: "Failed to create PO" });
+        console.error("Create PO Error:", err);
+        res.status(500).json({ error: err.message });
     } finally {
         conn.release();
     }

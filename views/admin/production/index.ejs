@@ -42,6 +42,8 @@
         </div>
 
         <form action="/admin/production/finalize/<%= run.id %>" method="POST" onsubmit="return confirm('Confirm production completion? This will deduct raw materials and add finished stock.')">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
             <button type="submit" class="w-full mt-2 bg-gray-900 text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-800 flex items-center justify-center gap-2">
                 <span class="material-icons-outlined text-[16px]">check_circle</span>
                 Complete & Stock
