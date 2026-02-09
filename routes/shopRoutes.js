@@ -9,7 +9,7 @@ const customerAccountController = require('../controllers/customerAccountControl
 router.get('/', shopController.getHome);
 router.get('/shop', shopController.getShop);
 router.post('/shop/filter', express.json(), shopController.filterProducts);
-router.get('/product/:slug', shopController.getProduct);
+router.get('/product/:sku', shopController.getProduct); // Changed :slug to :sku
 router.get('/pages/:page', shopController.getPage);
 
 // --- CART & CHECKOUT ROUTES [ADDED] ---

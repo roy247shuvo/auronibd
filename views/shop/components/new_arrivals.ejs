@@ -11,7 +11,7 @@
         <% if (typeof products !== 'undefined' && products.length > 0) { %>
             <% products.forEach(product => { %>
                 <div class="snap-center shrink-0 w-44 md:w-56 group relative">
-                    <a href="/product/<%= product.slug %>" class="block aspect-[2/3] rounded-lg overflow-hidden bg-gray-100 relative shadow-sm border border-gray-100">
+                    <a href="/product/<%= product.sku %>" class="block aspect-[2/3] rounded-lg overflow-hidden bg-gray-100 relative shadow-sm border border-gray-100">
                         <% 
                            // Fix logic: Ensure path has leading slash if missing
                            let imgUrl = product.image_url || '/uploads/placeholder.jpg';
@@ -35,15 +35,15 @@
                             <% } %>
                         </div>
                         
-                        <a href="/product/<%= product.slug %>" 
+                        <a href="/product/<%= product.sku %>" 
                            class="mt-2 block w-full border border-gray-900 text-gray-900 bg-transparent hover:bg-gray-900 hover:text-white text-[10px] uppercase font-bold py-2 transition-colors tracking-widest">
-                            View Details
+                             বিস্তারিত দেখুন
                         </a>
                     </div>
                 </div>
             <% }) %>
         <% } else { %>
-            <div class="w-full text-center py-10 text-gray-400">No new products available right now.</div>
+            <div class="w-full text-center py-10 text-gray-400">আপাতত নতুন কিছু নেই</div>
         <% } %>
     </div>
 </div>

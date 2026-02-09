@@ -332,9 +332,9 @@ exports.filterProducts = async (req, res) => {
 // 4. SINGLE PRODUCT PAGE
 exports.getProduct = async (req, res) => {
     try {
-        const slug = req.params.slug;
+        const sku = req.params.sku; // Capture SKU from URL
         
-        // 1. Fetch Product with ALL details (Brand Logo, Fabric, Work Type, etc.)
+        // 1. Fetch Product with ALL details
         const [products] = await db.query(`
             SELECT p.*, 
                    b.name as brand_name, b.logo_image as brand_logo, 
@@ -350,8 +350,8 @@ exports.getProduct = async (req, res) => {
             LEFT JOIN fabrics f ON p.fabric_id = f.id
             LEFT JOIN work_types w ON p.work_type_id = w.id
             LEFT JOIN special_features s ON p.special_feature_id = s.id
-            WHERE p.slug = ? AND p.is_online = 'yes'`, 
-            [slug]
+            WHERE p.sku = ? AND p.is_online = 'yes'`, // Changed p.slug to p.sku
+            [sku]
         );
 
         if (products.length === 0) return res.status(404).render('error', { message: 'Product not found' });
