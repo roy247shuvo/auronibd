@@ -289,11 +289,13 @@ exports.finalizeRun = async (req, res) => {
         }
 
         // 6. Add Finished Goods Stock (Assets)
-        // [USAGE] Now we can safely use finalUnitCost here
+        // [FIX] Generated Batch Number AND added 'initial_quantity'
+        const batchNumber = `BATCH-${r.run_number}`;
+
         await conn.query(`
-            INSERT INTO inventory_batches (product_id, variant_id, buying_price, remaining_quantity, production_run_id, is_active)
-            VALUES (?, ?, ?, ?, ?, 1)
-        `, [r.target_product_id, r.target_variant_id, finalUnitCost, r.quantity_produced, id]);
+            INSERT INTO inventory_batches (product_id, variant_id, batch_number, buying_price, initial_quantity, remaining_quantity, production_run_id, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+        `, [r.target_product_id, r.target_variant_id, batchNumber, finalUnitCost, r.quantity_produced, r.quantity_produced, id]);
 
         // 7. Update Live Stock Counters
         await conn.query(`UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?`, [r.quantity_produced, r.target_variant_id]);
