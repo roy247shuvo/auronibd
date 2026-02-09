@@ -325,7 +325,7 @@ exports.placeOrder = async (req, res) => {
         // === NEW: FINAL STOCK CHECK ===
         const variantIdsCheck = cartSession.map(item => item.variantId);
         if (variantIdsCheck.length > 0) {
-            // [UPDATED] Get Stock AND Pre-Order Status
+            // [FIX] Fetch 'is_preorder' to bypass checks
             const [stockCheck] = await db.query(
                 `SELECT pv.id, pv.stock_quantity, p.name, p.is_preorder
                  FROM product_variants pv 
@@ -344,27 +344,14 @@ exports.placeOrder = async (req, res) => {
 
                 // Condition 2: Not enough stock (SKIP IF PRE-ORDER)
                 if (dbVariant.is_preorder !== 'yes' && dbVariant.stock_quantity < item.quantity) {
-                    // Custom "You Missed It" Screen with Animation
+                    // Custom "You Missed It" Screen
                     return res.send(`
                         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif; text-align:center; background:#fff;">
                             <div style="font-size:100px; animation: sadBounce 2s infinite; margin-bottom: 20px;">😢</div>
-                            
                             <h2 style="font-size:24px; font-weight:bold; color:#1f2937; margin:0;">Oh no!</h2>
                             <p style="font-size:18px; color:#4b5563; margin-top:10px;">Someone bought this 28 sec ago. You just missed it.</p>
-                            
-                            <p style="font-size:14px; color:#9ca3af; margin-top:5px;">Item: ${dbVariant.name}</p>
-
-                            <a href="/cart" style="margin-top:30px; padding:12px 25px; background:#000; color:#fff; text-decoration:none; border-radius:5px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">
-                                Return to Cart
-                            </a>
-
-                            <style>
-                                @keyframes sadBounce {
-                                    0%, 20%, 50%, 80%, 100% {transform: translateY(0) rotate(0deg);}
-                                    40% {transform: translateY(-20px) rotate(-5deg);}
-                                    60% {transform: translateY(-10px) rotate(5deg);}
-                                }
-                            </style>
+                            <a href="/cart" style="margin-top:30px; padding:12px 25px; background:#000; color:#fff; text-decoration:none; border-radius:5px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">Return to Cart</a>
+                            <style>@keyframes sadBounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-20px);} 60% {transform: translateY(-10px);} }</style>
                         </div>
                     `);
                 }

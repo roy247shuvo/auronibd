@@ -374,6 +374,8 @@ exports.getProduct = async (req, res) => {
 
         // 2. Fetch Assets (Images & Variants)
         const [images] = await db.query("SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC", [product.id]);
+        
+        // [FIX] Removed 'AND stock_quantity > 0' so Pre-Order variants are actually loaded
         const [variants] = await db.query("SELECT * FROM product_variants WHERE product_id = ? ORDER BY size ASC", [product.id]);
 
         // 3. Fetch Hex Codes for Colors
