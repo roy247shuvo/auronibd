@@ -178,6 +178,21 @@
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 space-y-4">
             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Organization</h3>
             
+            <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-4">
+                <label class="flex items-center justify-between cursor-pointer group">
+                    <span class="text-xs font-bold text-indigo-900 uppercase">Enable Pre-Order?</span>
+                    <div class="relative">
+                        <input type="checkbox" name="is_preorder" value="yes" class="peer sr-only" 
+                            <%= (typeof p !== 'undefined' && p.is_preorder === 'yes') ? 'checked' : '' %>>
+                        <div class="block bg-gray-300 w-10 h-6 rounded-full peer-checked:bg-indigo-600 transition"></div>
+                        <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition peer-checked:translate-x-full"></div>
+                    </div>
+                </label>
+                <p class="text-[10px] text-indigo-600 mt-2 leading-tight">
+                    If enabled, customers can order this item even if stock is 0. Standard "Sold Out" logic will be disabled.
+                </p>
+            </div>
+            
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Sales Channel</label>
                 <select name="sales_channel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">

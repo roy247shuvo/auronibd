@@ -85,6 +85,7 @@
     <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4 mb-4">
         <% 
         const visibleStatuses = [
+            'pre_order', // <--- Add Here
             'pending', 'incomplete', 'hold', 'confirmed', 
             'RTS', 'shipped', 'delivered', 
             'Partially_Delivered', 'Pending_return', 'Returned', 
@@ -93,6 +94,7 @@
         ];
         
         const statusColors = {
+            'pre_order': 'bg-indigo-100 text-indigo-900 border-indigo-200 font-bold', // <--- Add Style
             'pending': 'bg-yellow-100 text-yellow-700 border-yellow-200',
             'incomplete': 'bg-red-100 text-red-700 border-red-200',
             'hold': 'bg-pink-100 text-pink-700 border-pink-200',
@@ -534,6 +536,7 @@
 
     // --- 1. STATUS FLOW RULES ---
     const allowedTransitions = {
+        'pre_order': ['confirmed', 'cancelled', 'hold'], // <--- Allow admin to Confirm it
         'pending': ['confirmed', 'hold', 'cancelled'],
         'hold': ['RTS', 'cancelled'],
         'confirmed': ['hold', 'RTS', 'cancelled'],

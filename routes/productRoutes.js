@@ -15,7 +15,7 @@ router.get('/view/:id', checkPermission('prod_inventory'), productAjaxController
 router.get('/variant/edit/:id', checkPermission('prod_inventory'), productAjaxController.getEditVariantForm);
 router.get('/delete/:id', checkPermission('prod_inventory'), productController.deleteProduct);
 
-router.post('/update', checkPermission('prod_inventory'), productAjaxController.updateProduct);
+router.post('/update', checkPermission('prod_inventory'), productController.updateProduct);
 router.post('/variant/update', checkPermission('prod_inventory'), productAjaxController.updateVariant);
 router.get('/variants/json/:id', checkPermission('prod_inventory'), productAjaxController.getProductVariantsJSON);
 

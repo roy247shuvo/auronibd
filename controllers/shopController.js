@@ -374,7 +374,7 @@ exports.getProduct = async (req, res) => {
 
         // 2. Fetch Assets (Images & Variants)
         const [images] = await db.query("SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC", [product.id]);
-        const [variants] = await db.query("SELECT * FROM product_variants WHERE product_id = ? AND stock_quantity > 0 ORDER BY size ASC", [product.id]);
+        const [variants] = await db.query("SELECT * FROM product_variants WHERE product_id = ? ORDER BY size ASC", [product.id]);
 
         // 3. Fetch Hex Codes for Colors
         const [allColors] = await db.query("SELECT name, hex_code FROM colors");

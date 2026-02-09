@@ -150,7 +150,7 @@ exports.getCheckout = async (req, res) => {
         
         // FIX: Prioritize image matching the variant color
         const [variants] = await db.query(`
-            SELECT pv.*, p.name as product_name, p.regular_price, p.sale_price, 
+            SELECT pv.*, p.name as product_name, p.regular_price, p.sale_price, p.is_preorder, 
             (SELECT image_url FROM product_images pi 
              WHERE pi.product_id = p.id 
              ORDER BY (pi.color_name = pv.color) DESC, sort_order ASC 
@@ -190,11 +190,15 @@ exports.getCheckout = async (req, res) => {
             }, req);
         }
 
+        // Check if ANY item in cart is a preorder item
+        const isPreOrder = cartItems.some(item => item.is_preorder === 'yes');
+
         res.render('shop/pages/checkout', {
             title: 'Checkout',
             layout: 'shop/layout',
             cartItems,
             subtotal,
+            isPreOrder, // <--- Pass Flag
             settings: settings[0],
             categories, brands, colors, collections
         });
@@ -233,7 +237,11 @@ exports.captureIncomplete = async (req, res) => {
         
         // Calculate Totals
         const variantIds = cartSession.map(item => item.variantId);
-        const [variants] = await db.query(`SELECT pv.*, p.name, p.regular_price, p.sale_price FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE pv.id IN (?)`, [variantIds]);
+        // [AFTER] (Fetch is_preorder)
+        const [variants] = await db.query(`SELECT pv.*, p.name, p.regular_price, p.sale_price, p.is_preorder FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE pv.id IN (?)`, [variantIds]);
+        
+        // Detect PreOrder
+        const isPreOrderOrder = variants.some(v => v.is_preorder === 'yes');
         
         let product_subtotal = 0;
         const orderItemsData = [];
@@ -317,10 +325,12 @@ exports.placeOrder = async (req, res) => {
         // === NEW: FINAL STOCK CHECK ===
         const variantIdsCheck = cartSession.map(item => item.variantId);
         if (variantIdsCheck.length > 0) {
-            // Get fresh stock data directly from DB
+            // [UPDATED] Get Stock AND Pre-Order Status
             const [stockCheck] = await db.query(
-                `SELECT id, stock_quantity, (SELECT name FROM products WHERE id = product_variants.product_id) as name 
-                 FROM product_variants WHERE id IN (?)`, 
+                `SELECT pv.id, pv.stock_quantity, p.name, p.is_preorder
+                 FROM product_variants pv 
+                 JOIN products p ON pv.product_id = p.id
+                 WHERE pv.id IN (?)`, 
                 [variantIdsCheck]
             );
 
@@ -332,8 +342,8 @@ exports.placeOrder = async (req, res) => {
                     return res.send(`Sorry, one of the items in your cart is no longer available.`);
                 }
 
-                // Condition 2: Not enough stock
-                if (dbVariant.stock_quantity < item.quantity) {
+                // Condition 2: Not enough stock (SKIP IF PRE-ORDER)
+                if (dbVariant.is_preorder !== 'yes' && dbVariant.stock_quantity < item.quantity) {
                     // Custom "You Missed It" Screen with Animation
                     return res.send(`
                         <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif; text-align:center; background:#fff;">
@@ -367,8 +377,12 @@ exports.placeOrder = async (req, res) => {
         const advanceRequired = settings[0].checkout_advance_delivery === 'yes';
 
         const variantIds = cartSession.map(item => item.variantId);
-        const [variants] = await db.query(`SELECT pv.*, p.name, p.regular_price, p.sale_price FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE pv.id IN (?)`, [variantIds]);
+        // [UPDATED] Fetch is_preorder column
+        const [variants] = await db.query(`SELECT pv.*, p.name, p.regular_price, p.sale_price, p.is_preorder FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE pv.id IN (?)`, [variantIds]);
         
+        // [NEW] Detect if this is a Pre-Order
+        const isPreOrderOrder = variants.some(v => v.is_preorder === 'yes');
+
         let product_subtotal = 0;
         const orderItemsData = [];
         const stockUpdates = [];
@@ -396,7 +410,11 @@ exports.placeOrder = async (req, res) => {
 
         // Determine initial status
         let initialStatus = 'pending';
-        if (payment_method === 'cod') initialStatus = advanceRequired ? 'hold' : 'pending';
+        if (isPreOrderOrder) {
+            initialStatus = 'pre_order'; // Force Pre-Order Status
+        } else if (payment_method === 'cod') {
+            initialStatus = advanceRequired ? 'hold' : 'pending';
+        }
 
         // --- NEW LOGIC: Check for Incomplete Order to Convert ---
         const [incompleteOrder] = await db.query(`SELECT id FROM orders WHERE guest_phone = ? AND status = 'incomplete' LIMIT 1`, [phone]);
@@ -515,6 +533,14 @@ exports.placeOrder = async (req, res) => {
         }, req);
 
         // 3. Payment Redirect Logic
+        
+        // [NEW] BYPASS FOR PRE-ORDER
+        if (isPreOrderOrder) {
+            req.session.allowed_order = order_number;
+            return req.session.save(() => res.redirect('/order-confirmation/' + order_number));
+        }
+
+        // Standard Logic
         let amountToPay = 0;
         if (payment_method === 'bkash') amountToPay = total_amount;
         else if (payment_method === 'cod' && advanceRequired) amountToPay = Number(rate);

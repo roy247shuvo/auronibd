@@ -54,17 +54,18 @@ exports.saveProduct = async (req, res) => {
 
         const { 
             name, description, price, compare_price, sku, sales_channel, 
-            brand_id, type_id, category_id, collection_id, work_type_id, fabric_id, special_feature_id, // Added special_feature_id
+            brand_id, type_id, category_id, collection_id, work_type_id, fabric_id, special_feature_id, 
+            is_preorder, // <--- ADD THIS
             track_stock,
-            variant_color, variant_size, variant_price, variant_compare, variant_sku, variant_qty, // Removed variant_cost
+            variant_color, variant_size, variant_price, variant_compare, variant_sku, variant_qty, 
             image_map_json 
         } = req.body;
 
         // 1. Insert Main Product
         const [prodResult] = await conn.query(`
             INSERT INTO products 
-            (name, slug, description, regular_price, sale_price, cost_price, sku, sales_channel, brand_id, type_id, category_id, collection_id, work_type_id, fabric_id, special_feature_id, stock_quantity)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, slug, description, regular_price, sale_price, cost_price, sku, sales_channel, brand_id, type_id, category_id, collection_id, work_type_id, fabric_id, special_feature_id, is_preorder, stock_quantity)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             name, 
             name.toLowerCase().replace(/ /g, '-') + '-' + Date.now(), 
@@ -80,7 +81,8 @@ exports.saveProduct = async (req, res) => {
             collection_id || null,
             work_type_id || null,
             fabric_id || null,
-            special_feature_id || null, // Added param
+            special_feature_id || null,
+            is_preorder || 'no', // <--- ADD THIS
             0
         ]);
 
@@ -91,53 +93,31 @@ exports.saveProduct = async (req, res) => {
             const imageMap = JSON.parse(image_map_json); 
             for (const [colorName, urls] of Object.entries(imageMap)) {
                 for (let i = 0; i < urls.length; i++) {
-                    await conn.query(`
-                        INSERT INTO product_images (product_id, color_name, image_url, sort_order)
-                        VALUES (?, ?, ?, ?)
-                    `, [productId, colorName, urls[i], i]);
+                    await conn.query(`INSERT INTO product_images (product_id, color_name, image_url, sort_order) VALUES (?, ?, ?, ?)`, [productId, colorName, urls[i], i]);
                 }
             }
         }
 
-        // 3. Insert Variants (UPDATED to include Cost & Compare Price)
+        // 3. Insert Variants
         if (variant_sku && variant_sku.length > 0) {
-            // Helper to handle single vs array input
             const toArray = (val) => Array.isArray(val) ? val : [val];
-
             const skus = toArray(variant_sku);
             const colors = toArray(variant_color);
             const sizes = toArray(variant_size);
             const prices = toArray(variant_price);
             const compares = toArray(variant_compare); 
-            // REMOVED: costs & qtys array retrieval since they are not in body
 
-            let totalStock = 0; // Will always be 0 initially
+            let totalStock = 0;
 
             for (let i = 0; i < skus.length; i++) {
-                const qty = 0; // Force 0 as per requirement
-                // totalStock += qty; // Remained 0
-
-                await conn.query(`
-                    INSERT INTO product_variants (product_id, color, size, sku, price, compare_price, cost_price, stock_quantity)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `, [
-                    productId, 
-                    colors[i] || 'N/A', 
-                    sizes[i] || 'N/A', 
-                    skus[i], 
-                    prices[i] || price, 
-                    compares[i] || 0,    
-                    0,       // <--- Forced 0 for Cost Price
-                    qty      // <--- Forced 0 for Stock
-                ]);
+                const qty = 0; 
+                await conn.query(`INSERT INTO product_variants (product_id, color, size, sku, price, compare_price, cost_price, stock_quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+                [productId, colors[i] || 'N/A', sizes[i] || 'N/A', skus[i], prices[i] || price, compares[i] || 0, 0, qty]);
             }
-
-            // Update Total Stock Cache
             await conn.query("UPDATE products SET stock_quantity = ? WHERE id = ?", [totalStock, productId]);
         }
 
         await conn.commit();
-        // Redirect with ID to trigger Print Modal
         res.redirect('/admin/products?new_product_id=' + productId);
 
     } catch (error) {
@@ -171,10 +151,12 @@ exports.updateProduct = async (req, res) => {
     try {
         await conn.beginTransaction();
 
-        // 1. Extract Data (Added special_feature_id)
+        // 1. Extract Data
         const { 
             id, name, description, price, compare_price, sku, sales_channel,
-            brand_id, type_id, category_id, collection_id, work_type_id, fabric_id, special_feature_id, // [NEW]
+            brand_id, type_id, category_id, collection_id, work_type_id, fabric_id, 
+            special_feature_id, 
+            is_preorder, // <--- 1. EXTRACT THIS
             track_stock, image_map_json 
         } = req.body;
 
@@ -182,14 +164,14 @@ exports.updateProduct = async (req, res) => {
         await conn.query(`
             UPDATE products 
             SET name=?, description=?, regular_price=?, sale_price=?, cost_price=?, sku=?, sales_channel=?, 
-            brand_id=?, type_id=?, category_id=?, collection_id=?, work_type_id=?, fabric_id=?, special_feature_id=?, stock_quantity=?
+            brand_id=?, type_id=?, category_id=?, collection_id=?, work_type_id=?, fabric_id=?, special_feature_id=?, is_preorder=?, stock_quantity=?
             WHERE id=?
         `, [
             name, 
             description, 
             compare_price || 0, 
             price, 
-            0, // Cost Price 0
+            0, 
             sku, 
             sales_channel,
             brand_id || null, 
@@ -198,29 +180,24 @@ exports.updateProduct = async (req, res) => {
             collection_id || null, 
             work_type_id || null, 
             fabric_id || null, 
-            special_feature_id || null, // [NEW] Save the ID
-            0, // Stock (managed by variants)
+            special_feature_id || null, 
+            is_preorder || 'no', // <--- 2. PASS VALUE (Defaults to 'no' if unchecked)
+            0, 
             id
         ]);
 
         // 3. Update Images (If changed)
         if (image_map_json) {
-            // First, delete existing images to avoid duplicates or orphaned files
             await conn.query("DELETE FROM product_images WHERE product_id = ?", [id]);
-
             const imageMap = JSON.parse(image_map_json); 
             for (const [colorName, urls] of Object.entries(imageMap)) {
                 for (let i = 0; i < urls.length; i++) {
-                    await conn.query(`
-                        INSERT INTO product_images (product_id, color_name, image_url, sort_order)
-                        VALUES (?, ?, ?, ?)
-                    `, [id, colorName, urls[i], i]);
+                    await conn.query(`INSERT INTO product_images (product_id, color_name, image_url, sort_order) VALUES (?, ?, ?, ?)`, [id, colorName, urls[i], i]);
                 }
             }
         }
 
-        // 4. Update Variants (New logic: Delete old, Insert new)
-        // This is safer than trying to update individual rows dynamically
+        // 4. Update Variants
         if (req.body.variant_sku && req.body.variant_sku.length > 0) {
             await conn.query("DELETE FROM product_variants WHERE product_id = ?", [id]);
 
@@ -230,29 +207,14 @@ exports.updateProduct = async (req, res) => {
             const sizes = toArray(req.body.variant_size);
             const prices = toArray(req.body.variant_price);
             const compares = toArray(req.body.variant_compare);
-            // const qtys = toArray(req.body.variant_qty); // If you were editing qty
 
             let totalStock = 0;
 
             for (let i = 0; i < skus.length; i++) {
-                const qty = 0; // Keeping 0 as per your saveProduct logic
-                
-                await conn.query(`
-                    INSERT INTO product_variants (product_id, color, size, sku, price, compare_price, cost_price, stock_quantity)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `, [
-                    id, 
-                    colors[i] || 'N/A', 
-                    sizes[i] || 'N/A', 
-                    skus[i], 
-                    prices[i] || price, 
-                    compares[i] || 0, 
-                    0, 
-                    qty
-                ]);
+                const qty = 0; 
+                await conn.query(`INSERT INTO product_variants (product_id, color, size, sku, price, compare_price, cost_price, stock_quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+                [id, colors[i] || 'N/A', sizes[i] || 'N/A', skus[i], prices[i] || price, compares[i] || 0, 0, qty]);
             }
-            
-            // Recalculate stock cache
             await conn.query("UPDATE products SET stock_quantity = ? WHERE id = ?", [totalStock, id]);
         }
 

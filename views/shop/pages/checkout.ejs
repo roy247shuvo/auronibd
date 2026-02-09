@@ -11,8 +11,10 @@
     <form action="/checkout/place-order" method="POST" 
           <form action="/checkout/place-order" method="POST" 
           x-data="{ 
-              area: 'inside', 
-              paymentMethod: 'cod', 
+            area: 'inside', 
+            paymentMethod: 'cod',
+            isPreOrder: <%= isPreOrder ? 'true' : 'false' %>, 
+            showPreOrderModal: false, 
               /* NEW LINE: If DB is 'yes', use 'yes'. If NULL or anything else, use 'no' */
               advanceRequired: '<%= settings.checkout_advance_delivery === "yes" ? "yes" : "no" %>',
               insideRate: <%= settings.delivery_inside_dhaka %>, 
@@ -161,16 +163,36 @@
                     </div>
                 </div>
 
-                <button type="submit" class="w-full bg-black text-white text-xs font-bold uppercase tracking-[0.2em] py-5 mt-8 hover:bg-gray-800 transition shadow-lg rounded-sm flex items-center justify-center gap-2 group">
-                    
-                    <span x-text="
-                        (paymentMethod === 'cod' && advanceRequired === 'no') 
-                        ? 'Confirm Order' 
-                        : 'Confirm and Pay TK. ' + (paymentMethod === 'cod' ? (area === 'inside' ? insideRate : outsideRate) : (subtotal + (area === 'inside' ? insideRate : outsideRate)))
-                    "></span>
-
-                    <span class="material-icons-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                </button>
+                <template x-if="!isPreOrder">
+                    <button type="submit" class="w-full bg-black text-white text-xs font-bold uppercase tracking-[0.2em] py-5 mt-8 hover:bg-gray-800 transition shadow-lg rounded-sm flex items-center justify-center gap-2 group">
+                        <span x-text="(paymentMethod === 'cod' && advanceRequired === 'no') ? 'Confirm Order' : 'Confirm and Pay TK. ' + (paymentMethod === 'cod' ? (area === 'inside' ? insideRate : outsideRate) : (subtotal + (area === 'inside' ? insideRate : outsideRate)))"></span>
+                        <span class="material-icons-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </button>
+                </template>
+                
+                <template x-if="isPreOrder">
+                    <button type="button" @click="showPreOrderModal = true" class="w-full bg-indigo-900 text-white text-xs font-bold uppercase tracking-[0.2em] py-5 mt-8 hover:bg-indigo-800 transition shadow-lg rounded-sm flex items-center justify-center gap-2 group">
+                        <span>Pre Order Now</span>
+                        <span class="material-icons-outlined text-sm">watch_later</span>
+                    </button>
+                </template>
+                
+                <div x-show="showPreOrderModal" class="fixed inset-0 z-50 flex items-center justify-center px-4" style="display: none;">
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showPreOrderModal = false"></div>
+                    <div class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full relative z-10 text-center">
+                        <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="material-icons-outlined text-3xl text-indigo-600">info</span>
+                        </div>
+                        <h3 class="font-bold text-xl text-gray-900 mb-2">Pre-Order Confirmation</h3>
+                        <p class="text-sm text-gray-600 mb-6 leading-relaxed">
+                            প্রি-অর্ডার আইটেমের জন্য আপনাকে মূল্য অগ্রিম পরিশোধ করতে হবে। আমাদের টিম পেমেন্টের জন্য আপনার সাথে যোগাযোগ করবে এবং আনুমানিক ডেলিভারি তারিখ জানিয়ে দেবে।
+                        </p>
+                        <div class="flex gap-3">
+                            <button type="button" @click="showPreOrderModal = false" class="flex-1 py-3 border border-gray-200 text-gray-700 font-bold text-xs uppercase rounded hover:bg-gray-50">Cancel</button>
+                            <button type="submit" class="flex-1 py-3 bg-indigo-900 text-white font-bold text-xs uppercase rounded hover:bg-indigo-800">Confirm</button>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="mt-6 flex justify-center gap-4 opacity-50 grayscale">
                     <span class="material-icons-outlined">verified_user</span>
