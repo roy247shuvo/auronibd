@@ -21,7 +21,7 @@
 
     <div class="flex flex-col lg:flex-row gap-12">
         
-        <aside class="hidden lg:block w-64 flex-shrink-0 h-[calc(100vh-150px)] sticky top-32 overflow-y-auto custom-scrollbar pr-4">
+        <aside class="hidden lg:block w-72 flex-shrink-0 h-[calc(100vh-150px)] sticky top-32 overflow-y-auto custom-scrollbar p-6 bg-white rounded-xl shadow-sm border border-gray-100">
             <div class="flex items-center justify-between mb-8 pb-2 border-b border-gray-100">
                 <span class="font-serif text-lg italic text-black">Refine By</span>
                 <button @click="resetFilters()" class="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">Clear</button>
@@ -209,7 +209,24 @@
                 fabrics: [],
                 work_types: [],
                 colors: [],
-                collections: []
+                collections: [],
+                specials: []
+            },
+            // [NEW] Helper for Single Select + Toggle behavior
+            toggleFilter(key, value) {
+                // Ensure value is a string for comparison
+                const strVal = String(value);
+                
+                // If already selected, Deselect it (Clear array)
+                if (this.filters[key].includes(strVal)) {
+                    this.filters[key] = [];
+                } else {
+                    // Otherwise, Select ONLY this one (Replace array)
+                    this.filters[key] = [strVal];
+                }
+                
+                // Fetch results
+                this.fetchProducts(true);
             },
             init() {
                 // Initialize Filters from URL
