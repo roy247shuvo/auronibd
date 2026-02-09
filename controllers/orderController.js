@@ -231,7 +231,29 @@ exports.createManualOrder = async (req, res) => {
         `, [temp_ref, nbTrxId, depositAccountId, customer_id, name, phone, address, delivery_area, shipping_rate, product_subtotal, total_amount, status, order_source, finalNote, advance, capturedFee]);
 
         const order_id = orderResult.insertId;
-        const order_number = 'NB-ON' + String(order_id).padStart(5, '0');
+
+        // [ROBUST GENERATOR] Use AR- Format for Manual Orders too
+        // 1. Get count from Settings
+        const [seqSettings] = await conn.query("SELECT last_trx_sequence FROM shop_settings LIMIT 1");
+        let settingsSeq = seqSettings[0].last_trx_sequence || 0;
+
+        // 2. Get ACTUAL highest AR- number from DB
+        const [maxOrder] = await conn.query(`
+            SELECT CAST(SUBSTRING(order_number, 4) AS UNSIGNED) as max_num 
+            FROM orders 
+            WHERE order_number LIKE 'AR-%' 
+            ORDER BY max_num DESC LIMIT 1
+        `);
+        let dbMax = maxOrder.length > 0 ? (maxOrder[0].max_num || 0) : 0;
+
+        // 3. Calculate Next
+        let nextSeq = Math.max(settingsSeq, dbMax) + 1;
+        if (nextSeq < 13) nextSeq = 13;
+
+        const order_number = 'AR-' + String(nextSeq).padStart(5, '0');
+
+        // 4. Update
+        await conn.query("UPDATE shop_settings SET last_trx_sequence = ?", [nextSeq]);
         await conn.query("UPDATE orders SET order_number = ? WHERE id = ?", [order_number, order_id]);
 
         // 6. Insert Items & Deduct Stock
@@ -373,6 +395,12 @@ exports.bulkUpdateStatus = async (req, res) => {
 
             // === STRICT STATE MACHINE ===
             switch (current) {
+                // [FIX] Added Pre-Order Logic
+                case 'pre_order':
+                    // From Pre-Order -> Confirmed, Hold, Cancelled
+                    if (['confirmed', 'hold', 'cancelled'].includes(new_status)) isValid = true;
+                    break;
+
                 case 'pending':
                     // From Pending -> Hold, Confirmed, Cancelled
                     if (['hold', 'confirmed', 'cancelled'].includes(new_status)) isValid = true;

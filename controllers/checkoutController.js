@@ -456,18 +456,28 @@ exports.placeOrder = async (req, res) => {
             order_id = orderResult.insertId;
         }
 
-        // [NEW] Generate Permanent Order Number (AR-00013 Start)
-        // We use 'last_trx_sequence' from settings so it continues even if you delete orders
+        // [ROBUST GENERATOR] Fixes Duplicates & Manual SQL Inserts
+        // 1. Get count from Settings
         const [seqSettings] = await db.query("SELECT last_trx_sequence FROM shop_settings LIMIT 1");
-        let lastSeq = seqSettings[0].last_trx_sequence || 0;
+        let settingsSeq = seqSettings[0].last_trx_sequence || 0;
 
-        // Logic: If counter is 0 or low, force it to start at 12 (so next is 13)
-        if (lastSeq < 12) lastSeq = 12; 
-        const nextSeq = lastSeq + 1;
+        // 2. Get ACTUAL highest AR- number from DB (The fail-safe)
+        const [maxOrder] = await db.query(`
+            SELECT CAST(SUBSTRING(order_number, 4) AS UNSIGNED) as max_num 
+            FROM orders 
+            WHERE order_number LIKE 'AR-%' 
+            ORDER BY max_num DESC LIMIT 1
+        `);
+        let dbMax = maxOrder.length > 0 ? (maxOrder[0].max_num || 0) : 0;
+
+        // 3. Pick the HIGHER one and increment
+        // This ensures if DB has AR-00020 but settings says 15, we jump to 21
+        let nextSeq = Math.max(settingsSeq, dbMax) + 1;
+        if (nextSeq < 13) nextSeq = 13; // Minimum start
 
         const order_number = 'AR-' + String(nextSeq).padStart(5, '0');
 
-        // Update the counter and the order
+        // 4. Update everything
         await db.query("UPDATE shop_settings SET last_trx_sequence = ?", [nextSeq]);
         await db.query("UPDATE orders SET order_number = ? WHERE id = ?", [order_number, order_id]);
 
