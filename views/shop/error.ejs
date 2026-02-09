@@ -1,0 +1,53 @@
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Galada&family=Hind+Siliguri:wght@300;400;500;600&display=swap');
+    
+    .font-bangla-title { font-family: 'Galada', cursive; }
+    .font-bangla-body { font-family: 'Hind Siliguri', sans-serif; }
+    
+    /* Animation Utilities */
+    @keyframes float { 
+        0%, 100% { transform: translateY(0) rotate(0deg); } 
+        50% { transform: translateY(-20px) rotate(5deg); } 
+    }
+    .animate-float { animation: float 6s ease-in-out infinite; }
+    .animate-float-delayed { animation: float 7s ease-in-out infinite 1s; }
+    @keyframes spin-slow { to { transform: rotate(360deg); } }
+    .animate-spin-slow { animation: spin-slow 12s linear infinite; }
+</style>
+
+<div class="bg-[#FFFBF0] py-32 flex items-center justify-center relative overflow-hidden font-bangla-body min-h-[60vh]">
+
+    <div class="absolute top-10 left-10 text-pink-200 text-6xl opacity-50 animate-float pointer-events-none">🌸</div>
+    <div class="absolute bottom-20 right-10 text-pink-300 text-8xl opacity-40 animate-float-delayed pointer-events-none">🌺</div>
+    <div class="absolute top-1/2 left-20 text-red-100 text-4xl opacity-60 animate-spin-slow pointer-events-none">🏵️</div>
+    <div class="absolute top-20 right-1/3 text-pink-100 text-5xl opacity-50 animate-float pointer-events-none">💮</div>
+
+    <div class="bg-white/80 backdrop-blur-md p-10 md:p-14 rounded-2xl shadow-xl text-center max-w-lg w-full mx-4 border border-white relative z-10">
+        
+        <div class="mb-6 relative inline-block">
+            <div class="absolute inset-0 bg-red-100 rounded-full animate-ping opacity-20"></div>
+            <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-400 relative z-10">
+                <span class="material-icons-outlined text-4xl">filter_vintage</span>
+            </div>
+        </div>
+
+        <h1 class="font-bangla-title text-4xl text-[#800000] mb-3">দুঃখিত!</h1>
+        
+        <p class="text-gray-600 text-lg mb-8 leading-relaxed">
+            <%= typeof message !== 'undefined' ? message : 'কাঙ্ক্ষিত তথ্যটি খুঁজে পাওয়া যাচ্ছে না।' %>
+        </p>
+
+        <a href="/" class="group relative inline-flex items-center justify-center px-8 py-3 overflow-hidden font-medium tracking-tighter text-white bg-[#800000] rounded-full group transition-all duration-300 hover:bg-red-900 hover:shadow-lg hover:-translate-y-1">
+            <span class="absolute w-0 h-0 transition-all duration-500 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-10"></span>
+            <span class="relative flex items-center gap-2 font-bangla-body">
+                <span class="material-icons-outlined text-sm">home</span>
+                হোমপেজে ফিরে যান
+            </span>
+        </a>
+
+        <div class="mt-8 pt-6 border-t border-gray-100">
+            <p class="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-serif">Auroni • Tradition • Elegance</p>
+        </div>
+    </div>
+
+</div>

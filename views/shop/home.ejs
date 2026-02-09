@@ -1,22 +1,12 @@
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Galada&family=Hind+Siliguri:wght@300;400;500;600&family=Italiana&display=swap');
-
-    .font-bangla-title { font-family: 'Galada', cursive; }
-    .font-bangla-body { font-family: 'Hind Siliguri', sans-serif; }
-    .font-aesthetic { font-family: 'Italiana', serif; }
-
-    /* Animation Utilities */
-    .animate-float-slow { animation: float 6s ease-in-out infinite; }
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+<div class="bg-transparent min-h-screen pb-20 overflow-x-hidden relative">
     
-    /* Hide Scrollbar */
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
+    <% if (typeof bgStyle !== 'undefined') { %>
+        <%- include('components/backgrounds/' + bgStyle) %>
+    <% } %>
 
-<div class="bg-white min-h-screen pb-20 overflow-x-hidden font-bangla-body">
+    <div class="relative z-10 font-bangla-body">
     
-    <%- include('components/hero') %>
+        <%- include('components/hero') %>
 
     <div class="relative py-12 px-6 text-center bg-[#FFFBF0] border-b border-[#800000]/5">
         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-24 bg-[#800000]/5 rounded-full blur-3xl"></div>

@@ -1,0 +1,139 @@
+<%
+    // --- 1. POEM DATA (New Poem) ---
+    const fullPoem = `সখী, ভাবনা কাহারে বলে।
+সখী, যাতনা কাহারে বলে।
+তোমরা যে বলো দিবস-রজনী ‘ভালোবাসা’ ‘ভালোবাসা’—
+সখী, ভালোবাসা কারে কয়! সে কি কেবলই যাতনাময়।
+সে কি কেবলই চোখের জল? সে কি কেবলই দুখের শ্বাস?
+লোকে তবে করে কী সুখেরই তরে এমন দুখের আশ।
+আমার চোখে তো সকলই শোভন,
+সকলই নবীন, সকলই বিমল, সুনীল আকাশ, শ্যামল কানন,
+বিশদ জোছনা, কুসুম কোমল— সকলই আমার মতো।
+তারা কেবলই হাসে, কেবলই গায়, হাসিয়া খেলিয়া মরিতে চায়—
+না জানে বেদন, না জানে রোদন, না জানে সাধের যাতনা যত।
+ফুল সে হাসিতে হাসিতে ঝরে, জোছনা হাসিয়া মিলায়ে যায়,
+হাসিতে হাসিতে আলোকসাগরে আকাশের তারা তেয়াগে কায়।
+আমার মতন সুখী কে আছে। আয় সখী, আয় আমার কাছে—
+সুখী হৃদয়ের সুখের গান শুনিয়া তোদের জুড়াবে প্রাণ।
+প্রতিদিন যদি কাঁদিবি কেবল একদিন নয় হাসিবি তোরা—
+একদিন নয় বিষাদ ভুলিয়া সকলে মিলিয়া গাহিব মোরা।।`;
+
+    // Process Text
+    const allLines = fullPoem.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    // Pick 6 random lines (Less lines for fading style looks better)
+    const chunkLength = 6;
+    const maxStartIndex = Math.max(0, allLines.length - chunkLength);
+    const startIndex = Math.floor(Math.random() * (maxStartIndex + 1));
+    const selectedLines = allLines.slice(startIndex, startIndex + chunkLength);
+%>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Mina:wght@400;700&family=Tiro+Bangla:ital@0;1&display=swap');
+
+    .bg-theme-wrapper-2 {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background-color: #fff9f9; /* Slightly pinkish/warm white */
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    /* Colors */
+    :root {
+        --bd-red: #c92a2a;
+        --bd-orange: #e67700;
+        --bd-purple: #862e9c;
+    }
+
+    /* Fading Text Style */
+    .poem-line-fade {
+        position: absolute;
+        white-space: nowrap;
+        font-family: 'Tiro Bangla', serif;
+        color: rgba(0, 0, 0, 0.08); /* Slightly darker than floating style */
+        font-weight: 500;
+        user-select: none;
+        opacity: 0; /* Start invisible */
+        animation: fadeDream 12s ease-in-out infinite;
+    }
+
+    /* Motifs (Static Fading) */
+    .motif-fade {
+        position: absolute;
+        z-index: 0;
+        mix-blend-mode: multiply;
+        opacity: 0;
+        animation: fadePulse 15s ease-in-out infinite;
+    }
+
+    /* Alpona (Centered Large) */
+    .motif-alpona-2 {
+        top: 50%;
+        left: 50%;
+        width: 90vh;
+        height: 90vh;
+        transform: translate(-50%, -50%);
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23c92a2a' d='M44.7,-76.4C58.9,-69.2,71.8,-59.1,81.6,-46.6C91.4,-34.1,98.1,-19.2,95.8,-5.3C93.5,8.6,82.2,21.5,71.2,32.7C60.2,43.9,49.5,53.4,37.6,61.1C25.7,68.8,12.6,74.7,-0.8,76.1C-14.2,77.5,-29.4,74.4,-42.6,67.3C-55.8,60.2,-67,49.1,-75.1,36.1C-83.2,23.1,-88.2,8.2,-86.3,-5.8C-84.4,-19.8,-75.6,-32.9,-65.4,-44.2C-55.2,-55.5,-43.6,-65,-31.1,-73.2C-18.6,-81.4,-5.2,-88.3,4.4,-95.9L44.7,-76.4Z' opacity='0.3' /%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        filter: blur(1px);
+    }
+
+    /* Flowers (Scattered) */
+    .motif-flower {
+        width: 100px;
+        height: 100px;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23e67700' opacity='0.2'/%3E%3Cpath d='M50 10 Q60 30 50 50 Q40 30 50 10 Z' fill='%23c92a2a'/%3E%3Cpath d='M50 90 Q60 70 50 50 Q40 70 50 90 Z' fill='%23c92a2a'/%3E%3Cpath d='M10 50 Q30 60 50 50 Q30 40 10 50 Z' fill='%23c92a2a'/%3E%3Cpath d='M90 50 Q70 60 50 50 Q70 40 90 50 Z' fill='%23c92a2a'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+    }
+
+    /* Animations */
+    @keyframes fadeDream {
+        0% { opacity: 0; transform: scale(0.95); }
+        50% { opacity: 1; transform: scale(1.05); }
+        100% { opacity: 0; transform: scale(1); }
+    }
+    
+    @keyframes fadePulse {
+        0%, 100% { opacity: 0.02; }
+        50% { opacity: 0.08; }
+    }
+
+</style>
+
+<div class="bg-theme-wrapper-2">
+    
+    <div class="motif-fade motif-alpona-2" style="animation-duration: 20s;"></div>
+
+    <% for(let i=0; i<6; i++) { %>
+        <div class="motif-fade motif-flower" 
+             style="
+                top: <%= Math.random() * 90 %>%;
+                left: <%= Math.random() * 90 %>%;
+                transform: rotate(<%= Math.random() * 360 %>deg) scale(<%= 0.5 + Math.random() %>);
+                animation-delay: -<%= Math.random() * 10 %>s;
+                animation-duration: <%= 10 + Math.random() * 10 %>s;
+             ">
+        </div>
+    <% } %>
+
+    <% selectedLines.forEach((line, index) => { %>
+        <div class="poem-line-fade" 
+             style="
+                /* Random Position logic */
+                top: <%= 10 + (Math.random() * 80) %>%;
+                left: <%= 5 + (Math.random() * 60) %>%; /* Keep away from right edge */
+                
+                /* Random Size logic */
+                font-size: <%= 1.5 + Math.random() * 1.5 %>rem; 
+                
+                /* Random Timing */
+                animation-duration: <%= 8 + Math.random() * 8 %>s; 
+                animation-delay: <%= index * 2 %>s; /* Staggered appearance */
+             ">
+            <%= line %>
+        </div>
+    <% }) %>
+</div>

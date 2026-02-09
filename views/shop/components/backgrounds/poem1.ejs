@@ -1,0 +1,158 @@
+<%
+    // --- 1. POEM DATA & LOGIC (View Logic) ---
+    const fullPoem = `কৃষ্ণকলি আমি তারেই বলি। 
+         কালো তারে বলে গাঁয়ের লোক। 
+মেঘলাদিনে দেখেছিলেম মাঠে
+         কালো মেয়ের কালো হরিণ চোখ। 
+ঘোমটা মাথায় ছিল না তার মোটে, 
+মুক্তবেণী পিঠের 'পরে লোটে। 
+           কালো? তা সে যতই কালো হোক, 
+           দেখেছি তার কালো হরিণ-চোখ। 
+
+ঘন মেঘে আঁধার হল দেখে
+        ডাকতেছিল শ্যামল দুটি গাই, 
+শ্যামা মেয়ে ব্যস্ত ব্যাকুল পদে
+         কুটির হতে এস্ত এল তাই। 
+আকাশ-পানে হানি যুগল ভুরু
+শুনলে বারেক মেঘের গুরুগুরু। 
+         কালো? তা সে যতই কালো হোক, 
+          দেখেছি তার কালো হরিণ চোখ। 
+
+পুবে বাতাস এল হঠাৎ ধেয়ে, 
+        ধানের ক্ষেতে খেলিয়ে গেল ঢেউ। 
+আলের ধারে দাঁড়িয়ে ছিলেম একা, 
+মাঠের মাঝে আর ছিল না কেউ। 
+আমার পানে দেখলে কিনা চেয়ে, 
+আমিই জানি আর জানে সে মেয়ে, 
+         কালো? তা সে যতই কালো হোক, 
+         দেখেছি তার কালো হরিণ চোখ। 
+
+এমনি করে কালো কাজল মেঘ
+          জ্যৈষ্ঠ মাসে আসে ঈশান কোণে। 
+এমনি ক'রে কালো কোমল ছায়া
+           আষাঢ় মাসে নামে তমাল-বনে। 
+এমনি ক'রে শ্রাবণ-রজনীতে
+হঠাৎ খুশি ঘনিয়ে আসে চিতে। 
+          কালো? তা সে যতই কালো হোক, 
+           দেখেছি তার কালো হরিণ-চোখ। 
+
+কৃষ্ণকলি আমি তারেই বলি, 
+           আর যা বলে বলুক অন্য লোক। 
+দেখেছিলেম ময়নাপাড়ার মাঠে
+           কালো মেয়ের কালো হরিণ-চোখ। 
+মাথার  'পরে দেয়নি তুলে বাস, 
+লজ্জা পাবার পায়নি অবকাশ। 
+ 
+            কালো তা সে যতই কালো হোক, 
+             দেখেছি তার কালো হরিণ-চোখ। `;
+
+    // Process Text: Split lines and remove empty ones
+    const allLines = fullPoem.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    // Pick 8 random consecutive lines
+    const chunkLength = 8;
+    const maxStartIndex = Math.max(0, allLines.length - chunkLength);
+    // Use Date.now() to ensure randomness on every refresh
+    const startIndex = Math.floor(Math.random() * (maxStartIndex + 1));
+    const selectedLines = allLines.slice(startIndex, startIndex + chunkLength);
+%>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Mina:wght@400;700&family=Tiro+Bangla:ital@0;1&display=swap');
+
+    .bg-theme-wrapper {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background-color: #fdfbf7; /* Classic Off-white Bengali Paper */
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    /* Poem Text Style */
+    .poem-line {
+        position: absolute;
+        white-space: nowrap;
+        font-family: 'Tiro Bangla', serif;
+        color: rgba(0, 0, 0, 0.04); /* Ghostly text */
+        font-size: 2rem;
+        font-style: italic;
+        user-select: none;
+        animation: floatText 35s linear infinite;
+        z-index: 1;
+    }
+
+    /* Motifs (SVG Shapes) */
+    .motif {
+        position: absolute;
+        z-index: 0;
+        mix-blend-mode: multiply;
+    }
+
+    /* Alpona (Floor Art) */
+    .motif-alpona {
+        top: 50%;
+        left: 50%;
+        width: 80vh;
+        height: 80vh;
+        transform: translate(-50%, -50%);
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23862e9c' d='M44.7,-76.4C58.9,-69.2,71.8,-59.1,81.6,-46.6C91.4,-34.1,98.1,-19.2,95.8,-5.3C93.5,8.6,82.2,21.5,71.2,32.7C60.2,43.9,49.5,53.4,37.6,61.1C25.7,68.8,12.6,74.7,-0.8,76.1C-14.2,77.5,-29.4,74.4,-42.6,67.3C-55.8,60.2,-67,49.1,-75.1,36.1C-83.2,23.1,-88.2,8.2,-86.3,-5.8C-84.4,-19.8,-75.6,-32.9,-65.4,-44.2C-55.2,-55.5,-43.6,-65,-31.1,-73.2C-18.6,-81.4,-5.2,-88.3,4.4,-95.9L44.7,-76.4Z' opacity='0.3' /%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 0.05;
+        animation: spin-slow 180s linear infinite;
+    }
+
+    /* Elephant (Haati) Symbol */
+    .motif-elephant {
+        bottom: -5%;
+        left: -5%;
+        width: 300px;
+        height: 300px;
+        /* Simple SVG Path for Elephant Shape */
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M80 60 Q90 50 80 40 Q70 30 60 40 Q50 20 30 30 Q10 40 10 70 L20 70 L20 60 L30 60 L30 70 L40 70 Q50 60 60 70 L80 60 Z' fill='%23c92a2a'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        opacity: 0.08;
+        animation: rock 8s ease-in-out infinite;
+    }
+
+    /* Owl (Lokkhi Pecha) Symbol */
+    .motif-owl {
+        top: 10%;
+        right: 5%;
+        width: 150px;
+        height: 180px;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 120' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='8' fill='%23e67700'/%3E%3Ccircle cx='70' cy='30' r='8' fill='%23e67700'/%3E%3Cpath d='M20 40 Q50 90 80 40 Q90 90 50 110 Q10 90 20 40 Z' fill='%23c92a2a'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        opacity: 0.08;
+        animation: float-gentle 6s ease-in-out infinite;
+    }
+
+    /* Animations */
+    @keyframes floatText {
+        0% { transform: translateX(100vw); }
+        100% { transform: translateX(-100vw); }
+    }
+    @keyframes spin-slow { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+    @keyframes rock { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    @keyframes float-gentle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+</style>
+
+<div class="bg-theme-wrapper">
+    <div class="motif motif-alpona"></div>
+    <div class="motif motif-elephant"></div>
+    <div class="motif motif-owl"></div>
+
+    <% selectedLines.forEach((line, index) => { %>
+        <div class="poem-line" 
+             style="
+                top: <%= (index * 12) + 5 %>%; 
+                animation-duration: <%= 25 + Math.random() * 20 %>s; 
+                animation-delay: -<%= Math.random() * 20 %>s;
+                font-size: <%= 1.5 + Math.random() %>rem;
+             ">
+            <%= line %>
+        </div>
+    <% }) %>
+</div>

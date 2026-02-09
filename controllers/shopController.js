@@ -80,6 +80,13 @@ exports.getHome = async (req, res) => {
         const globalData = await getGlobalData();
         const [lightboxes] = await db.query("SELECT * FROM home_lightboxes ORDER BY sort_order ASC, created_at DESC");
 
+        // --- BACKGROUND STYLE LOGIC ---
+        // 1. Define available styles (Now includes poem2)
+        const styles = ['poem1', 'poem2']; 
+        
+        // 2. Pick one randomly
+        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+
         // --- FIXED MEDIA SUBQUERY (Broader check) ---
         const mediaSubquery = (foreignKey) => `
             (SELECT pi.image_url 
@@ -149,7 +156,8 @@ exports.getHome = async (req, res) => {
             fabrics,      
             work_types,
             colors,
-            products
+            products,
+            bgStyle: randomStyle // <--- Pass the randomly selected style file name
         });
     } catch (err) {
         console.error(err);
@@ -161,7 +169,7 @@ exports.getHome = async (req, res) => {
 exports.getShop = async (req, res) => {
     try {
         const globalData = await getGlobalData();
-        let pageTitle = 'The Collection'; // Default Title
+        let pageTitle = 'The Collection';
 
         // Determine Title based on URL params with specific formatting
         if (req.query.collection) {
@@ -179,11 +187,16 @@ exports.getShop = async (req, res) => {
             pageTitle = `Color : ${colorName}`;
         }
 
+        // [NEW] Add Background Logic
+        const styles = ['poem1', 'poem2']; 
+        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+
         res.render('shop/shop', { 
             title: pageTitle, 
-            pageTitle: pageTitle, // Passing the variable to fix ReferenceError
+            pageTitle: pageTitle, 
             layout: 'shop/layout',
-            ...globalData 
+            ...globalData,
+            bgStyle: randomStyle // <--- PASS THIS
         });
     } catch (err) {
         console.error(err);
@@ -354,7 +367,17 @@ exports.getProduct = async (req, res) => {
             [sku]
         );
 
-        if (products.length === 0) return res.status(404).render('error', { message: 'Product not found' });
+        if (products.length === 0) {
+            // [FIX] Fetch Global Data for Shop Layout (Navbar/Footer)
+            const globalData = await getGlobalData();
+            
+            return res.status(404).render('shop/error', { 
+                title: 'পণ্যটি পাওয়া যায়নি',
+                message: 'পণ্যটি খুঁজে পাওয়া যায়নি।',
+                layout: 'shop/layout', // <--- Force Shop Layout
+                ...globalData // <--- Pass Navbar Data
+            });
+        }
         const product = products[0];
 
         // [NEW] Track ViewContent (Server Side)
@@ -441,6 +464,10 @@ exports.getProduct = async (req, res) => {
         // 7. Fetch Global Data for Menu/Footer
         const globalData = await getGlobalData();
 
+        // [NEW] Add Background Logic
+        const styles = ['poem1', 'poem2']; 
+        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+
         res.render('shop/product', {
             title: product.name,
             layout: 'shop/layout',
@@ -448,7 +475,8 @@ exports.getProduct = async (req, res) => {
             productData,
             related,
             minPrice,
-            ...globalData
+            ...globalData,
+            bgStyle: randomStyle // <--- PASS THIS
         });
 
     } catch (err) {
