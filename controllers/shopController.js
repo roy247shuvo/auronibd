@@ -137,14 +137,51 @@ exports.getHome = async (req, res) => {
         `);
 
         // 4. NEW ARRIVALS (Products)
+        // [FIX] Filter: Must have (Stock > 0) OR (Variant Stock > 0) OR (Pre-Order = Yes)
         const [products] = await db.query(`
-            SELECT p.*, 
+            SELECT DISTINCT p.*, 
             (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as image_url
             FROM products p 
+            LEFT JOIN product_variants pv ON p.id = pv.product_id
             WHERE (p.is_online = 'yes' OR p.is_online = '1') 
+            AND (p.stock_quantity > 0 OR pv.stock_quantity > 0 OR p.is_preorder = 'yes')
             ORDER BY p.created_at DESC 
             LIMIT 10
         `);
+
+        // [FIX] Fetch Prices from Variants
+        if (products.length > 0) {
+            const productIds = products.map(p => p.id);
+            
+            // 1. Fetch ALL variants for these products (Don't filter by stock yet)
+            const [variants] = await db.query(`
+                SELECT product_id, price, compare_price, stock_quantity 
+                FROM product_variants 
+                WHERE product_id IN (?)
+            `, [productIds]);
+
+            products.forEach(p => {
+                let pVariants = variants.filter(v => v.product_id === p.id);
+
+                // 2. Logic: If NOT pre-order, hide 0-stock variant prices. 
+                //    If IS pre-order, keep them so we can show the price.
+                if (p.is_preorder !== 'yes') {
+                    pVariants = pVariants.filter(v => v.stock_quantity > 0);
+                }
+
+                if (pVariants.length > 0) {
+                    // Sort to find the lowest price (Active Sales)
+                    pVariants.sort((a, b) => {
+                        const priceA = Number(a.compare_price || a.price);
+                        const priceB = Number(b.compare_price || b.price);
+                        return priceA - priceB;
+                    });
+                    const lowest = pVariants[0];
+                    p.price = lowest.price;          // Regular Price
+                    p.compare_price = lowest.compare_price; // Sale Price
+                }
+            });
+        }
 
         res.render('shop/home', { 
             title: 'Auroni',

@@ -1,49 +1,175 @@
+<style>
+    /* [FIX] Hide Scrollbar Completely */
+    #newArrivalsContainer::-webkit-scrollbar {
+        display: none;
+    }
+    #newArrivalsContainer {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+</style>
+
 <div class="px-4 md:px-8">
-    <div class="flex justify-between items-end mb-6">
+    <div class="flex justify-between items-end mb-8">
         <div>
-            <h3 class="font-aesthetic text-3xl text-gray-900">New Arrivals</h3>
-            <p class="text-xs text-[#800000] font-bangla-body mt-1">আমাদের নতুন কালেকশন</p>
+            <h3 class="font-serif text-3xl md:text-4xl italic text-gray-900">New Arrivals</h3>
+            <div class="h-0.5 w-12 bg-black mt-2"></div>
         </div>
-        <a href="/shop?sort=newest" class="text-xs font-bold uppercase underline decoration-[#800000] hover:text-[#800000]">View All</a>
+        <a href="/shop?sort=newest" class="text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-1 hover:text-gray-600 hover:border-gray-400 transition-all">View All</a>
     </div>
 
-    <div class="flex overflow-x-auto gap-5 pb-6 snap-x hide-scrollbar">
+    <div id="newArrivalsContainer" class="flex overflow-x-auto gap-4 pb-8">
         <% if (typeof products !== 'undefined' && products.length > 0) { %>
-            <% products.forEach(product => { %>
-                <div class="snap-center shrink-0 w-44 md:w-56 group relative">
-                    <a href="/product/<%= product.sku %>" class="block aspect-[2/3] rounded-lg overflow-hidden bg-gray-100 relative shadow-sm border border-gray-100">
-                        <% 
-                           // Fix logic: Ensure path has leading slash if missing
-                           let imgUrl = product.image_url || '/uploads/placeholder.jpg';
-                           if(!imgUrl.startsWith('/') && !imgUrl.startsWith('http')) imgUrl = '/' + imgUrl;
-                        %>
-                        <img src="<%= imgUrl %>" 
-                             class="w-full h-full object-cover transition duration-1000 group-hover:scale-110" 
-                             loading="lazy" alt="<%= product.name %>">
-                        
-                        <% if (product.compare_price > product.price) { %>
-                            <span class="absolute top-2 left-2 bg-[#800000] text-white text-[10px] px-2 py-0.5 uppercase tracking-wider">Sale</span>
-                        <% } %>
+            <% products.forEach(product => { 
+                
+                // --- 1. DEFINE VARIABLES ---
+                let regPrice = parseFloat(product.price) || 0;
+                let salePrice = parseFloat(product.compare_price) || 0;
+                let stockQty = parseFloat(product.stock_quantity) || 0;
+
+                let finalPrice = regPrice;
+                let oldPrice = null;
+                let isSale = false;
+
+                if (salePrice > 0 && salePrice < regPrice) {
+                    finalPrice = salePrice;
+                    oldPrice = regPrice;
+                    isSale = true;
+                }
+
+                // --- 2. STOCK & PRE-ORDER LOGIC ---
+                let isPreOrder = product.is_preorder === 'yes';
+                let isOutOfStock = (typeof product.has_stock !== 'undefined') ? !product.has_stock : (stockQty <= 0);
+
+                // --- 3. IMAGE LOGIC ---
+                let imgUrl = product.image_url || '/uploads/placeholder.jpg';
+                if(!imgUrl.startsWith('/') && !imgUrl.startsWith('http')) imgUrl = '/' + imgUrl;
+            %>
+            
+            <div class="snap-center shrink-0 w-48 md:w-64 group relative flex flex-col select-none">
+                
+                <div class="block relative aspect-[2/3] bg-gray-50 mb-4 overflow-hidden rounded-sm">
+                    <a href="/product/<%= product.sku %>" class="block w-full h-full cursor-pointer">
+                        <img src="<%= imgUrl %>" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy">
                     </a>
 
-                    <div class="mt-3 text-center">
-                        <h3 class="text-sm font-bold text-gray-800 font-bangla-body line-clamp-1"><%= product.name %></h3>
-                        <div class="flex justify-center gap-2 items-center mt-1 text-sm font-sans">
-                            <span class="font-bold text-[#800000]">৳<%= product.price %></span>
-                            <% if (product.compare_price > product.price) { %>
-                                <span class="text-gray-400 line-through text-xs">৳<%= product.compare_price %></span>
-                            <% } %>
-                        </div>
-                        
-                        <a href="/product/<%= product.sku %>" 
-                           class="mt-2 block w-full border border-gray-900 text-gray-900 bg-transparent hover:bg-gray-900 hover:text-white text-[10px] uppercase font-bold py-2 transition-colors tracking-widest">
-                             বিস্তারিত দেখুন
-                        </a>
+                    <div class="absolute top-2 left-2 flex flex-col space-y-1 pointer-events-none z-20">
+                        <% if (isSale) { %>
+                            <span class="bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm">Sale</span>
+                        <% } %>
+                        <% if (isPreOrder && isOutOfStock) { %>
+                            <span class="bg-indigo-900 text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm">প্রি-অর্ডার</span>
+                        <% } %>
+                    </div>
+                    
+                    <button class="absolute bottom-0 left-0 w-full py-3 bg-[#800000]/85 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 z-30 
+                                   opacity-100 lg:translate-y-full lg:group-hover:translate-y-0 lg:group-hover:opacity-100"
+                            onclick="window.location.href = '/product/<%= product.sku %>'">
+                        বিস্তারিত দেখুন
+                    </button>
+                </div>
+
+                <div class="px-1 text-center">
+                    <% if (product.brand_name) { %>
+                        <div class="text-[9px] uppercase tracking-widest text-gray-400 mb-1"><%= product.brand_name %></div>
+                    <% } %>
+                    
+                    <a href="/product/<%= product.sku %>" class="font-serif text-sm text-gray-900 hover:text-brand-gold transition-colors truncate block">
+                        <%= product.name %>
+                    </a>
+                    
+                    <div class="flex items-center justify-center space-x-2 mt-2">
+                        <% if (isSale) { %>
+                            <span class="text-red-500 line-through text-[11px] font-bold opacity-80">TK. <%= oldPrice %></span>
+                            <span class="font-bold text-xs text-green-700">TK. <%= finalPrice %></span>
+                        <% } else { %>
+                            <span class="font-bold text-xs text-black">TK. <%= finalPrice %></span>
+                        <% } %>
                     </div>
                 </div>
+
+            </div>
             <% }) %>
         <% } else { %>
-            <div class="w-full text-center py-10 text-gray-400">আপাতত নতুন কিছু নেই</div>
+            <div class="w-full text-center py-10 text-gray-400">No new arrivals at the moment.</div>
         <% } %>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('newArrivalsContainer');
+        if (!container) return;
+
+        const originalCount = <%= products.length %>;
+        if (originalCount === 0) return;
+
+        // [SMART CHECK]
+        // If content fits on screen (no overflow), DON'T clone, DON'T scroll.
+        if (container.scrollWidth <= container.clientWidth + 50) {
+            return; 
+        }
+
+        // [CONFIG]
+        const INTERVAL_MS = 2000;
+        let scrollInterval;
+        let isHovering = false;
+        let singleSetWidth = 0;
+
+        // [STEP 1] Clone items ONLY if we have overflow (to enable infinite loop)
+        // We clone once to ensure we have a "next set" to scroll into
+        const items = Array.from(container.children);
+        items.forEach(item => {
+            const clone = item.cloneNode(true);
+            clone.setAttribute('aria-hidden', 'true');
+            container.appendChild(clone);
+        });
+
+        // [STEP 2] Calculate Widths
+        const updateMetrics = () => {
+            const card = container.firstElementChild;
+            if (card) {
+                const gap = 16; 
+                return (card.offsetWidth + gap) * originalCount;
+            }
+            return 0;
+        };
+        
+        singleSetWidth = updateMetrics();
+        window.addEventListener('resize', () => { singleSetWidth = updateMetrics(); });
+
+        // [STEP 3] Infinite Loop Logic
+        const checkInfiniteLoop = () => {
+            if (singleSetWidth === 0) return;
+            if (container.scrollLeft >= singleSetWidth) {
+                container.style.scrollBehavior = 'auto';
+                container.scrollLeft -= singleSetWidth;
+                container.style.scrollBehavior = 'smooth';
+            }
+        };
+
+        container.addEventListener('scroll', checkInfiniteLoop);
+
+        // [STEP 4] Auto Scroll
+        const startScrolling = () => {
+            if (scrollInterval) clearInterval(scrollInterval);
+            scrollInterval = setInterval(() => {
+                if (isHovering) return;
+                const card = container.firstElementChild;
+                const gap = 16; 
+                const itemWidth = card.offsetWidth + gap;
+                container.style.scrollBehavior = 'smooth';
+                container.scrollBy({ left: itemWidth, behavior: 'smooth' });
+            }, INTERVAL_MS);
+        };
+
+        const stopScrolling = () => clearInterval(scrollInterval);
+
+        startScrolling();
+
+        container.addEventListener('mouseenter', () => isHovering = true);
+        container.addEventListener('mouseleave', () => isHovering = false);
+        container.addEventListener('touchstart', () => isHovering = true, { passive: true });
+        container.addEventListener('touchend', () => isHovering = false);
+    });
+</script>

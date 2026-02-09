@@ -11,14 +11,15 @@
             </a>
         </div>
 
-        <nav class="hidden lg:flex items-center space-x-8 flex-grow">
+        <nav class="hidden lg:flex items-center space-x-8 flex-grow font-bangla-body">
             
-            <a href="/" class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors">Home</a>
-            <a href="/shop" class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors">Shop</a>
+            <a href="/" class="nav-item text-sm font-bold text-gray-800 hover:text-[#800000] transition-colors">প্রথম পাতা</a>
+            <a href="/shop" class="nav-item text-sm font-bold text-gray-800 hover:text-[#800000] transition-colors">অরণি শপ</a>
 
+            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
             <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
-                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
-                    Categories
+                <button class="nav-item text-sm font-bold text-gray-800 hover:text-[#800000] transition-colors flex items-center py-8">
+                    ক্যাটাগরি
                     <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
                 </button>
                 <div x-show="open" x-cloak 
@@ -27,16 +28,58 @@
                      x-transition:enter-end="opacity-100 translate-y-0"
                      class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
                     <% categories.forEach(c => { %>
-                        <a href="/shop?category=<%= c.id %>" class="text-sm text-gray-600 hover:text-brand-gold hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
+                        <a href="/shop?category=<%= c.id %>" class="text-sm text-gray-600 hover:text-[#800000] hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
                             <%= c.name %>
                         </a>
                     <% }) %>
                 </div>
             </div>
+            <% } %>
 
+            <% if (typeof fabrics !== 'undefined' && fabrics.length > 0) { %>
             <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
-                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
-                    Colors
+                <button class="nav-item text-sm font-bold text-gray-800 hover:text-[#800000] transition-colors flex items-center py-8">
+                    ফেব্রিক
+                    <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
+                </button>
+                <div x-show="open" x-cloak 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
+                    <% fabrics.forEach(f => { %>
+                        <a href="/shop?fabric=<%= f.id %>" class="text-sm text-gray-600 hover:text-[#800000] hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
+                            <%= f.name %>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+            <% } %>
+
+            <% if (typeof work_types !== 'undefined' && work_types.length > 0) { %>
+            <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                <button class="nav-item text-sm font-bold text-gray-800 hover:text-[#800000] transition-colors flex items-center py-8">
+                    কাজের ধরণ
+                    <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
+                </button>
+                <div x-show="open" x-cloak 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
+                    <% work_types.forEach(w => { %>
+                        <a href="/shop?work_type=<%= w.id %>" class="text-sm text-gray-600 hover:text-[#800000] hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
+                            <%= w.name %>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+            <% } %>
+
+            <% if (typeof colors !== 'undefined' && colors.length > 0) { %>
+            <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                <button class="nav-item text-sm font-bold text-gray-800 hover:text-[#800000] transition-colors flex items-center py-8">
+                    রঙ
                     <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
                 </button>
                 <div x-show="open" x-cloak 
@@ -47,33 +90,17 @@
                     <% colors.forEach(c => { %>
                         <a href="/shop?color=<%= c.name %>" class="flex items-center space-x-3 group/color hover:pl-2 transition-all">
                             <span class="w-3 h-3 rounded-full border border-gray-200" style="background-color: <%= c.hex_code %>;"></span>
-                            <span class="text-xs text-gray-600 group-hover/color:text-brand-gold transition-colors"><%= c.name %></span>
+                            <span class="text-xs text-gray-600 group-hover/color:text-[#800000] transition-colors"><%= c.name %></span>
                         </a>
                     <% }) %>
                 </div>
             </div>
+            <% } %>
 
+            <% if (typeof collections !== 'undefined' && collections.length > 0) { %>
             <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
-                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
-                    Brands
-                    <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
-                </button>
-                <div x-show="open" x-cloak 
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 -translate-y-2"
-                     x-transition:enter-end="opacity-100 translate-y-0"
-                     class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
-                    <% brands.forEach(b => { %>
-                        <a href="/shop?brand=<%= b.id %>" class="text-sm text-gray-600 hover:text-brand-gold hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
-                            <%= b.name %>
-                        </a>
-                    <% }) %>
-                </div>
-            </div>
-
-            <div class="relative group" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
-                <button class="nav-item text-xs font-bold uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center py-8">
-                    Collections
+                <button class="nav-item text-sm font-bold text-gray-800 hover:text-[#800000] transition-colors flex items-center py-8">
+                    কালেকশন
                     <span class="material-icons-outlined text-[10px] ml-1">expand_more</span>
                 </button>
                 <div x-show="open" x-cloak 
@@ -82,12 +109,13 @@
                      x-transition:enter-end="opacity-100 translate-y-0"
                      class="absolute top-full left-0 w-64 bg-white shadow-xl border border-gray-100 p-6 flex flex-col space-y-3 z-50">
                     <% collections.forEach(c => { %>
-                        <a href="/shop?collection=<%= c.id %>" class="text-sm text-gray-600 hover:text-brand-gold hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
+                        <a href="/shop?collection=<%= c.id %>" class="text-sm text-gray-600 hover:text-[#800000] hover:pl-2 transition-all block border-b border-transparent hover:border-gray-50 pb-1">
                             <%= c.name %>
                         </a>
                     <% }) %>
                 </div>
             </div>
+            <% } %>
         </nav>
 
         <div class="flex items-center space-x-6">
@@ -254,91 +282,126 @@
             <button @click="mobileOpen = false"><span class="material-icons-outlined text-3xl">close</span></button>
         </div>
 
-        <div class="space-y-6 flex flex-col">
-            <a href="/" class="text-xl font-serif">Home</a>
-            <a href="/shop" class="text-xl font-serif">Shop</a>
+        <div class="space-y-4 flex flex-col font-bangla-body text-gray-800">
+            <a href="/" class="text-xl font-bold border-b border-gray-50 pb-2 hover:text-[#800000]">প্রথম পাতা</a>
+            <a href="/shop" class="text-xl font-bold border-b border-gray-50 pb-2 hover:text-[#800000]">অরণি শপ</a>
             
-            <div x-data="{ open: false }">
-                <button @click="open = !open" class="flex justify-between w-full text-xl font-serif">
-                    Brands <span class="material-icons-outlined" :class="{'rotate-180': open}">expand_more</span>
+            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+            <div x-data="{ open: false }" class="border-b border-gray-50 pb-2">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-bold hover:text-[#800000]">
+                    ক্যাটাগরি <span class="material-icons-outlined transition-transform duration-300" :class="{'rotate-180': open}">expand_more</span>
                 </button>
-                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l border-gray-100 ml-1">
-                    <% brands.forEach(b => { %>
-                        <a href="/shop?brand=<%= b.id %>" class="text-gray-500 py-1"><%= b.name %></a>
-                    <% }) %>
-                </div>
-            </div>
-
-            <div x-data="{ open: false }">
-                <button @click="open = !open" class="flex justify-between w-full text-xl font-serif">
-                    Categories <span class="material-icons-outlined" :class="{'rotate-180': open}">expand_more</span>
-                </button>
-                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l border-gray-100 ml-1">
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l-2 border-[#800000]/20 ml-1" x-collapse>
                     <% categories.forEach(c => { %>
-                        <a href="/shop?category=<%= c.id %>" class="text-gray-500 py-1"><%= c.name %></a>
+                        <a href="/shop?category=<%= c.id %>" class="text-gray-600 py-1 text-sm hover:text-[#800000]"><%= c.name %></a>
                     <% }) %>
                 </div>
             </div>
+            <% } %>
 
-            <div x-data="{ open: false }">
-                <button @click="open = !open" class="flex justify-between w-full text-xl font-serif">
-                    Collections <span class="material-icons-outlined" :class="{'rotate-180': open}">expand_more</span>
+            <% if (typeof fabrics !== 'undefined' && fabrics.length > 0) { %>
+            <div x-data="{ open: false }" class="border-b border-gray-50 pb-2">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-bold hover:text-[#800000]">
+                    ফেব্রিক <span class="material-icons-outlined transition-transform duration-300" :class="{'rotate-180': open}">expand_more</span>
                 </button>
-                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l border-gray-100 ml-1">
-                    <% collections.forEach(c => { %>
-                        <a href="/shop?collection=<%= c.id %>" class="text-gray-500 py-1"><%= c.name %></a>
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l-2 border-[#800000]/20 ml-1" x-collapse>
+                    <% fabrics.forEach(f => { %>
+                        <a href="/shop?fabric=<%= f.id %>" class="text-gray-600 py-1 text-sm hover:text-[#800000]"><%= f.name %></a>
                     <% }) %>
                 </div>
             </div>
+            <% } %>
 
-            <div class="mt-auto pt-8 border-t border-gray-100">
+            <% if (typeof work_types !== 'undefined' && work_types.length > 0) { %>
+            <div x-data="{ open: false }" class="border-b border-gray-50 pb-2">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-bold hover:text-[#800000]">
+                    কাজের ধরণ <span class="material-icons-outlined transition-transform duration-300" :class="{'rotate-180': open}">expand_more</span>
+                </button>
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l-2 border-[#800000]/20 ml-1" x-collapse>
+                    <% work_types.forEach(w => { %>
+                        <a href="/shop?work_type=<%= w.id %>" class="text-gray-600 py-1 text-sm hover:text-[#800000]"><%= w.name %></a>
+                    <% }) %>
+                </div>
+            </div>
+            <% } %>
+
+            <% if (typeof colors !== 'undefined' && colors.length > 0) { %>
+            <div x-data="{ open: false }" class="border-b border-gray-50 pb-2">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-bold hover:text-[#800000]">
+                    রঙ <span class="material-icons-outlined transition-transform duration-300" :class="{'rotate-180': open}">expand_more</span>
+                </button>
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l-2 border-[#800000]/20 ml-1" x-collapse>
+                    <% colors.forEach(c => { %>
+                        <a href="/shop?color=<%= c.name %>" class="flex items-center space-x-3 py-1 group">
+                            <span class="w-3 h-3 rounded-full border border-gray-200" style="background-color: <%= c.hex_code %>;"></span>
+                            <span class="text-sm text-gray-600 group-hover:text-[#800000]"><%= c.name %></span>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+            <% } %>
+
+            <% if (typeof collections !== 'undefined' && collections.length > 0) { %>
+            <div x-data="{ open: false }" class="border-b border-gray-50 pb-2">
+                <button @click="open = !open" class="flex justify-between w-full text-xl font-bold hover:text-[#800000]">
+                    কালেকশন <span class="material-icons-outlined transition-transform duration-300" :class="{'rotate-180': open}">expand_more</span>
+                </button>
+                <div x-show="open" class="pl-4 mt-2 space-y-2 flex flex-col border-l-2 border-[#800000]/20 ml-1" x-collapse>
+                    <% collections.forEach(c => { %>
+                        <a href="/shop?collection=<%= c.id %>" class="text-gray-600 py-1 text-sm hover:text-[#800000]"><%= c.name %></a>
+                    <% }) %>
+                </div>
+            </div>
+            <% } %>
+
+            <div class="mt-auto pt-8 border-t border-gray-100 font-bangla-body">
                 <% if (locals.customer) { %>
                     <% 
                         const greetings = [
-                            "Hello Beautiful 🌸",
-                            "Welcome Back ✨",
-                            "Hi Lovely 🌷",
-                            "Good to see you 🌼",
-                            "Hello Friend 👋",
-                            "Shine Bright ☀️"
+                            "আপনার আগমনে কানন হাসে 🌸",
+                            "স্বাগতম, প্রিয় মুখ ✨",
+                            "ফিরে এলেন, মন ভালো হলো 🌷",
+                            "আপনার ছোঁয়ায় দিনটি সুন্দর 🌼",
+                            "বন্ধু, আপনাকে স্বাগতম 👋",
+                            "আলোর মতো জ্বলে উঠুন ☀️"
                         ];
                         const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
                     %>
                     <div class="space-y-4">
                         <div class="text-center mb-6">
-                            <p class="font-serif text-xl text-brand-black mb-1"><%= randomGreeting %></p>
+                            <p class="text-xl text-[#800000] mb-1 font-bold"><%= randomGreeting %></p>
                             <p class="text-sm text-gray-500">
-                                Signed in as <span class="font-bold text-brand-gold"><%= (customer.full_name && customer.full_name.trim() !== '') ? customer.full_name : 'User' %></span>
+                                সাইন ইন করা হয়েছে <br> <span class="font-bold text-black"><%= (customer.full_name && customer.full_name.trim() !== '') ? customer.full_name : 'User' %></span>
                             </p>
                         </div>
 
-                        <a href="/account" class="flex items-center space-x-3 text-lg font-serif hover:text-brand-gold transition-colors">
+                        <a href="/account" class="flex items-center space-x-3 text-lg font-bold text-gray-700 hover:text-[#800000] transition-colors">
                             <span class="material-icons-outlined text-gray-400">person</span>
-                            <span>My Account</span>
+                            <span>আমার অ্যাকাউন্ট</span>
                         </a>
 
-                        <a href="/auth/logout" class="flex items-center space-x-3 text-lg font-serif text-red-500 hover:text-red-600 transition-colors pt-4">
+                        <a href="/auth/logout" class="flex items-center space-x-3 text-lg font-bold text-red-500 hover:text-red-600 transition-colors pt-4">
                             <span class="material-icons-outlined">logout</span>
-                            <span>Logout</span>
+                            <span>লগ আউট</span>
                         </a>
                     </div>
                 <% } else { %>
                     <% 
                         const guestGreetings = [
-                            "Welcome Lovely 🌸",
-                            "Hello there 👋",
-                            "Welcome to Niche ✨",
-                            "Discover Style 🌼"
+                            "স্বাগতম, হে সুন্দর 🌸",
+                            "হ্যালো প্রিয় 👋",
+                            "অরণিতে আপনাকে স্বাগতম ✨",
+                            "স্টাইলের খোঁজে আপনাকে স্বাগতম 🌼"
                         ];
                         const randomGuestGreeting = guestGreetings[Math.floor(Math.random() * guestGreetings.length)];
                     %>
                     <div class="text-center">
-                        <p class="font-serif text-2xl text-brand-black mb-6"><%= randomGuestGreeting %></p>
+                        <p class="text-2xl text-[#800000] font-bold mb-6"><%= randomGuestGreeting %></p>
                         
                         <button @click="mobileOpen = false; $dispatch('open-login')" 
-                            class="flex items-center justify-center space-x-2 bg-black text-white px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-brand-gold transition-colors w-full rounded-sm">
+                            class="flex items-center justify-center space-x-2 bg-black text-white px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-[#800000] transition-colors w-full rounded-sm">
                             <span class="material-icons-outlined text-lg">login</span>
-                            <span>Login / Register</span>
+                            <span>লগইন / রেজিস্টার</span>
                         </button>
                     </div>
                 <% } %>
