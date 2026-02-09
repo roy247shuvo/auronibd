@@ -4,13 +4,14 @@ const geoip = require('geoip-lite');
 const metaService = require('../config/metaService');
 
 // --- HELPER: Fetch ONLY In-Stock Sidebar Data (Fixed Column Name) ---
+// --- HELPER: Fetch ONLY In-Stock OR Pre-Order Sidebar Data ---
 async function getGlobalData() {
-    // 1. Brands (Active + Has Stock in Product OR Variants)
+    // 1. Brands
     const [brands] = await db.query(`
         SELECT DISTINCT b.* FROM brands b 
         JOIN products p ON p.brand_id = b.id 
         WHERE p.is_online = 'yes' 
-        AND p.stock_quantity > 0
+        AND (p.stock_quantity > 0 OR p.is_preorder = 'yes')
         ORDER BY b.name ASC
     `);
 
@@ -20,7 +21,7 @@ async function getGlobalData() {
         JOIN products p ON p.category_id = c.id 
         LEFT JOIN product_variants pv ON pv.product_id = p.id 
         WHERE p.is_online = 'yes' 
-        AND (p.stock_quantity > 0 OR pv.stock_quantity > 0)
+        AND (p.stock_quantity > 0 OR pv.stock_quantity > 0 OR p.is_preorder = 'yes')
         ORDER BY c.name ASC
     `);
 
@@ -30,7 +31,7 @@ async function getGlobalData() {
         JOIN products p ON p.fabric_id = f.id 
         LEFT JOIN product_variants pv ON pv.product_id = p.id 
         WHERE p.is_online = 'yes' 
-        AND (p.stock_quantity > 0 OR pv.stock_quantity > 0)
+        AND (p.stock_quantity > 0 OR pv.stock_quantity > 0 OR p.is_preorder = 'yes')
         ORDER BY f.name ASC
     `);
 
@@ -40,36 +41,35 @@ async function getGlobalData() {
         JOIN products p ON p.work_type_id = w.id 
         LEFT JOIN product_variants pv ON pv.product_id = p.id 
         WHERE p.is_online = 'yes' 
-        AND (p.stock_quantity > 0 OR pv.stock_quantity > 0)
+        AND (p.stock_quantity > 0 OR pv.stock_quantity > 0 OR p.is_preorder = 'yes')
         ORDER BY w.name ASC
     `);
 
-    // 5. Colors (Only show colors that are actually in stock)
+    // 5. Colors (Include if variant has stock OR product is pre-order)
     const [colors] = await db.query(`
         SELECT DISTINCT c.* FROM colors c
         JOIN product_variants pv ON pv.color = c.name
         JOIN products p ON p.id = pv.product_id
-        WHERE p.is_online = 'yes' AND pv.stock_quantity > 0
+        WHERE p.is_online = 'yes' 
+        AND (pv.stock_quantity > 0 OR p.is_preorder = 'yes')
         ORDER BY c.name ASC
     `);
     
-    // Collections (Table has 'status', so this is correct)
+    // Collections
     const [collections] = await db.query("SELECT * FROM collections WHERE status = 'active' ORDER BY created_at DESC");
 
-    // [NEW] Special Features (For Sidebar Filter)
-    // Only fetch features that are actually used by online, in-stock products
+    // Specials
     const [specials] = await db.query(`
         SELECT DISTINCT s.* FROM special_features s
         JOIN products p ON p.special_feature_id = s.id
-        WHERE p.is_online = 'yes' AND p.stock_quantity > 0
+        WHERE p.is_online = 'yes' 
+        AND (p.stock_quantity > 0 OR p.is_preorder = 'yes')
         ORDER BY s.name ASC
     `);
 
-    // [NEW] Fetch Shop Settings (Firebase & Meta Config)
     const [settings] = await db.query("SELECT * FROM shop_settings LIMIT 1");
     const shopSettings = settings.length ? settings[0] : {};
     
-    // Add 'specials' to the return object
     return { brands, categories, collections, colors, fabrics, work_types, shopSettings, specials };
 }
 
@@ -213,13 +213,14 @@ exports.filterProducts = async (req, res) => {
         const offset = (page - 1) * limit;
 
         // A. Base Query: Joined 'collection_products' (cp)
+        // [FIX] Added 'OR p.is_preorder = "yes"' to allow 0-stock pre-orders
         let sql = `SELECT DISTINCT p.*, b.name as brand_name 
                    FROM products p 
                    LEFT JOIN brands b ON p.brand_id = b.id 
                    LEFT JOIN product_variants pv ON p.id = pv.product_id
                    LEFT JOIN collection_products cp ON p.id = cp.product_id 
                    WHERE p.is_online = 'yes' 
-                   AND (p.stock_quantity > 0 OR pv.stock_quantity > 0)`;
+                   AND (p.stock_quantity > 0 OR pv.stock_quantity > 0 OR p.is_preorder = 'yes')`;
         
         const params = [];
 
@@ -263,7 +264,14 @@ exports.filterProducts = async (req, res) => {
             allColors.forEach(c => colorMap[c.name] = c.hex_code);
 
             const [images] = await db.query(`SELECT * FROM product_images WHERE product_id IN (?) ORDER BY sort_order ASC`, [productIds]);
-            const [variants] = await db.query(`SELECT * FROM product_variants WHERE product_id IN (?) AND stock_quantity > 0`, [productIds]);
+            
+            // [FIX] Fetch variants if stock > 0 OR if product is Pre-Order
+            const [variants] = await db.query(`
+                SELECT pv.* FROM product_variants pv 
+                JOIN products p ON pv.product_id = p.id 
+                WHERE pv.product_id IN (?) 
+                AND (pv.stock_quantity > 0 OR p.is_preorder = 'yes')
+            `, [productIds]);
 
             products.forEach(p => {
                 const pVariants = variants.filter(v => v.product_id === p.id);
@@ -308,6 +316,11 @@ exports.filterProducts = async (req, res) => {
                     p.price = Number(p.price); 
                     p.compare_price = p.compare_price ? Number(p.compare_price) : null;
                 }
+
+                // [NEW] Calculate Stock Status for UI Tags
+                p.has_stock = pVariants.length > 0 
+                    ? pVariants.some(v => v.stock_quantity > 0) 
+                    : p.stock_quantity > 0;
             });
         }
 

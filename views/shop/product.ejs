@@ -85,9 +85,7 @@
             <div class="lg:hidden relative aspect-[3/4] bg-gray-50 group overflow-hidden" x-data="{ mobileIndex: 0 }">
                 <template x-for="(img, index) in currentImages" :key="index">
                     <div class="absolute inset-0 transition-opacity duration-300"
-                         x-show="mobileIndex === index"
-                         x-transition:enter="opacity-0" x-transition:enter-end="opacity-100"
-                         x-transition:leave="opacity-100" x-transition:leave-end="opacity-0">
+                         x-show="mobileIndex === index" ...>
                         <img :src="img.image_url" class="w-full h-full object-cover">
                     </div>
                 </template>
@@ -252,12 +250,12 @@
                     <div class="grid grid-cols-4 gap-2">
                         <template x-for="v in availableSizes" :key="v.id">
                             <button @click="selectSize(v)"
-                                    :disabled="v.stock_quantity <= 0"
+                                    :disabled="v.stock_quantity <= 0 && !isPreOrderProduct"
                                     class="py-3 border text-sm font-bold uppercase tracking-widest transition-all"
                                     :class="{
                                         'bg-black text-white border-black': selectedVariantId === v.id,
-                                        'bg-white text-gray-900 border-gray-200 hover:border-black': selectedVariantId !== v.id && v.stock_quantity > 0,
-                                        'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed decoration-slice line-through': v.stock_quantity <= 0
+                                        'bg-white text-gray-900 border-gray-200 hover:border-black': selectedVariantId !== v.id && (v.stock_quantity > 0 || isPreOrderProduct),
+                                        'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed decoration-slice line-through': v.stock_quantity <= 0 && !isPreOrderProduct
                                     }">
                                 <span x-text="v.size"></span>
                             </button>
