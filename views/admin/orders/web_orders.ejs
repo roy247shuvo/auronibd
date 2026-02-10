@@ -304,6 +304,13 @@
                             title="Edit Order">
                         <span class="material-icons-outlined text-[16px]">edit</span>
                     </button>
+
+                    <button onclick="if(confirm('Are you sure you want to CANCEL this order? Stock will be returned.')) bulkChangeStatus('cancelled', '<%= order.id %>')" 
+                            class="w-8 h-8 bg-red-50 rounded-full hover:bg-red-600 hover:text-white flex items-center justify-center text-red-500 transition ml-1" 
+                            title="Cancel Order">
+                        <span class="material-icons-outlined text-[16px]">block</span>
+                    </button>
+
                 <% } else if (isLocked) { %>
                     <div class="w-8 h-8 flex items-center justify-center text-gray-300 cursor-not-allowed" title="Editing Locked">
                         <span class="material-icons-outlined text-[16px]">lock</span>
@@ -677,9 +684,21 @@
         } catch(e) { alert('Error sending to courier'); }
     }
 
-    async function bulkChangeStatus(status) {
+    // [FIX] Updated to accept a specific ID (for the single Cancel button)
+    async function bulkChangeStatus(status, specificId = null) {
         if(!status) return;
-        const ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+        
+        let ids = [];
+
+        if (specificId) {
+            // Case A: Single button click (Cancel button)
+            ids = [specificId];
+        } else {
+            // Case B: Bulk dropdown selection (Use checkboxes)
+            ids = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+        }
+
+        if (ids.length === 0) return alert("No orders selected");
         
         try {
             const res = await fetch('/admin/orders/bulk-update-status', {
@@ -689,8 +708,10 @@
             });
             const data = await res.json();
             if(data.success) window.location.reload();
-            else alert("Action Blocked: " + data.message); // Show restrictions
-        } catch(e) { alert('Error updating status'); }
+            else alert("Action Blocked: " + data.message); 
+        } catch(e) { 
+            alert('Error updating status');
+        }
     }
 
     function printLabels() {

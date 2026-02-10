@@ -314,8 +314,17 @@ exports.updateOrder = async (req, res) => {
     try {
         await conn.beginTransaction();
         
-        // 1. Get 'new_admin_note' instead of 'admin_note'
         const { order_id, phone, name, address, delivery_area, order_source, new_admin_note, cart_items, advance_payment, discount_amount } = req.body;
+
+        // [FIX] SAFETY GUARD: Prevent editing if order is already processed
+        // This prevents the "Delete-and-Replace" logic from ruining stock history for shipped items
+        const [check] = await conn.query("SELECT status, order_number FROM orders WHERE id = ?", [order_id]);
+        if (check.length > 0) {
+            const status = check[0].status;
+            if (['shipped', 'delivered', 'returned', 'cancelled', 'processing'].includes(status)) {
+                throw new Error(`Order #${check[0].order_number} is '${status}'. Editing is disabled to protect inventory history.`);
+            }
+        }
         
         const items = JSON.parse(cart_items);
         const shipping_rate = (delivery_area === 'inside') ? 70 : 130;
@@ -395,6 +404,13 @@ exports.bulkUpdateStatus = async (req, res) => {
 
             // === STRICT STATE MACHINE ===
             switch (current) {
+                // [FIX] Allow Incomplete orders to be Cancelled
+                case 'incomplete':
+                    // Incomplete -> Cancelled (Safe, no stock impact)
+                    // Also allow Confirmed/Hold if you manually verify it
+                    if (['cancelled', 'hold'].includes(new_status)) isValid = true;
+                    break;
+
                 // [FIX] Added Pre-Order Logic
                 case 'pre_order':
                     // From Pre-Order -> Confirmed, Hold, Cancelled
