@@ -267,44 +267,51 @@
 
             <div class="flex flex-col gap-4 pt-4">
                 
-                <% if (product.is_preorder === 'yes') { %>
-                    <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-sm text-center relative overflow-hidden group shadow-sm">
-                        <div class="absolute -left-2 -top-2 text-2xl animate-spin-slow opacity-60">🌸</div>
-                        <div class="absolute -right-2 -bottom-2 text-2xl animate-spin-slow opacity-60" style="animation-direction: reverse;">🌺</div>
-                        
-                        <p class="text-[11px] font-bold text-indigo-900 leading-relaxed relative z-10">
-                            পণ্যটি বর্তমানে স্টকে নেই, তবে আপনি চাইলে প্রি-অর্ডার করতে পারেন।<br>আমরা আপনার চাহিদা পূরণের সর্বোচ্চ চেষ্টা করব।
-                        </p>
+                <template x-if="isPreOrderProduct && currentVariant && currentVariant.stock_quantity <= 0">
+                    <div class="w-full">
+                        <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-sm text-center relative overflow-hidden group shadow-sm mb-4">
+                            <div class="absolute -left-2 -top-2 text-2xl animate-spin-slow opacity-60">🌸</div>
+                            <div class="absolute -right-2 -bottom-2 text-2xl animate-spin-slow opacity-60" style="animation-direction: reverse;">🌺</div>
+                            
+                            <p class="text-[11px] font-bold text-indigo-900 leading-relaxed relative z-10">
+                                পণ্যটি বর্তমানে স্টকে নেই, তবে আপনি চাইলে প্রি-অর্ডার করতে পারেন।<br>আমরা আপনার চাহিদা পূরণের সর্বোচ্চ চেষ্টা করব।
+                            </p>
+                        </div>
+
+                        <button @click="buyNow()" 
+                                class="w-full py-4 bg-indigo-900 text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-indigo-800 transition-all flex items-center justify-center gap-2 shadow-lg relative overflow-hidden group">
+                            <span class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+                            <span class="relative">Pre Order Now</span>
+                            <span class="material-icons-outlined text-sm relative">watch_later</span>
+                        </button>
                     </div>
+                </template>
 
-                    <button @click="buyNow()" 
-                            class="w-full py-4 bg-indigo-900 text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-indigo-800 transition-all flex items-center justify-center gap-2 shadow-lg relative overflow-hidden group">
-                        <span class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-                        <span class="relative">Pre Order Now</span>
-                        <span class="material-icons-outlined text-sm relative">watch_later</span>
-                    </button>
+                <template x-if="!currentVariant || currentVariant.stock_quantity > 0 || !isPreOrderProduct">
+                    <div class="w-full space-y-4">
+                        <button @click="addToCart()" 
+                                :disabled="currentVariant && currentVariant.stock_quantity <= 0"
+                                class="w-full py-4 bg-black text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span>Add to Bag</span>
+                            <span class="material-icons-outlined text-sm">shopping_bag</span>
+                        </button>
 
-                    <style>
-                        @keyframes spin-slow { to { transform: rotate(360deg); } }
-                        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
-                    </style>
+                        <button @click="buyNow()" 
+                               :disabled="currentVariant && currentVariant.stock_quantity <= 0"
+                               class="group relative w-full py-4 bg-white text-black border border-black text-xs font-bold uppercase tracking-[0.2em] overflow-hidden transition-all hover:text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                            <div class="absolute inset-0 w-0 bg-black transition-all duration-[250ms] ease-out group-hover:w-full"></div>
+                            <span class="relative flex items-center justify-center gap-2">
+                                <span>Order Now</span>
+                                <span class="material-icons-outlined text-sm">arrow_forward</span>
+                            </span>
+                        </button>
+                    </div>
+                </template>
 
-                <% } else { %>
-                    <button @click="addToCart()" 
-                            class="w-full py-4 bg-black text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg">
-                        <span>Add to Bag</span>
-                        <span class="material-icons-outlined text-sm">shopping_bag</span>
-                    </button>
-
-                    <button @click="buyNow()" 
-                            class="group relative w-full py-4 bg-white text-black border border-black text-xs font-bold uppercase tracking-[0.2em] overflow-hidden transition-all hover:text-white">
-                        <div class="absolute inset-0 w-0 bg-black transition-all duration-[250ms] ease-out group-hover:w-full"></div>
-                        <span class="relative flex items-center justify-center gap-2">
-                            <span>Order Now</span>
-                            <span class="material-icons-outlined text-sm">arrow_forward</span>
-                        </span>
-                    </button>
-                <% } %>
+                <style>
+                    @keyframes spin-slow { to { transform: rotate(360deg); } }
+                    .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+                </style>
 
             </div>
 

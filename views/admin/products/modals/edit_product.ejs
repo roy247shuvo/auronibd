@@ -83,7 +83,8 @@
                 </div>
                 <div class="col-span-2 lg:col-span-1">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">SKU (Locked)</label>
-                    <input type="text" id="editMainSku" value="<%= p.sku %>" disabled class="w-full border border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed rounded-lg px-3 py-2 font-mono uppercase">
+                    <input type="text" value="<%= p.sku %>" disabled class="w-full border border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed rounded-lg px-3 py-2 font-mono uppercase">
+                    <input type="hidden" name="sku" id="editMainSku" value="<%= p.sku %>">
                 </div>
             </div>
         </div>

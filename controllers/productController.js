@@ -145,48 +145,51 @@ exports.deleteProduct = async (req, res) => {
     }
 };
 
-// [ADD OR REPLACE THIS FUNCTION]
+// [FIXED] Non-Destructive Update Function
 exports.updateProduct = async (req, res) => {
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
-        // 1. Extract Data
         const { 
             id, name, description, price, compare_price, sku, sales_channel,
             brand_id, type_id, category_id, collection_id, work_type_id, fabric_id, 
             special_feature_id, 
-            is_preorder, // <--- 1. EXTRACT THIS
-            track_stock, image_map_json 
+            is_preorder, 
+            image_map_json,
+            // Variant Arrays
+            variant_id, variant_color, variant_size, variant_price, variant_compare, variant_sku 
         } = req.body;
 
-        // 2. Update Main Product Table
+        // 1. Generate Slug if missing (Fixes /product/null issue)
+        let slugUpdateSql = "";
+        const slugParams = [];
+        
+        // Check if we need to fix a null slug
+        const [currProd] = await conn.query("SELECT slug FROM products WHERE id = ?", [id]);
+        if (!currProd[0].slug) {
+            const newSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+            slugUpdateSql = ", slug=?";
+            slugParams.push(newSlug);
+        }
+
+        // 2. Update Main Product
         await conn.query(`
             UPDATE products 
-            SET name=?, description=?, regular_price=?, sale_price=?, cost_price=?, sku=?, sales_channel=?, 
-            brand_id=?, type_id=?, category_id=?, collection_id=?, work_type_id=?, fabric_id=?, special_feature_id=?, is_preorder=?, stock_quantity=?
+            SET name=?, description=?, regular_price=?, sale_price=?, sku=?, sales_channel=?, 
+            brand_id=?, type_id=?, category_id=?, collection_id=?, work_type_id=?, fabric_id=?, special_feature_id=?, is_preorder=?
+            ${slugUpdateSql}
             WHERE id=?
         `, [
-            name, 
-            description, 
-            compare_price || 0, 
-            price, 
-            0, 
-            sku, 
-            sales_channel,
-            brand_id || null, 
-            type_id || null, 
-            category_id || null, 
-            collection_id || null, 
-            work_type_id || null, 
-            fabric_id || null, 
-            special_feature_id || null, 
-            is_preorder || 'no', // <--- 2. PASS VALUE (Defaults to 'no' if unchecked)
-            0, 
+            name, description, compare_price || 0, price, sku, sales_channel,
+            brand_id || null, type_id || null, category_id || null, collection_id || null, 
+            work_type_id || null, fabric_id || null, special_feature_id || null, 
+            is_preorder || 'no',
+            ...slugParams, 
             id
         ]);
 
-        // 3. Update Images (If changed)
+        // 3. Update Images (Standard replace is fine for images)
         if (image_map_json) {
             await conn.query("DELETE FROM product_images WHERE product_id = ?", [id]);
             const imageMap = JSON.parse(image_map_json); 
@@ -197,25 +200,68 @@ exports.updateProduct = async (req, res) => {
             }
         }
 
-        // 4. Update Variants
-        if (req.body.variant_sku && req.body.variant_sku.length > 0) {
-            await conn.query("DELETE FROM product_variants WHERE product_id = ?", [id]);
-
+        // 4. SMART VARIANT UPDATE (The Critical Fix)
+        if (variant_sku && variant_sku.length > 0) {
             const toArray = (val) => Array.isArray(val) ? val : [val];
-            const skus = toArray(req.body.variant_sku);
-            const colors = toArray(req.body.variant_color);
-            const sizes = toArray(req.body.variant_size);
-            const prices = toArray(req.body.variant_price);
-            const compares = toArray(req.body.variant_compare);
+            
+            // Incoming Data from Form
+            const ids = toArray(variant_id || []);
+            const skus = toArray(variant_sku);
+            const colors = toArray(variant_color);
+            const sizes = toArray(variant_size);
+            const prices = toArray(variant_price);
+            const compares = toArray(variant_compare);
 
+            // Get existing Variant IDs from DB to detect deletions
+            const [existingVars] = await conn.query("SELECT id FROM product_variants WHERE product_id = ?", [id]);
+            const existingIds = existingVars.map(v => v.id);
+            const keptIds = ids.filter(vid => vid && vid !== '').map(Number);
+
+            // A. Delete variants that are NOT in the form anymore
+            const idsToDelete = existingIds.filter(eid => !keptIds.includes(eid));
+            if (idsToDelete.length > 0) {
+                // Optional: Check for batches before deleting? 
+                // For now, we assume user meant to delete them.
+                await conn.query("DELETE FROM product_variants WHERE id IN (?)", [idsToDelete]);
+            }
+
+            // B. Upsert (Update existing, Insert new)
             let totalStock = 0;
 
             for (let i = 0; i < skus.length; i++) {
-                const qty = 0; 
-                await conn.query(`INSERT INTO product_variants (product_id, color, size, sku, price, compare_price, cost_price, stock_quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-                [id, colors[i] || 'N/A', sizes[i] || 'N/A', skus[i], prices[i] || price, compares[i] || 0, 0, qty]);
+                const vid = ids[i] ? Number(ids[i]) : null;
+                const vColor = colors[i] || 'N/A';
+                const vSize = sizes[i] || 'N/A';
+                const vSku = skus[i];
+                const vPrice = prices[i] || price;
+                const vCompare = compares[i] || 0;
+
+                if (vid && existingIds.includes(vid)) {
+                    // UPDATE Existing Variant (PRESERVES STOCK & ID)
+                    await conn.query(`
+                        UPDATE product_variants 
+                        SET color=?, size=?, sku=?, price=?, compare_price=? 
+                        WHERE id=?
+                    `, [vColor, vSize, vSku, vPrice, vCompare, vid]);
+                    
+                    // Add current DB stock to total counter
+                    const [stockRes] = await conn.query("SELECT stock_quantity FROM product_variants WHERE id = ?", [vid]);
+                    totalStock += stockRes[0]?.stock_quantity || 0;
+
+                } else {
+                    // INSERT New Variant (Stock starts at 0)
+                    const [res] = await conn.query(`
+                        INSERT INTO product_variants 
+                        (product_id, color, size, sku, price, compare_price, cost_price, stock_quantity) 
+                        VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+                    `, [id, vColor, vSize, vSku, vPrice, vCompare]);
+                }
             }
-            await conn.query("UPDATE products SET stock_quantity = ? WHERE id = ?", [totalStock, id]);
+
+            // Update Total Product Stock Display
+            // We recalculate from DB to be 100% accurate
+            const [sumRes] = await conn.query("SELECT SUM(stock_quantity) as total FROM product_variants WHERE product_id = ?", [id]);
+            await conn.query("UPDATE products SET stock_quantity = ? WHERE id = ?", [sumRes[0].total || 0, id]);
         }
 
         await conn.commit();

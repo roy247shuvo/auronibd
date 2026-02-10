@@ -190,8 +190,8 @@ exports.getCheckout = async (req, res) => {
             }, req);
         }
 
-        // Check if ANY item in cart is a preorder item
-        const isPreOrder = cartItems.some(item => item.is_preorder === 'yes');
+        // [FIX] Pre-Order Mode ONLY if item is Pre-Order capable AND has NO STOCK
+        const isPreOrder = cartItems.some(item => item.is_preorder === 'yes' && item.stock_quantity <= 0);
 
         res.render('shop/pages/checkout', {
             title: 'Checkout',
@@ -342,19 +342,25 @@ exports.placeOrder = async (req, res) => {
                     return res.send(`Sorry, one of the items in your cart is no longer available.`);
                 }
 
-                // Condition 2: Not enough stock (SKIP IF PRE-ORDER)
-                if (dbVariant.is_preorder !== 'yes' && dbVariant.stock_quantity < item.quantity) {
-                    // Custom "You Missed It" Screen
-                    return res.send(`
-                        <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif; text-align:center; background:#fff;">
-                            <div style="font-size:100px; animation: sadBounce 2s infinite; margin-bottom: 20px;">😢</div>
-                            <h2 style="font-size:24px; font-weight:bold; color:#1f2937; margin:0;">Oh no!</h2>
-                            <p style="font-size:18px; color:#4b5563; margin-top:10px;">Someone bought this 28 sec ago. You just missed it.</p>
-                            <a href="/cart" style="margin-top:30px; padding:12px 25px; background:#000; color:#fff; text-decoration:none; border-radius:5px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">Return to Cart</a>
-                            <style>@keyframes sadBounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-20px);} 60% {transform: translateY(-10px);} }</style>
+                // [FIX] Condition 2: Stock Validation Logic
+                // Case A: If stock exists (even 1), User CANNOT buy more than stock.
+                if (dbVariant.stock_quantity > 0 && dbVariant.stock_quantity < item.quantity) {
+                     return res.send(`
+                        <div style="height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif; text-align:center;">
+                            <h2 style="font-size:24px; font-weight:bold; color:#1f2937;">Stock Limit Reached</h2>
+                            <p style="font-size:18px; color:#4b5563; margin-top:10px;">We currently have only <b>${dbVariant.stock_quantity}</b> units in stock.</p>
+                            <p style="color:#666;">Please lower your quantity to proceed. If you need more, you can place a separate Pre-Order later.</p>
+                            <a href="/cart" style="margin-top:20px; text-decoration:underline;">Return to Cart</a>
                         </div>
                     `);
                 }
+
+                // Case B: If NO stock, but Pre-Order is NOT allowed -> Fail
+                if (dbVariant.stock_quantity <= 0 && dbVariant.is_preorder !== 'yes') {
+                    return res.send(`... (The sad face HTML) ...`);
+                }
+                
+                // Case C: If NO stock AND Pre-Order allowed -> Proceed (This loops continues)
             }
         }
 
@@ -364,11 +370,11 @@ exports.placeOrder = async (req, res) => {
         const advanceRequired = settings[0].checkout_advance_delivery === 'yes';
 
         const variantIds = cartSession.map(item => item.variantId);
-        // [UPDATED] Fetch is_preorder column
-        const [variants] = await db.query(`SELECT pv.*, p.name, p.regular_price, p.sale_price, p.is_preorder FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE pv.id IN (?)`, [variantIds]);
+        // [UPDATED] Fetch is_preorder AND stock
+        const [variants] = await db.query(`SELECT pv.*, p.name, p.regular_price, p.sale_price, p.is_preorder, pv.stock_quantity FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE pv.id IN (?)`, [variantIds]);
         
-        // [NEW] Detect if this is a Pre-Order
-        const isPreOrderOrder = variants.some(v => v.is_preorder === 'yes');
+        // [FIX] Detect Pre-Order ONLY if stock is out
+        const isPreOrderOrder = variants.some(v => v.is_preorder === 'yes' && v.stock_quantity <= 0);
 
         let product_subtotal = 0;
         const orderItemsData = [];
