@@ -12,6 +12,7 @@ exports.getEditProductForm = async (req, res) => {
         const [work_types] = await db.query("SELECT * FROM work_types");
         const [fabrics] = await db.query("SELECT * FROM fabrics");
         const [collections] = await db.query("SELECT * FROM collections");
+        const [specials] = await db.query("SELECT * FROM special_features ORDER BY name ASC");
         const [allColors] = await db.query("SELECT * FROM colors");
         const [sizes] = await db.query("SELECT * FROM sizes ORDER BY sort_order ASC"); // <--- ADDED THIS
 
@@ -57,7 +58,8 @@ exports.getEditProductForm = async (req, res) => {
 
         res.render('admin/products/modals/edit_product', { 
             layout: false,
-            p, brands, categories, types, work_types, fabrics, collections, allColors, sizes, // <--- ADDED sizes HERE
+            p, brands, categories, types, work_types, fabrics, collections, allColors, sizes, 
+            specials, // <--- Pass this variable
             imageMap, selectedColors, selectedSizes, variants 
         });
 
