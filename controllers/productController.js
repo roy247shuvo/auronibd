@@ -294,7 +294,8 @@ exports.getEditProduct = async (req, res) => {
         const [fabrics] = await db.query("SELECT * FROM fabrics");
         const [work_types] = await db.query("SELECT * FROM work_types");
         const [collections] = await db.query("SELECT * FROM collections");
-        const [specials] = await db.query("SELECT * FROM special_features ORDER BY name ASC"); 
+        // [FIX] Ensure Specials are fetched
+        const [specials] = await db.query("SELECT * FROM special_features ORDER BY name ASC");
         
         // Colors & Sizes for Variant Generator
         const [allColors] = await db.query("SELECT * FROM colors");
@@ -328,7 +329,8 @@ exports.getEditProduct = async (req, res) => {
         });
 
         res.render('admin/products/modals/edit_product', {
-            p, images, variants, brands, categories, types, fabrics, work_types, collections, specials,
+            p, images, variants, brands, categories, types, fabrics, work_types, collections, 
+            specials, // [FIX] Pass this variable
             allColors, sizes, imageMap, selectedColors, selectedSizes
         });
 
