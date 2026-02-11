@@ -1,17 +1,169 @@
-<div class="p-6 flex flex-col items-center justify-center min-h-[60vh] text-center">
-    
-    <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-        <span class="material-icons-outlined text-4xl text-blue-600">campaign</span>
+<div class="p-6" x-data="{ tab: 'catalogue' }"> <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Meta Manager</h1>
+        <div class="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+            <span class="material-icons-outlined text-base">verified</span>
+            <span>Business Verified</span>
+        </div>
     </div>
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">Meta Ads Manager</h1>
-    <p class="text-gray-500 max-w-md mb-8">
-        Connect your Facebook & Instagram ad accounts to track ROI, manage budgets, and launch retargeting campaigns.
-    </p>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[600px]">
+        <div class="flex border-b border-gray-100">
+            <button @click="tab = 'ads'" :class="{'border-b-2 border-black text-black bg-gray-50': tab === 'ads'}" class="px-6 py-4 text-sm font-bold uppercase tracking-wider text-gray-500 hover:text-black transition">
+                Ad Performance
+            </button>
+            <button @click="tab = 'catalogue'" :class="{'border-b-2 border-black text-black bg-gray-50': tab === 'catalogue'}" class="px-6 py-4 text-sm font-bold uppercase tracking-wider text-gray-500 hover:text-black transition flex items-center gap-2">
+                Catalogue <span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">Live</span>
+            </button>
+        </div>
 
-    <div class="bg-yellow-50 border border-yellow-100 rounded-lg px-6 py-4 flex items-center gap-3">
-        <span class="material-icons-outlined text-yellow-600">engineering</span>
-        <span class="text-sm font-bold text-yellow-800 uppercase tracking-wide">Feature Coming Soon</span>
-    </div>
+        <div class="p-6">
+            
+            <div x-show="tab === 'ads'" style="display: none;">
+                <div class="text-center py-20">
+                    <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="material-icons-outlined text-3xl text-blue-600">analytics</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">Ad Performance Data</h3>
+                    <p class="text-gray-500 text-sm mt-2 max-w-sm mx-auto">Connect your Facebook Ad Account API to see live ROAS, CPR, and Spend data here.</p>
+                    <button class="mt-6 px-6 py-2 border border-gray-300 rounded-lg text-sm font-bold hover:bg-gray-50 transition">Connect Ad Account</button>
+                </div>
+            </div>
 
-</div>
+            <div x-show="tab === 'catalogue'">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <div class="col-span-2 space-y-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                            <h4 class="font-bold text-blue-800 text-sm mb-1">How to Connect?</h4>
+                            <p class="text-xs text-blue-700 leading-relaxed">
+                                1. Go to <a href="https://business.facebook.com/commerce" target="_blank" class="underline font-bold">Meta Commerce Manager</a>.<br>
+                                2. Select your Catalogue > <strong>Data Sources</strong>.<br>
+                                3. Choose <strong>Data Feed</strong> > <strong>Scheduled Feed</strong>.<br>
+                                4. Paste the URL below into the feed input.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Your Live Catalogue Feed URL</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" readonly value="<%= feedUrl %>" id="feedUrlInput" class="w-full bg-gray-50 border border-gray-300 text-gray-600 text-sm rounded-lg p-3 font-mono focus:ring-2 focus:ring-black outline-none">
+                                <button onclick="navigator.clipboard.writeText(document.getElementById('feedUrlInput').value); alert('Copied!');" class="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition">
+                                    Copy
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+                                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                This feed automatically updates with Price, Stock, Images, and Descriptions.
+                            </p>
+                        </div>
+
+                        <div class="border-t border-gray-100 pt-6">
+                            <h4 class="font-bold text-gray-800 text-sm mb-4">Diagnostic Check</h4>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="p-4 border border-gray-200 rounded-lg text-center">
+                                    <p class="text-xs text-gray-500 mb-1">Products Syncing</p>
+                                    <p class="text-xl font-bold text-black">Auto</p>
+                                </div>
+                                <div class="p-4 border border-gray-200 rounded-lg text-center">
+                                    <p class="text-xs text-gray-500 mb-1">Price Updates</p>
+                                    <p class="text-xl font-bold text-black">Live</p>
+                                </div>
+                                <div class="p-4 border border-gray-200 rounded-lg text-center">
+                                    <p class="text-xs text-gray-500 mb-1">Stock Status</p>
+                                    <p class="text-xl font-bold text-black">Synced</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-xl p-6 border border-gray-200 flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg" alt="Meta" class="w-6 h-6">
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-sm">Catalogue Preview</h3>
+                        <p class="text-xs text-gray-500 mt-1 mb-6">How your products appear in Ads</p>
+
+                        <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 w-full max-w-[200px] text-left">
+                            <div class="bg-gray-200 aspect-square rounded-md mb-2 flex items-center justify-center text-gray-400 text-xs">Product Image</div>
+                            <div class="h-3 w-3/4 bg-gray-100 rounded mb-1"></div>
+                            <div class="h-3 w-1/2 bg-gray-100 rounded"></div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div class="h-4 w-12 bg-blue-100 rounded"></div>
+                                <button class="text-[10px] bg-gray-100 px-2 py-1 rounded">Shop Now</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="mt-10 pt-8 border-t border-gray-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-gray-800 text-lg">Synced Products (<%= products.length %>)</h3>
+                        <span class="text-xs text-gray-500">Products must be <strong>Online</strong> and have <strong>Stock</strong> to appear here.</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="p-4 w-16">Image</th>
+                                    <th class="p-4">Product Name</th>
+                                    <th class="p-4">SKU</th>
+                                    <th class="p-4">Price</th>
+                                    <th class="p-4 text-right">Stock</th>
+                                    <th class="p-4 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
+                                <% if (products.length > 0) { %>
+                                    <% products.forEach(p => { %>
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="p-4">
+                                                <div class="w-10 h-10 rounded bg-gray-100 overflow-hidden border border-gray-200">
+                                                    <% if (p.main_image) { %>
+                                                        <img src="<%= p.main_image %>" class="w-full h-full object-cover">
+                                                    <% } else { %>
+                                                        <div class="flex items-center justify-center h-full text-gray-300">
+                                                            <span class="material-icons-outlined text-sm">image</span>
+                                                        </div>
+                                                    <% } %>
+                                                </div>
+                                            </td>
+                                            <td class="p-4">
+                                                <a href="/admin/products/edit/<%= p.id %>" class="font-bold text-gray-800 hover:text-blue-600 block"><%= p.name %></a>
+                                            </td>
+                                            <td class="p-4 font-mono text-xs text-gray-500"><%= p.sku %></td>
+                                            <td class="p-4">
+                                                <% if (p.sale_price > 0 && p.sale_price < p.regular_price) { %>
+                                                    <span class="text-green-600 font-bold">৳<%= p.sale_price %></span>
+                                                    <span class="text-gray-400 text-xs line-through ml-1">৳<%= p.regular_price %></span>
+                                                <% } else { %>
+                                                    <span class="font-bold">৳<%= p.regular_price %></span>
+                                                <% } %>
+                                            </td>
+                                            <td class="p-4 text-right font-mono font-bold"><%= p.stock_quantity %></td>
+                                            <td class="p-4 text-center">
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase tracking-wide">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                                    Synced
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="6" class="p-8 text-center text-gray-400 text-sm">
+                                            <span class="material-icons-outlined text-4xl mb-2 text-gray-300">inventory_2</span>
+                                            <br>
+                                            No products found matching the feed criteria.
+                                            <br>
+                                            <span class="text-xs opacity-70">Ensure products are marked "Online" and have Stock > 0.</span>
+                                        </td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>

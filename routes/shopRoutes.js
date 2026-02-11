@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const shopController = require('../controllers/shopController');
+const campaignController = require('../controllers/campaignController'); // [NEW] Import
 const checkoutController = require('../controllers/checkoutController'); 
 const bkashController = require('../controllers/bkashController');
 const customerAccountController = require('../controllers/customerAccountController'); // Add this line
+
+// [NEW] Public Meta Catalog Feed
+router.get('/api/meta/catalog.xml', campaignController.getProductFeed);
 
 // Public Website Routes
 router.get('/', shopController.getHome);
