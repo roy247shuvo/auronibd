@@ -3,9 +3,10 @@ const db = require('../config/database');
 exports.getInventoryPage = async (req, res) => {
     try {
         // 1. Get All Products (For the Table)
-        // After (Fetches 1 random image per product)
+        // [FIX] Calculate total stock from variants table to ensure accuracy
         const [products] = await db.query(`
             SELECT p.*, 
+            COALESCE((SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = p.id), 0) as stock_quantity,
             (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY RAND() LIMIT 1) as random_image 
             FROM products p 
             ORDER BY p.created_at DESC

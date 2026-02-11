@@ -125,29 +125,28 @@ exports.getSmsBalance = async (req, res) => {
     }
 };
 
-// [UPDATED] Get Meta Page with Feed URL & Synced Products List
 exports.getMetaCampaigns = async (req, res) => {
     try {
         const feedUrl = `${req.protocol}://${req.get('host')}/api/meta/catalog.xml`;
 
-        // [NEW] Fetch the actual products that are being synced
-        // Criteria: is_online = 'yes' AND stock > 0
+        // [FIX] 1. Calculate Real Stock from Variants
+        // [FIX] 2. Include Pre-Order Items (Even if stock is 0)
         const [products] = await db.query(`
             SELECT 
-                p.id, p.sku, p.name, p.regular_price, p.sale_price, p.stock_quantity,
+                p.id, p.sku, p.name, p.regular_price, p.sale_price, p.is_preorder,
+                COALESCE((SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = p.id), 0) as real_stock,
                 (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY sort_order ASC LIMIT 1) as main_image
             FROM products p 
-            WHERE p.is_online = 'yes' AND p.stock_quantity > 0
-            ORDER BY p.created_at DESC  
+            WHERE p.is_online = 'yes' 
+            HAVING (real_stock > 0 OR p.is_preorder = 'yes')
+            ORDER BY p.created_at DESC
         `);
         
-        // ^^^ FIXED: Changed 'updated_at' to 'created_at' ^^^
-
         res.render('admin/campaigns/meta', { 
             title: 'Meta Campaigns',
             path: '/admin/campaigns/meta',
             feedUrl: feedUrl,
-            products: products // Pass products to view
+            products: products 
         });
     } catch (err) {
         console.error("Meta Page Error:", err);
@@ -155,36 +154,36 @@ exports.getMetaCampaigns = async (req, res) => {
     }
 };
 
-// [FIXED] Corrected 'is_online' Column Name
 exports.getProductFeed = async (req, res) => {
     try {
-        // 1. Setup Base URL (Force HTTPS)
         const host = req.get('host') || 'auronibd.com';
         const protocol = 'https';
         const baseUrl = `${protocol}://${host}`;
 
         console.log(`[Meta Feed] Generating feed for ${baseUrl}`);
 
-        // 2. Fetch Active Products (Fixed Column Name: is_online)
+        // [FIX] 1. Get Real Stock Sum
+        // [FIX] 2. Include Pre-Orders using HAVING clause
         const [products] = await db.query(`
             SELECT 
-                p.id, p.sku, p.name, p.description, 
-                p.regular_price, p.sale_price, p.stock_quantity,
+                p.id, p.sku, p.name, p.description, p.is_preorder,
+                p.regular_price, p.sale_price, 
+                COALESCE((SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = p.id), 0) as real_stock,
                 COALESCE(b.name, 'Auroni') as brand_name,
                 (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY sort_order ASC LIMIT 1) as main_image
             FROM products p 
             LEFT JOIN brands b ON p.brand_id = b.id
-            WHERE p.is_online = 'yes' AND p.stock_quantity > 0
+            WHERE p.is_online = 'yes'
+            HAVING (real_stock > 0 OR p.is_preorder = 'yes')
         `);
 
-        // 3. Helper: Format Price (Must be 00.00 BDT)
+        // Helpers
         const formatPrice = (amount) => {
             const num = parseFloat(amount);
             if (isNaN(num)) return '0.00 BDT';
             return num.toFixed(2) + ' BDT';
         };
 
-        // 4. Helper: Sanitize Text (Prevents XML Breakage)
         const sanitize = (text) => {
             if (!text) return "";
             return String(text)
@@ -197,7 +196,6 @@ exports.getProductFeed = async (req, res) => {
                 .trim();
         };
 
-        // 5. Build XML Header
         let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
 <channel>
@@ -206,29 +204,32 @@ exports.getProductFeed = async (req, res) => {
 <description>Product Feed</description>
 `;
 
-        // 6. Loop Products
         for (const p of products) {
-            if (!p.sku) continue; // Skip if missing SKU
+            if (!p.sku) continue;
 
             const link = `${baseUrl}/product/${p.sku}`;
-            
-            // Handle Image URL
             let img = "";
             if (p.main_image) {
                 img = p.main_image.startsWith('http') ? p.main_image : `${baseUrl}${p.main_image}`;
             }
 
-            // Price Logic
             const price = formatPrice(p.regular_price);
             let salePriceTag = '';
             if (p.sale_price > 0 && p.sale_price < p.regular_price) {
                 salePriceTag = `<g:sale_price>${formatPrice(p.sale_price)}</g:sale_price>`;
             }
 
-            // Description Fallback
             const description = sanitize(p.description) || sanitize(p.name);
 
-            // Append Item
+            // [FIX] Determine Availability & Condition
+            // Meta values: 'in_stock', 'out_of_stock', 'preorder', 'backorder'
+            let availability = 'in_stock';
+            if (p.real_stock <= 0 && p.is_preorder === 'yes') {
+                availability = 'preorder';
+            } else if (p.real_stock <= 0) {
+                availability = 'out_of_stock'; // Should be filtered out by Query, but safe fallback
+            }
+
             xml += `<item>
     <g:id>${sanitize(p.sku)}</g:id>
     <g:title>${sanitize(p.name)}</g:title>
@@ -237,19 +238,17 @@ exports.getProductFeed = async (req, res) => {
     <g:image_link>${img}</g:image_link>
     <g:brand>${sanitize(p.brand_name)}</g:brand>
     <g:condition>new</g:condition>
-    <g:availability>in_stock</g:availability>
+    <g:availability>${availability}</g:availability>
     <g:price>${price}</g:price>
     ${salePriceTag}
-    <g:inventory>${p.stock_quantity}</g:inventory>
+    <g:inventory>${p.real_stock}</g:inventory>
 </item>
 `;
         }
 
-        // 7. Close XML
         xml += `</channel>
 </rss>`;
 
-        // 8. Send Response
         res.set('Content-Type', 'application/xml; charset=utf-8');
         res.send(xml.trim());
 
