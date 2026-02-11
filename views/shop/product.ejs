@@ -323,19 +323,81 @@
     <% if(related.length > 0) { %>
     <div class="mt-20 lg:mt-32 border-t border-gray-100 pt-16">
         <h2 class="font-serif text-2xl lg:text-3xl italic text-center mb-8 lg:mb-12">দেখেন তো এগুলো পছন্দ হয় কিনা?</h2>
+        
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            <% related.forEach(p => { %>
-                <a href="/product/<%= p.sku %>" class="group block">
-                    <div class="aspect-[2/3] bg-gray-50 mb-3 overflow-hidden rounded-sm">
-                        <img src="<%= p.cover_image %>" class="w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105 ease-out">
+            <% related.forEach(p => { 
+                // --- 1. LOGIC COPIED FROM NEW ARRIVALS ---
+                let regPrice = parseFloat(p.price) || 0;
+                let salePrice = parseFloat(p.compare_price) || 0;
+                let stockQty = parseFloat(p.stock_quantity) || 0;
+
+                let finalPrice = regPrice;
+                let oldPrice = null;
+                let isSale = false;
+
+                // Logic: In this system, 'price' is Regular/High, 'compare_price' is Sale/Low
+                if (salePrice > 0 && salePrice < regPrice) {
+                    finalPrice = salePrice;
+                    oldPrice = regPrice;
+                    isSale = true;
+                }
+
+                // --- 2. STOCK & PRE-ORDER LOGIC ---
+                let isPreOrder = p.is_preorder === 'yes';
+                // Check stock (handle case where p.has_stock might not be defined in 'related' query)
+                let isOutOfStock = (stockQty <= 0);
+
+                // --- 3. IMAGE LOGIC ---
+                // Handle different variable names if necessary (cover_image vs image_url)
+                let imgUrl = p.image_url || p.cover_image || '/uploads/placeholder.jpg';
+                if(!imgUrl.startsWith('/') && !imgUrl.startsWith('http')) imgUrl = '/' + imgUrl;
+            %>
+            
+            <div class="group relative flex flex-col select-none">
+                
+                <div class="block relative aspect-[2/3] bg-gray-50 mb-4 overflow-hidden rounded-sm">
+                    <a href="/product/<%= p.sku %>" class="block w-full h-full cursor-pointer">
+                        <img src="<%= imgUrl %>" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy">
+                    </a>
+
+                    <div class="absolute top-2 left-2 flex flex-col space-y-1 pointer-events-none z-20">
+                        <% if (isSale) { %>
+                            <span class="bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm">Sale</span>
+                        <% } %>
+                        <% if (isPreOrder && isOutOfStock) { %>
+                            <span class="bg-indigo-900 text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm">প্রি-অর্ডার</span>
+                        <% } else if (isOutOfStock && !isPreOrder) { %>
+                            <span class="bg-gray-800 text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest shadow-sm">Stock Out</span>
+                        <% } %>
                     </div>
-                    <div class="text-center">
+                    
+                    <button class="absolute bottom-0 left-0 w-full py-3 bg-[#800000]/85 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 z-30 
+                                   opacity-100 lg:translate-y-full lg:group-hover:translate-y-0 lg:group-hover:opacity-100"
+                            onclick="window.location.href = '/product/<%= p.sku %>'">
+                        বিস্তারিত দেখুন
+                    </button>
+                </div>
+
+                <div class="px-1 text-center">
+                    <% if (p.brand_name) { %>
                         <div class="text-[9px] uppercase tracking-widest text-gray-400 mb-1"><%= p.brand_name %></div>
-                        <h3 class="font-serif text-sm group-hover:text-brand-gold transition-colors truncate"><%= p.name %></h3>
-                        
-                        <p class="text-xs font-bold mt-1">TK. <%= p.compare_price || p.price %></p>
+                    <% } %>
+                    
+                    <a href="/product/<%= p.sku %>" class="font-serif text-sm text-gray-900 hover:text-brand-gold transition-colors truncate block">
+                        <%= p.name %>
+                    </a>
+                    
+                    <div class="flex items-center justify-center space-x-2 mt-2">
+                        <% if (isSale) { %>
+                            <span class="text-red-500 line-through text-[11px] font-bold opacity-80">TK. <%= oldPrice %></span>
+                            <span class="font-bold text-xs text-green-700">TK. <%= finalPrice %></span>
+                        <% } else { %>
+                            <span class="font-bold text-xs text-black">TK. <%= finalPrice %></span>
+                        <% } %>
                     </div>
-                </a>
+                </div>
+
+            </div>
             <% }) %>
         </div>
     </div>

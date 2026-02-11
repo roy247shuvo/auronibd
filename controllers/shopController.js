@@ -506,6 +506,43 @@ exports.getProduct = async (req, res) => {
             [product.category_id, product.id]
         );
 
+        // [FIX] Calculate Prices & Stock for Related Products (Variant Logic)
+        if (related.length > 0) {
+            const relIds = related.map(r => r.id);
+            const [relVariants] = await db.query(`
+                SELECT product_id, price, compare_price, stock_quantity 
+                FROM product_variants 
+                WHERE product_id IN (?)
+            `, [relIds]);
+
+            related.forEach(p => {
+                let pVariants = relVariants.filter(v => v.product_id === p.id);
+
+                // If variants exist, sync the total stock quantity for accurate badges
+                if (pVariants.length > 0) {
+                     const totalStock = pVariants.reduce((sum, v) => sum + v.stock_quantity, 0);
+                     p.stock_quantity = totalStock;
+                }
+
+                // If NOT pre-order, hide 0-stock variant prices for price calculation
+                if (p.is_preorder !== 'yes') {
+                    pVariants = pVariants.filter(v => v.stock_quantity > 0);
+                }
+
+                if (pVariants.length > 0) {
+                    // Sort to find the lowest price (Active Sales)
+                    pVariants.sort((a, b) => {
+                        const priceA = Number(a.compare_price || a.price);
+                        const priceB = Number(b.compare_price || b.price);
+                        return priceA - priceB;
+                    });
+                    const lowest = pVariants[0];
+                    p.price = lowest.price;
+                    p.compare_price = lowest.compare_price;
+                }
+            });
+        }
+
         // 6. Calculate Min Price for Display
         const minPrice = variants.length > 0 
             ? Math.min(...variants.map(v => Number(v.compare_price || v.price)))
