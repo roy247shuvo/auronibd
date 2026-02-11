@@ -109,7 +109,8 @@
                                     <th class="p-4 w-16">Image</th>
                                     <th class="p-4">Product Name</th>
                                     <th class="p-4">SKU</th>
-                                    <th class="p-4">Price</th>
+                                    <th class="p-4 text-right">Price<br><span class="text-[10px] text-gray-400 font-normal normal-case">(Original)</span></th>
+                                    <th class="p-4 text-right">Compare Price<br><span class="text-[10px] text-gray-400 font-normal normal-case">(Selling)</span></th>
                                     <th class="p-4 text-right">Stock</th>
                                     <th class="p-4 text-center">Status</th>
                                 </tr>
@@ -131,17 +132,25 @@
                                             </td>
                                             <td class="p-4">
                                                 <a href="/admin/products/edit/<%= p.id %>" class="font-bold text-gray-800 hover:text-blue-600 block"><%= p.name %></a>
-                                            </td>
-                                            <td class="p-4 font-mono text-xs text-gray-500"><%= p.sku %></td>
-                                            <td class="p-4">
-                                                <% if (p.sale_price > 0 && p.sale_price < p.regular_price) { %>
-                                                    <span class="text-green-600 font-bold">৳<%= p.sale_price %></span>
-                                                    <span class="text-gray-400 text-xs line-through ml-1">৳<%= p.regular_price %></span>
-                                                <% } else { %>
-                                                    <span class="font-bold">৳<%= p.regular_price %></span>
+                                                <% if(p.is_preorder === 'yes') { %>
+                                                    <span class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded">Pre-Order Enabled</span>
                                                 <% } %>
                                             </td>
-                                            <td class="p-4 text-right font-mono font-bold"><%= p.stock_quantity %></td>
+                                            <td class="p-4 font-mono text-xs text-gray-500"><%= p.sku %></td>
+                                            
+                                            <td class="p-4 text-right font-mono text-gray-500">
+                                                <% if(p.original_price > 0) { %>
+                                                    <span class="line-through decoration-red-400 decoration-2">৳<%= p.original_price %></span>
+                                                <% } else { %>
+                                                    <span>-</span>
+                                                <% } %>
+                                            </td>
+
+                                            <td class="p-4 text-right font-mono font-bold text-gray-900">
+                                                ৳<%= p.selling_price %>
+                                            </td>
+
+                                            <td class="p-4 text-right font-mono font-bold"><%= p.real_stock %></td>
                                             <td class="p-4 text-center">
                                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase tracking-wide">
                                                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -152,12 +161,12 @@
                                     <% }) %>
                                 <% } else { %>
                                     <tr>
-                                        <td colspan="6" class="p-8 text-center text-gray-400 text-sm">
+                                        <td colspan="7" class="p-8 text-center text-gray-400 text-sm">
                                             <span class="material-icons-outlined text-4xl mb-2 text-gray-300">inventory_2</span>
                                             <br>
                                             No products found matching the feed criteria.
                                             <br>
-                                            <span class="text-xs opacity-70">Ensure products are marked "Online" and have Stock > 0.</span>
+                                            <span class="text-xs opacity-70">Ensure products are marked "Online" and have Stock > 0 (or Pre-Order enabled).</span>
                                         </td>
                                     </tr>
                                 <% } %>

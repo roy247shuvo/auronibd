@@ -125,15 +125,20 @@ exports.getSmsBalance = async (req, res) => {
     }
 };
 
+// [UPDATED] Meta Page with Price & Compare Price Columns
 exports.getMetaCampaigns = async (req, res) => {
     try {
         const feedUrl = `${req.protocol}://${req.get('host')}/api/meta/catalog.xml`;
 
-        // [FIX] 1. Calculate Real Stock from Variants
-        // [FIX] 2. Include Pre-Order Items (Even if stock is 0)
+        // [FIX] Fetch Real Stock & Both Price Columns
+        // Note: Based on your saveProduct logic:
+        // p.sale_price stores the 'Price' (High/Original)
+        // p.regular_price stores the 'Compare Price' (Selling/Actual)
         const [products] = await db.query(`
             SELECT 
-                p.id, p.sku, p.name, p.regular_price, p.sale_price, p.is_preorder,
+                p.id, p.sku, p.name, p.is_preorder,
+                p.sale_price as original_price, 
+                p.regular_price as selling_price,
                 COALESCE((SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = p.id), 0) as real_stock,
                 (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY sort_order ASC LIMIT 1) as main_image
             FROM products p 
@@ -154,27 +159,42 @@ exports.getMetaCampaigns = async (req, res) => {
     }
 };
 
+// [FIXED] Meta Feed with User's Custom Price Logic
+// Logic: 'price' is Original/High. 'compare_price' is Selling/Actual.
 exports.getProductFeed = async (req, res) => {
     try {
         const host = req.get('host') || 'auronibd.com';
         const protocol = 'https';
         const baseUrl = `${protocol}://${host}`;
 
-        console.log(`[Meta Feed] Generating feed for ${baseUrl}`);
+        console.log(`[Meta Feed] Generating feed for ${baseUrl} (Custom Price Logic)`);
 
-        // [FIX] 1. Get Real Stock Sum
-        // [FIX] 2. Include Pre-Orders using HAVING clause
-        const [products] = await db.query(`
+        // [QUERY] Fetch Variants
+        // v.price = DB Original Price
+        // v.compare_price = DB Selling Price
+        const [rows] = await db.query(`
             SELECT 
-                p.id, p.sku, p.name, p.description, p.is_preorder,
-                p.regular_price, p.sale_price, 
-                COALESCE((SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = p.id), 0) as real_stock,
+                v.id as variant_id, 
+                v.sku as variant_sku, 
+                v.price as db_high_price, 
+                v.compare_price as db_selling_price, 
+                v.stock_quantity,
+                v.color, 
+                v.size,
+                p.id as product_id, 
+                p.sku as group_id, 
+                p.name as product_name, 
+                p.description, 
+                p.is_preorder,
+                COALESCE(f.name, 'Cotton') as material_name,
                 COALESCE(b.name, 'Auroni') as brand_name,
                 (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY sort_order ASC LIMIT 1) as main_image
-            FROM products p 
+            FROM product_variants v
+            JOIN products p ON v.product_id = p.id
+            LEFT JOIN fabrics f ON p.fabric_id = f.id
             LEFT JOIN brands b ON p.brand_id = b.id
             WHERE p.is_online = 'yes'
-            HAVING (real_stock > 0 OR p.is_preorder = 'yes')
+            HAVING (v.stock_quantity > 0 OR p.is_preorder = 'yes')
         `);
 
         // Helpers
@@ -201,47 +221,67 @@ exports.getProductFeed = async (req, res) => {
 <channel>
 <title>${sanitize(process.env.APP_NAME || 'Auroni BD')} Catalogue</title>
 <link>${baseUrl}</link>
-<description>Product Feed</description>
+<description>Product Variant Feed</description>
 `;
 
-        for (const p of products) {
-            if (!p.sku) continue;
-
-            const link = `${baseUrl}/product/${p.sku}`;
+        for (const row of rows) {
+            const uniqueId = row.variant_sku || `VAR-${row.variant_id}`;
+            const link = `${baseUrl}/product/${row.group_id}`;
+            
             let img = "";
-            if (p.main_image) {
-                img = p.main_image.startsWith('http') ? p.main_image : `${baseUrl}${p.main_image}`;
+            if (row.main_image) {
+                img = row.main_image.startsWith('http') ? row.main_image : `${baseUrl}${row.main_image}`;
             }
 
-            const price = formatPrice(p.regular_price);
-            let salePriceTag = '';
-            if (p.sale_price > 0 && p.sale_price < p.regular_price) {
-                salePriceTag = `<g:sale_price>${formatPrice(p.sale_price)}</g:sale_price>`;
+            // === [FIX] Custom Price Logic ===
+            // DB 'price' is the Original/High Price (g:price)
+            // DB 'compare_price' is the Selling Price (g:sale_price)
+            
+            let metaPrice = row.db_high_price; // Default: The High Price
+            let metaSalePriceTag = '';
+
+            // Check if there is a valid selling price that is LOWER than the high price
+            if (row.db_selling_price > 0 && row.db_selling_price < row.db_high_price) {
+                // It is a Sale
+                // g:price = Original (db_high_price)
+                // g:sale_price = Selling (db_selling_price)
+                metaSalePriceTag = `<g:sale_price>${formatPrice(row.db_selling_price)}</g:sale_price>`;
+            } 
+            else if (row.db_selling_price > 0 && row.db_selling_price >= row.db_high_price) {
+                // If Selling Price is higher or equal to "High Price", treat Selling as the only price
+                // This handles cases where data might be messy (e.g. no discount)
+                metaPrice = row.db_selling_price;
             }
+            // Else: If db_selling_price is 0, we assume 'db_high_price' is the only price.
 
-            const description = sanitize(p.description) || sanitize(p.name);
+            // Description & Title
+            const description = sanitize(row.description) || sanitize(row.product_name);
+            let variantTitle = row.product_name;
+            if (row.color && row.color !== 'N/A') variantTitle += ` - ${row.color}`;
+            if (row.size && row.size !== 'N/A') variantTitle += ` / ${row.size}`;
 
-            // [FIX] Determine Availability & Condition
-            // Meta values: 'in_stock', 'out_of_stock', 'preorder', 'backorder'
+            // Availability
             let availability = 'in_stock';
-            if (p.real_stock <= 0 && p.is_preorder === 'yes') {
+            if (row.stock_quantity <= 0 && row.is_preorder === 'yes') {
                 availability = 'preorder';
-            } else if (p.real_stock <= 0) {
-                availability = 'out_of_stock'; // Should be filtered out by Query, but safe fallback
             }
 
             xml += `<item>
-    <g:id>${sanitize(p.sku)}</g:id>
-    <g:title>${sanitize(p.name)}</g:title>
+    <g:id>${sanitize(uniqueId)}</g:id>
+    <g:item_group_id>${sanitize(row.group_id)}</g:item_group_id>
+    <g:title>${sanitize(variantTitle)}</g:title>
     <g:description>${description}</g:description>
     <g:link>${link}</g:link>
     <g:image_link>${img}</g:image_link>
-    <g:brand>${sanitize(p.brand_name)}</g:brand>
+    <g:brand>${sanitize(row.brand_name)}</g:brand>
     <g:condition>new</g:condition>
     <g:availability>${availability}</g:availability>
-    <g:price>${price}</g:price>
-    ${salePriceTag}
-    <g:inventory>${p.real_stock}</g:inventory>
+    <g:price>${formatPrice(metaPrice)}</g:price>
+    ${metaSalePriceTag}
+    <g:inventory>${row.stock_quantity}</g:inventory>
+    <g:material>${sanitize(row.material_name)}</g:material>
+    ${row.color !== 'N/A' ? `<g:color>${sanitize(row.color)}</g:color>` : ''}
+    ${row.size !== 'N/A' ? `<g:size>${sanitize(row.size)}</g:size>` : ''}
 </item>
 `;
         }
