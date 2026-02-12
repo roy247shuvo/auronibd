@@ -1,0 +1,39 @@
+<div class="main-content">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Golden Box Settings</h2>
+    </div>
+
+    <div class="flex space-x-4 border-b mb-6">
+        <a href="/admin/gamification/participants" class="pb-2 text-gray-500 hover:text-black">Participants</a>
+        <a href="/admin/gamification/settings" class="pb-2 border-b-2 border-black font-bold text-black">Settings</a>
+    </div>
+
+    <div class="bg-white shadow sm:rounded-lg p-6 max-w-2xl">
+        <form action="/admin/gamification/settings" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">Enable Golden Box Hunt</h3>
+                    <p class="text-sm text-gray-500">
+                        If enabled, the gift box will randomly appear for users. <br>
+                        If disabled, no one will see the box.
+                    </p>
+                </div>
+                
+                <div class="flex items-center">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="is_active" class="sr-only peer" <%= settings.is_active ? 'checked' : '' %>>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-6 border-t border-gray-100 pt-4 flex justify-end">
+                <button type="submit" class="bg-black text-white px-6 py-2 rounded shadow hover:bg-gray-800 transition">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
