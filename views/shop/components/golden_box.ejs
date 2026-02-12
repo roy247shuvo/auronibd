@@ -1,0 +1,158 @@
+<div id="goldenBoxContainer" class="fixed bottom-24 right-4 z-50 hidden" style="touch-action: manipulation;">
+    <div class="relative cursor-pointer animate-bounce-slow" onclick="openGiftModal()">
+        <div class="text-6xl filter drop-shadow-2xl hover:scale-110 transition-transform duration-300">
+            🎁
+        </div>
+        <div class="absolute -top-2 -right-2 text-2xl animate-ping">✨</div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-yellow-400 rounded-full opacity-20 animate-pulse"></div>
+    </div>
+</div>
+
+<div id="giftModal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeGiftModal()"></div>
+    
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-lg shadow-2xl overflow-hidden transform transition-all p-6 text-center">
+        
+        <button onclick="closeGiftModal()" class="absolute top-2 right-2 text-gray-400 hover:text-black">
+            <span class="material-icons-outlined">close</span>
+        </button>
+
+        <div id="giftStage1">
+            <div class="text-5xl mb-4">🎉</div>
+            <h2 class="font-serif text-2xl font-bold text-gray-900 mb-2">You found the Gift Box!</h2>
+            <p class="text-sm text-gray-600 mb-6">You are one step away from joining the lottery.</p>
+            
+            <div class="bg-yellow-50 border border-yellow-200 p-3 rounded mb-6">
+                <span class="text-xs text-gray-500 uppercase tracking-widest">Your Secret Code</span>
+                <div id="generatedCode" class="text-xl font-bold font-mono text-black mt-1 tracking-widest">---</div>
+            </div>
+
+            <form onsubmit="submitGiftForm(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Your Name</label>
+                    <input type="text" id="giftName" required class="w-full border border-gray-300 p-2 rounded focus:ring-black focus:border-black">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Phone Number</label>
+                    <input type="tel" id="giftPhone" required placeholder="017..." class="w-full border border-gray-300 p-2 rounded focus:ring-black focus:border-black">
+                </div>
+                <button type="submit" class="w-full bg-black text-white py-3 font-bold uppercase tracking-widest hover:bg-gray-800 transition">
+                    Submit to Win
+                </button>
+            </form>
+        </div>
+
+        <div id="giftStage2" class="hidden">
+            <div class="text-5xl mb-4">🏆</div>
+            <h2 class="font-serif text-2xl font-bold text-gray-900 mb-2">Submission Successful!</h2>
+            
+            <div class="bg-green-50 border border-green-100 p-4 rounded-lg mb-6">
+                <p class="text-gray-800 font-medium text-lg mb-1"><span id="finalName"></span> has found the gift box!</p>
+                <p class="text-sm text-gray-600">Her code is: <span id="finalCode" class="font-bold font-mono bg-white px-2 py-0.5 rounded border"></span></p>
+            </div>
+
+            <p class="text-xs text-gray-500 mb-6 leading-relaxed">
+                We will decide the winner through a lottery.<br>
+                <strong>Please take a screenshot of this screen</strong> and post it in the comments of our Facebook post.
+            </p>
+
+            <a href="https://www.facebook.com/auronishop" target="_blank" class="block w-full bg-[#1877F2] text-white py-3 font-bold uppercase tracking-widest hover:bg-blue-700 transition rounded shadow-lg">
+                Go to Facebook Page
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .animate-bounce-slow { animation: bounce 3s infinite; }
+</style>
+
+<script>
+    // --- 1. GAME LOGIC ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        const STORAGE_KEY = 'auroni_gift_hunt';
+        const EXPIRY_TIME = 60 * 60 * 1000; // 1 Hour
+
+        let huntData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        const now = Date.now();
+
+        // A. If no data or expired, fetch new target
+        if (!huntData || (now - huntData.timestamp > EXPIRY_TIME)) {
+            try {
+                const res = await fetch('/api/gamification/target');
+                const data = await res.json();
+                
+                huntData = {
+                    target: data.target,
+                    timestamp: now,
+                    found: false
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(huntData));
+            } catch (e) { console.error("Hunt Error", e); }
+        }
+
+        // B. Check if we are on the target page
+        if (huntData && !huntData.found) {
+            const currentPath = window.location.pathname;
+            
+            // Loose matching to handle trailing slashes
+            if (currentPath === huntData.target || currentPath === huntData.target + '/') {
+                // SHOW BOX
+                setTimeout(() => {
+                    document.getElementById('goldenBoxContainer').classList.remove('hidden');
+                }, 1000); // Small delay for effect
+            }
+        }
+    });
+
+    // --- 2. MODAL LOGIC ---
+    function generateCode() {
+        return 'WIN-' + Math.floor(1000 + Math.random() * 9000);
+    }
+
+    function openGiftModal() {
+        const code = generateCode();
+        document.getElementById('generatedCode').innerText = code;
+        document.getElementById('giftModal').classList.remove('hidden');
+        document.getElementById('goldenBoxContainer').classList.add('hidden'); // Hide box once clicked
+    }
+
+    function closeGiftModal() {
+        document.getElementById('giftModal').classList.add('hidden');
+    }
+
+    // --- 3. SUBMISSION LOGIC ---
+    async function submitGiftForm(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('giftName').value;
+        const phone = document.getElementById('giftPhone').value;
+        const code = document.getElementById('generatedCode').innerText;
+
+        // Backend Submit
+        const res = await fetch('/api/gamification/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone, code })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            // Update UI
+            document.getElementById('finalName').innerText = name;
+            document.getElementById('finalCode').innerText = code;
+            document.getElementById('giftStage1').classList.add('hidden');
+            document.getElementById('giftStage2').classList.remove('hidden');
+
+            // Mark as found in local storage so it doesn't show again this session
+            const STORAGE_KEY = 'auroni_gift_hunt';
+            let huntData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if(huntData) {
+                huntData.found = true;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(huntData));
+            }
+        } else {
+            alert(result.message || "Error submitting.");
+        }
+    }
+</script>

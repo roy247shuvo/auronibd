@@ -195,9 +195,10 @@ app.use('/', require('./routes/shopRoutes'));
 app.use('/', require('./routes/trackingRoutes'));
 app.use('/', require('./routes/searchRoutes'));
 app.use('/admin/website', require('./routes/websiteRoutes')); // <--- Admin Website Routes
+app.use('/', require('./routes/gamificationRoutes')); // [NEW] Gamification
 
 // B. Protect all /admin routes
-app.use('/admin', requireAuth); 
+app.use('/admin', requireAuth);
 
 // C. Admin Modules
 app.use('/admin/products', productRoutes);
