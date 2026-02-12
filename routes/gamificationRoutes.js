@@ -2,24 +2,18 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/gamificationController');
 
-// [FIX] Define isAdmin here so we don't need an extra file
+// Middleware to check Admin
 const isAdmin = (req, res, next) => {
-    // 1. Check if user is logged in
-    if (!req.session || !req.session.user) {
-        return res.redirect('/login');
-    }
-    // 2. Check if user is Admin
-    if (req.session.user.role === 'admin') {
-        return next();
-    }
-    // 3. Deny access if not admin
-    res.status(403).send("Access Denied: Admins only.");
+    if (!req.session || !req.session.user) return res.redirect('/login');
+    if (req.session.user.role === 'admin') return next();
+    res.status(403).send("Access Denied");
 };
 
 // Admin Routes
 router.get('/admin/gamification/participants', isAdmin, controller.getParticipants);
-router.get('/admin/gamification/settings', isAdmin, controller.getSettings);
-router.post('/admin/gamification/settings', isAdmin, controller.saveSettings); // [NEW] Save Route
+router.post('/admin/gamification/status', isAdmin, controller.toggleStatus); // ON/OFF
+router.post('/admin/gamification/draw', isAdmin, controller.drawWinner);     // Draw Winner
+router.get('/api/gamification/history/:id', isAdmin, controller.getHistoryDetails); // History Modal Data
 
 // Public API Routes
 router.get('/api/gamification/target', controller.getTargetUrl);

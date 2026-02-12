@@ -1,76 +1,96 @@
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
 <div id="goldenBoxContainer" class="fixed bottom-24 right-4 z-50 hidden" style="touch-action: manipulation;">
-    <div class="relative cursor-pointer animate-bounce-slow" onclick="openGiftModal()">
-        <div class="text-6xl filter drop-shadow-2xl hover:scale-110 transition-transform duration-300">
+    <div class="relative cursor-pointer animate-bounce-slow group" onclick="openGiftModal()">
+        <div class="text-6xl filter drop-shadow-2xl transition-transform duration-300 group-hover:scale-110">
             🎁
         </div>
-        <div class="absolute -top-2 -right-2 text-2xl animate-ping">✨</div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-yellow-400 rounded-full opacity-20 animate-pulse"></div>
+        <div class="absolute -top-2 -right-2 text-2xl animate-ping text-yellow-500">✨</div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-rose-400 rounded-full opacity-20 animate-pulse"></div>
     </div>
 </div>
 
-<div id="giftModal" class="fixed inset-0 z-[100] hidden">
-    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeGiftModal()"></div>
+<div id="giftModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeGiftModal()"></div>
     
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-lg shadow-2xl overflow-hidden transform transition-all p-6 text-center">
+    <div class="relative w-full max-w-md bg-[#fff9f9] rounded-2xl shadow-2xl overflow-hidden transform transition-all border-2 border-rose-100">
         
-        <button onclick="closeGiftModal()" class="absolute top-2 right-2 text-gray-400 hover:text-black">
-            <span class="material-icons-outlined">close</span>
+        <button onclick="closeGiftModal()" class="absolute top-3 right-3 text-rose-300 hover:text-rose-500 transition z-10">
+            <span class="material-icons-outlined text-2xl">close</span>
         </button>
 
-        <div id="giftStage1">
-            <div class="text-5xl mb-4">🎉</div>
-            <h2 class="font-serif text-2xl font-bold text-gray-900 mb-2">You found the Gift Box!</h2>
-            <p class="text-sm text-gray-600 mb-6">You are one step away from joining the lottery.</p>
-            
-            <div class="bg-yellow-50 border border-yellow-200 p-3 rounded mb-6">
-                <span class="text-xs text-gray-500 uppercase tracking-widest">Your Secret Code</span>
-                <div id="generatedCode" class="text-xl font-bold font-mono text-black mt-1 tracking-widest">---</div>
-            </div>
-
-            <form onsubmit="submitGiftForm(event)" class="space-y-4 text-left">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Your Name</label>
-                    <input type="text" id="giftName" required class="w-full border border-gray-300 p-2 rounded focus:ring-black focus:border-black">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Phone Number</label>
-                    <input type="tel" id="giftPhone" required placeholder="017..." class="w-full border border-gray-300 p-2 rounded focus:ring-black focus:border-black">
-                </div>
-                <button type="submit" class="w-full bg-black text-white py-3 font-bold uppercase tracking-widest hover:bg-gray-800 transition">
-                    Submit to Win
-                </button>
-            </form>
+        <div class="absolute top-0 left-0 w-24 h-24 opacity-10 pointer-events-none">
+            <svg viewBox="0 0 100 100" fill="currentColor" class="text-rose-500"><path d="M50 0C22.4 0 0 22.4 0 50s22.4 50 50 50 50-22.4 50-50S77.6 0 50 0zm0 90c-22.1 0-40-17.9-40-40s17.9-40 40-40 40 17.9 40 40-17.9 40-40 40z"/></svg>
         </div>
 
-        <div id="giftStage2" class="hidden">
-            <div class="text-5xl mb-4">🏆</div>
-            <h2 class="font-serif text-2xl font-bold text-gray-900 mb-2">Submission Successful!</h2>
+        <div class="p-8 text-center relative">
             
-            <div class="bg-green-50 border border-green-100 p-4 rounded-lg mb-6">
-                <p class="text-gray-800 font-medium text-lg mb-1"><span id="finalName"></span> has found the gift box!</p>
-                <p class="text-sm text-gray-600">Her code is: <span id="finalCode" class="font-bold font-mono bg-white px-2 py-0.5 rounded border"></span></p>
+            <div id="giftStage1">
+                <div class="text-6xl mb-4 animate-pulse">🌸</div>
+                <h2 class="font-serif text-2xl font-bold text-rose-950 mb-2">অভিনন্দন!</h2>
+                <p class="text-sm text-rose-800 mb-6 font-medium">আপনি একটি গোপন গিফট বক্স খুঁজে পেয়েছেন! লটারিতে অংশ নিতে নিচের ফর্মটি পূরণ করুন।</p>
+                
+                <div class="bg-white border border-rose-200 p-4 rounded-xl mb-6 shadow-sm">
+                    <span class="text-[10px] text-rose-400 uppercase tracking-widest font-bold">আপনার গোপন কোড</span>
+                    <div id="generatedCode" class="text-2xl font-bold font-mono text-rose-600 mt-1 tracking-widest">---</div>
+                </div>
+
+                <form onsubmit="submitGiftForm(event)" class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-rose-900/60 mb-1 ml-1">আপনার নাম</label>
+                        <input type="text" id="giftName" required 
+                            class="w-full border border-rose-200 bg-white p-3 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 outline-none text-gray-800 placeholder-rose-200"
+                            placeholder="এখানে নাম লিখুন...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-rose-900/60 mb-1 ml-1">মোবাইল নাম্বার</label>
+                        <input type="tel" id="giftPhone" required 
+                            class="w-full border border-rose-200 bg-white p-3 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 outline-none text-gray-800 placeholder-rose-200"
+                            placeholder="017..." pattern="[0-9]{11}">
+                    </div>
+                    <button type="submit" class="w-full bg-rose-500 text-white py-3.5 rounded-lg font-bold shadow-lg hover:bg-rose-600 active:scale-95 transition-all duration-200">
+                        জমা দিন 
+                    </button>
+                </form>
             </div>
 
-            <p class="text-xs text-gray-500 mb-6 leading-relaxed">
-                We will decide the winner through a lottery.<br>
-                <strong>Please take a screenshot of this screen</strong> and post it in the comments of our Facebook post.
-            </p>
+            <div id="giftStage2" class="hidden">
+                <div class="text-6xl mb-4 animate-bounce">🎉</div>
+                <h2 class="font-serif text-2xl font-bold text-rose-950 mb-2">সফলভাবে জমা হয়েছে!</h2>
+                
+                <div class="bg-green-50 border border-green-200 p-4 rounded-xl mb-6 shadow-sm">
+                    <p class="text-gray-800 font-medium text-lg mb-1"><span id="finalName" class="text-rose-600 font-bold"></span>, গিফট বক্সটি খুঁজে পেয়েছেন!</p>
+                    <p class="text-sm text-gray-600">আপনার কোড: <span id="finalCode" class="font-bold font-mono bg-white px-2 py-0.5 rounded border border-green-200 text-green-700"></span></p>
+                </div>
 
-            <a href="https://www.facebook.com/auronishop" target="_blank" class="block w-full bg-[#1877F2] text-white py-3 font-bold uppercase tracking-widest hover:bg-blue-700 transition rounded shadow-lg">
-                Go to Facebook Page
-            </a>
+                <p class="text-xs text-gray-500 mb-6 leading-relaxed bg-rose-50 p-3 rounded-lg border border-rose-100">
+                    আমরা লটারির মাধ্যমে বিজয়ী নির্বাচন করব।<br>
+                    <strong>এই স্ক্রিনটির একটি স্ক্রিনশট নিন</strong> এবং আমাদের ফেসবুক পোস্টের কমেন্টে দিন।
+                </p>
+
+                <a href="https://www.facebook.com/auronishop" target="_blank" class="block w-full bg-[#1877F2] text-white py-3.5 rounded-lg font-bold shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    <span class="material-icons-outlined text-lg">facebook</span> ফেসবুক পেজে যান
+                </a>
+            </div>
+
         </div>
     </div>
 </div>
 
 <style>
-    .animate-bounce-slow { animation: bounce 3s infinite; }
+    @keyframes bounce-slow {
+        0%, 100% { transform: translateY(-5%); }
+        50% { transform: translateY(5%); }
+    }
+    .animate-bounce-slow { animation: bounce-slow 3s infinite ease-in-out; }
+    /* ফন্ট ফিক্স */
+    #giftModal { font-family: 'Jost', sans-serif; }
 </style>
 
 <script>
     // --- 1. GAME LOGIC ---
     document.addEventListener('DOMContentLoaded', async () => {
-        const STORAGE_KEY = 'auroni_gift_hunt';
+        const STORAGE_KEY = 'auroni_gift_hunt_v2'; // Key changed to reset old sessions
         const EXPIRY_TIME = 60 * 60 * 1000; // 1 Hour
 
         let huntData = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -92,15 +112,14 @@
         }
 
         // B. Check if we are on the target page
-        if (huntData && !huntData.found) {
+        if (huntData && !huntData.found && huntData.target) {
             const currentPath = window.location.pathname;
-            
             // Loose matching to handle trailing slashes
             if (currentPath === huntData.target || currentPath === huntData.target + '/') {
-                // SHOW BOX
+                // SHOW BOX with delay
                 setTimeout(() => {
                     document.getElementById('goldenBoxContainer').classList.remove('hidden');
-                }, 1000); // Small delay for effect
+                }, 1500); 
             }
         }
     });
@@ -114,7 +133,7 @@
         const code = generateCode();
         document.getElementById('generatedCode').innerText = code;
         document.getElementById('giftModal').classList.remove('hidden');
-        document.getElementById('goldenBoxContainer').classList.add('hidden'); // Hide box once clicked
+        document.getElementById('goldenBoxContainer').classList.add('hidden'); 
     }
 
     function closeGiftModal() {
@@ -124,35 +143,53 @@
     // --- 3. SUBMISSION LOGIC ---
     async function submitGiftForm(e) {
         e.preventDefault();
-        
         const name = document.getElementById('giftName').value;
         const phone = document.getElementById('giftPhone').value;
         const code = document.getElementById('generatedCode').innerText;
 
-        // Backend Submit
-        const res = await fetch('/api/gamification/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, phone, code })
-        });
-        const result = await res.json();
+        // CSRF Token সংগ্রহ (Layout ফাইল থেকে)
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-        if (result.success) {
-            // Update UI
-            document.getElementById('finalName').innerText = name;
-            document.getElementById('finalCode').innerText = code;
-            document.getElementById('giftStage1').classList.add('hidden');
-            document.getElementById('giftStage2').classList.remove('hidden');
+        try {
+            const res = await fetch('/api/gamification/submit', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'CSRF-Token': csrfToken // [FIX] Security Token যোগ করা হয়েছে
+                },
+                body: JSON.stringify({ name, phone, code })
+            });
 
-            // Mark as found in local storage so it doesn't show again this session
-            const STORAGE_KEY = 'auroni_gift_hunt';
-            let huntData = JSON.parse(localStorage.getItem(STORAGE_KEY));
-            if(huntData) {
-                huntData.found = true;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(huntData));
+            const result = await res.json();
+
+            if (result.success) {
+                // আপডেট UI
+                document.getElementById('finalName').innerText = name;
+                document.getElementById('finalCode').innerText = code;
+                document.getElementById('giftStage1').classList.add('hidden');
+                document.getElementById('giftStage2').classList.remove('hidden');
+
+                // কনফেটি এনিমেশন (Celebration)
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#f43f5e', '#fb7185', '#ffe4e6'] // Pinkish confetti
+                });
+
+                // লোকাল স্টোরেজে ফাউন্ড মার্ক করা
+                const STORAGE_KEY = 'auroni_gift_hunt_v2';
+                let huntData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if(huntData) {
+                    huntData.found = true;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(huntData));
+                }
+            } else {
+                alert(result.message || "Error submitting.");
             }
-        } else {
-            alert(result.message || "Error submitting.");
+        } catch (error) {
+            console.error(error);
+            alert("কোথাও সমস্যা হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।");
         }
     }
 </script>

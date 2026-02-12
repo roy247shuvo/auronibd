@@ -1,96 +1,183 @@
 const db = require('../config/database');
 
-// 1. ADMIN: Get Participants Page
+// 1. ADMIN: Dashboard & Participants
 exports.getParticipants = async (req, res) => {
     try {
-        const [participants] = await db.query("SELECT * FROM gamification_participants ORDER BY created_at DESC");
-        res.render('admin/gamification/participants', { participants, tab: 'participants' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error loading participants");
-    }
-};
+        // ১. বর্তমান একটিভ ক্যাম্পেইন বের করা
+        const [activeCampaign] = await db.query("SELECT * FROM gamification_campaigns WHERE status = 'active' ORDER BY id DESC LIMIT 1");
+        const currentCampaignId = activeCampaign.length > 0 ? activeCampaign[0].id : 0;
 
-// 2. ADMIN: Get Settings Page
-exports.getSettings = async (req, res) => {
-    try {
-        // Fetch current setting
-        const [rows] = await db.query("SELECT * FROM gamification_settings WHERE id = 1");
-        const settings = rows.length > 0 ? rows[0] : { is_active: 1 };
-        
-        res.render('admin/gamification/settings', { settings, tab: 'settings' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error loading settings");
-    }
-};
-
-// 3. ADMIN: Save Settings
-exports.saveSettings = async (req, res) => {
-    try {
-        const is_active = req.body.is_active === 'on' ? 1 : 0;
-        
-        // Update or Insert (Upsert)
-        const [rows] = await db.query("SELECT id FROM gamification_settings WHERE id = 1");
-        if (rows.length === 0) {
-            await db.query("INSERT INTO gamification_settings (id, is_active) VALUES (1, ?)", [is_active]);
-        } else {
-            await db.query("UPDATE gamification_settings SET is_active = ? WHERE id = 1", [is_active]);
+        // ২. বর্তমান পার্টিসিপেন্ট লিস্ট
+        let currentParticipants = [];
+        if (currentCampaignId) {
+            [currentParticipants] = await db.query("SELECT * FROM gamification_participants WHERE campaign_id = ? ORDER BY created_at DESC", [currentCampaignId]);
         }
 
-        res.redirect('/admin/gamification/settings?success=Settings Updated');
+        // ৩. হিস্ট্রি (পূর্বের সব ক্যাম্পেইন)
+        const [history] = await db.query(`
+            SELECT c.*, p.name as winner_name, p.phone as winner_phone, p.code as winner_code 
+            FROM gamification_campaigns c 
+            LEFT JOIN gamification_participants p ON c.winner_id = p.id 
+            WHERE c.status = 'completed' 
+            ORDER BY c.end_date DESC
+        `);
+
+        // ৪. সেটিংস স্ট্যাটাস
+        const [settings] = await db.query("SELECT is_active FROM gamification_settings WHERE id = 1");
+        const isActive = settings.length > 0 ? settings[0].is_active : 0;
+
+        res.render('admin/gamification/participants', { 
+            currentParticipants, 
+            history, 
+            activeCampaign: activeCampaign[0] || null,
+            isActive,
+            tab: 'participants' 
+        });
     } catch (err) {
         console.error(err);
-        res.redirect('/admin/gamification/settings?error=Failed to save');
+        res.status(500).send("Error loading data");
     }
 };
 
-// 4. API: Get a Random Hiding Spot (Frontend calls this)
+// 2. ADMIN: Toggle Campaign Status (ON/OFF)
+exports.toggleStatus = async (req, res) => {
+    try {
+        const isTurningOn = req.body.is_active === 'on';
+        
+        if (isTurningOn) {
+            // যদি অন করা হয়, চেক করি কোনো একটিভ ক্যাম্পেইন আছে কিনা
+            const [existing] = await db.query("SELECT id FROM gamification_campaigns WHERE status = 'active'");
+            
+            if (existing.length === 0) {
+                // কোনো একটিভ ক্যাম্পেইন নেই, তাই নতুন ক্যাম্পেইন (ID: 1, 2, 3...) তৈরি করি
+                const [result] = await db.query("INSERT INTO gamification_campaigns (start_date, status) VALUES (NOW(), 'active')");
+                
+                // গ্লোবাল সেটিংসেও আপডেট করি
+                await db.query("UPDATE gamification_settings SET is_active = 1, current_campaign_id = ? WHERE id = 1", [result.insertId]);
+            } else {
+                // ইতিমধ্যে একটিভ আছে, শুধু গ্লোবাল সুইচ অন করি
+                await db.query("UPDATE gamification_settings SET is_active = 1 WHERE id = 1");
+            }
+        } else {
+            // যদি অফ করা হয়, শুধু গ্লোবাল সুইচ অফ করি (ক্যাম্পেইন শেষ হবে না, শুধু পজ হবে)
+            await db.query("UPDATE gamification_settings SET is_active = 0 WHERE id = 1");
+        }
+
+        res.redirect('/admin/gamification/participants');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error updating status");
+    }
+};
+
+// 3. ADMIN: Draw Winner
+exports.drawWinner = async (req, res) => {
+    try {
+        // ১. বর্তমান ক্যাম্পেইন বের করি
+        const [campaigns] = await db.query("SELECT id FROM gamification_campaigns WHERE status = 'active' LIMIT 1");
+        if (campaigns.length === 0) return res.status(400).send("No active campaign to draw winner.");
+        
+        const campaignId = campaigns[0].id;
+
+        // ২. র‍্যান্ডম উইনার সিলেক্ট করি
+        const [participants] = await db.query("SELECT id FROM gamification_participants WHERE campaign_id = ?", [campaignId]);
+        
+        if (participants.length === 0) {
+            // কেউ অংশ নেয়নি, তাই শুধু ক্লোজ করে দিচ্ছি
+            await db.query("UPDATE gamification_campaigns SET status = 'completed', end_date = NOW() WHERE id = ?", [campaignId]);
+            await db.query("UPDATE gamification_settings SET is_active = 0 WHERE id = 1");
+            return res.redirect('/admin/gamification/participants?msg=Campaign ended with no participants');
+        }
+
+        const randomIndex = Math.floor(Math.random() * participants.length);
+        const winnerId = participants[randomIndex].id;
+
+        // ৩. আপডেট: উইনার সেট করা + ক্যাম্পেইন কমপ্লিট করা + অটোমেটিক অফ করা
+        await db.query("UPDATE gamification_participants SET is_winner = 1 WHERE id = ?", [winnerId]);
+        
+        await db.query(`
+            UPDATE gamification_campaigns 
+            SET winner_id = ?, status = 'completed', end_date = NOW(), total_participants = ? 
+            WHERE id = ?
+        `, [winnerId, participants.length, campaignId]);
+
+        // ৪. অটোমেটিক সিস্টেম অফ করা
+        await db.query("UPDATE gamification_settings SET is_active = 0 WHERE id = 1");
+
+        res.redirect('/admin/gamification/participants?success=Winner Selected Successfully!');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error drawing winner");
+    }
+};
+
+// 4. API: Get History Details (For Modal)
+exports.getHistoryDetails = async (req, res) => {
+    try {
+        const campaignId = req.params.id;
+        const [participants] = await db.query(`
+            SELECT * FROM gamification_participants 
+            WHERE campaign_id = ? 
+            ORDER BY is_winner DESC, created_at DESC
+        `, [campaignId]); // is_winner DESC keeps winner on top
+
+        res.json({ participants });
+    } catch (err) {
+        res.status(500).json({ error: "Error fetching details" });
+    }
+};
+
+// 5. API: Get Target (Frontend)
 exports.getTargetUrl = async (req, res) => {
     try {
-        // [CHECK SETTINGS] First, check if the game is globally enabled
         const [settings] = await db.query("SELECT is_active FROM gamification_settings WHERE id = 1");
         if (settings.length === 0 || settings[0].is_active === 0) {
-            return res.json({ target: null }); // Game is OFF
+            return res.json({ target: null });
         }
 
-        // Logic: 20% Home, 20% Shop, 60% Random Product
         const rand = Math.random();
-        
-        if (rand < 0.2) {
-            return res.json({ target: '/' });
-        } else if (rand < 0.4) {
-            return res.json({ target: '/shop' });
-        } else {
-            // Pick one random active product
+        if (rand < 0.2) return res.json({ target: '/' });
+        else if (rand < 0.4) return res.json({ target: '/shop' });
+        else {
             const [products] = await db.query("SELECT sku FROM products WHERE is_online='yes' ORDER BY RAND() LIMIT 1");
-            if (products.length > 0) {
-                return res.json({ target: '/product/' + products[0].sku });
-            } else {
-                return res.json({ target: '/shop' }); // Fallback
-            }
+            return res.json({ target: products.length > 0 ? '/product/' + products[0].sku : '/shop' });
         }
     } catch (err) {
-        res.json({ target: '/' }); // Fallback on error
+        res.json({ target: '/' });
     }
 };
 
-// 5. API: Submit Winner
+// 6. API: Submit Participant (Frontend)
 exports.submitWinner = async (req, res) => {
     try {
         const { name, phone, code } = req.body;
-
-        // Clean phone
         const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-11);
 
-        // Check duplicate
-        const [existing] = await db.query("SELECT id FROM gamification_participants WHERE phone = ?", [cleanPhone]);
+        // বর্তমান ক্যাম্পেইন আইডি নেওয়া
+        const [settings] = await db.query("SELECT current_campaign_id, is_active FROM gamification_settings WHERE id = 1");
+        if (settings.length === 0 || !settings[0].is_active) {
+            return res.json({ success: false, message: "Campaign is currently inactive." });
+        }
+        const campaignId = settings[0].current_campaign_id;
+
+        // ডুপ্লিকেট চেক
+        const [existing] = await db.query("SELECT id FROM gamification_participants WHERE phone = ? AND campaign_id = ?", [cleanPhone, campaignId]);
         if (existing.length > 0) {
-            return res.json({ success: false, message: "This phone number has already participated!" });
+            return res.json({ success: false, message: "This number already participated in this campaign!" });
         }
 
-        await db.query("INSERT INTO gamification_participants (name, phone, code) VALUES (?, ?, ?)", [name, cleanPhone, code]);
-        
+        // ১. পার্টিসিপেন্ট সেভ করা
+        await db.query("INSERT INTO gamification_participants (name, phone, code, campaign_id) VALUES (?, ?, ?, ?)", [name, cleanPhone, code, campaignId]);
+
+        // ২. [NEW] কাস্টমার টেবিলে সেভ করা (যদি না থাকে)
+        // আমরা INSERT IGNORE ব্যবহার করছি যাতে ফোন নাম্বার ডুপ্লিকেট হলে এরর না দেয়
+        // অথবা চেক করে ইনসার্ট করতে পারি
+        const [custCheck] = await db.query("SELECT id FROM customers WHERE phone = ?", [cleanPhone]);
+        if (custCheck.length === 0) {
+            // কাস্টমার নেই, নতুন তৈরি করি
+            await db.query("INSERT INTO customers (full_name, phone) VALUES (?, ?)", [name, cleanPhone]);
+        }
+
         res.json({ success: true });
     } catch (err) {
         console.error(err);

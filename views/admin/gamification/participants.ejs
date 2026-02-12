@@ -1,41 +1,178 @@
-<div class="main-content">
+<%- include('../layout') %>
+
+<div class="p-6">
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold">Golden Box Participants</h2>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Gift Hunt Campaign</h1>
+            <p class="text-sm text-gray-500">Manage participants and campaigns</p>
+        </div>
+        
+        <form action="/admin/gamification/status" method="POST" class="flex items-center gap-3 bg-white p-2 rounded shadow">
+            <span class="text-sm font-bold <%= isActive ? 'text-green-600' : 'text-gray-400' %>">
+                <%= isActive ? 'CAMPAIGN ON' : 'CAMPAIGN OFF' %>
+            </span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="is_active" class="sr-only peer" onchange="this.form.submit()" <%= isActive ? 'checked' : '' %>>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            </label>
+        </form>
     </div>
 
-    <div class="flex space-x-4 border-b mb-6">
-        <a href="/admin/gamification/participants" class="pb-2 border-b-2 border-black font-bold text-black">Participants</a>
-        <a href="/admin/gamification/settings" class="pb-2 text-gray-500 hover:text-black">Settings</a>
-    </div>
+    <% if (activeCampaign) { %>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-blue-900">Current Campaign #<%= activeCampaign.id %></h3>
+                <p class="text-sm text-blue-700">Started: <%= new Date(activeCampaign.start_date).toDateString() %></p>
+                <p class="text-sm text-blue-700">Total Participants: <strong><%= currentParticipants.length %></strong></p>
+            </div>
+            
+            <% if (isActive && currentParticipants.length > 0) { %>
+                <form action="/admin/gamification/draw" method="POST" onsubmit="return confirm('Are you sure? This will select a winner and END the current campaign.')">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded shadow-lg font-bold flex items-center gap-2">
+                        <span class="material-icons-outlined">emoji_events</span> Draw Winner Now
+                    </button>
+                </form>
+            <% } else if (isActive) { %>
+                <button disabled class="bg-gray-300 text-gray-500 px-6 py-2 rounded font-bold cursor-not-allowed">
+                    Waiting for Participants...
+                </button>
+            <% } %>
+        </div>
+    <% } %>
 
-    <div class="bg-white rounded shadow overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead class="bg-gray-50 border-b">
-                <tr>
-                    <th class="p-4 text-sm font-bold text-gray-600">Date</th>
-                    <th class="p-4 text-sm font-bold text-gray-600">Name</th>
-                    <th class="p-4 text-sm font-bold text-gray-600">Phone</th>
-                    <th class="p-4 text-sm font-bold text-gray-600">Winning Code</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y">
-                <% if (participants.length > 0) { %>
-                    <% participants.forEach(p => { %>
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-4 text-sm"><%= new Date(p.created_at).toLocaleString() %></td>
-                        <td class="p-4 font-bold"><%= p.name %></td>
-                        <td class="p-4 text-sm font-mono"><%= p.phone %></td>
-                        <td class="p-4 text-sm">
-                            <span class="bg-yellow-100 text-yellow-800 py-1 px-2 rounded font-bold text-xs"><%= p.code %></span>
-                        </td>
-                    </tr>
-                    <% }) %>
-                <% } else { %>
-                    <tr>
-                        <td colspan="4" class="p-8 text-center text-gray-500">No participants yet.</td>
-                    </tr>
-                <% } %>
-            </tbody>
-        </table>
+    <div x-data="{ tab: 'current' }">
+        <div class="flex border-b border-gray-200 mb-4">
+            <button @click="tab = 'current'" :class="{ 'border-black text-black': tab === 'current', 'border-transparent text-gray-500': tab !== 'current' }" class="pb-2 px-4 border-b-2 font-medium transition">
+                Current Participants
+            </button>
+            <button @click="tab = 'history'" :class="{ 'border-black text-black': tab === 'history', 'border-transparent text-gray-500': tab !== 'history' }" class="pb-2 px-4 border-b-2 font-medium transition">
+                History & Winners
+            </button>
+        </div>
+
+        <div x-show="tab === 'current'" class="bg-white rounded shadow overflow-hidden">
+            <% if (currentParticipants.length === 0) { %>
+                <div class="p-8 text-center text-gray-400">
+                    No participants in the current campaign yet.
+                </div>
+            <% } else { %>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-xs uppercase text-gray-600 border-b">
+                            <th class="p-3">Date</th>
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Phone</th>
+                            <th class="p-3">Code</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        <% currentParticipants.forEach(p => { %>
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3"><%= new Date(p.created_at).toLocaleString() %></td>
+                            <td class="p-3 font-medium"><%= p.name %></td>
+                            <td class="p-3"><%= p.phone %></td>
+                            <td class="p-3 font-mono text-blue-600"><%= p.code %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            <% } %>
+        </div>
+
+        <div x-show="tab === 'history'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <% if (history.length === 0) { %>
+                <div class="col-span-3 text-center p-8 text-gray-400">No previous campaigns found.</div>
+            <% } %>
+
+            <% history.forEach(camp => { %>
+                <div onclick="openHistoryModal(<%= camp.id %>)" class="bg-white p-4 rounded-lg shadow border border-gray-100 cursor-pointer hover:shadow-md transition group">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">CAMPAIGN #<%= camp.id %></span>
+                        <span class="text-xs text-gray-400"><%= new Date(camp.end_date).toLocaleDateString() %></span>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-500">Total Participants</p>
+                        <p class="text-2xl font-bold"><%= camp.total_participants %></p>
+                    </div>
+
+                    <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="material-icons-outlined text-yellow-600 text-sm">emoji_events</span>
+                            <span class="text-xs font-bold text-yellow-800 uppercase">Winner</span>
+                        </div>
+                        <p class="font-bold text-gray-800"><%= camp.winner_name || 'N/A' %></p>
+                        <p class="text-xs text-gray-600"><%= camp.winner_phone %></p>
+                    </div>
+                    
+                    <div class="mt-3 text-center text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition">
+                        Click to view all participants
+                    </div>
+                </div>
+            <% }) %>
+        </div>
     </div>
 </div>
+
+<div id="historyModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl rounded-lg shadow-2xl h-[80vh] flex flex-col">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-lg">Campaign Details</h3>
+            <button onclick="document.getElementById('historyModal').classList.add('hidden')" class="text-gray-400 hover:text-black">
+                <span class="material-icons-outlined">close</span>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-auto p-0">
+            <table class="w-full text-left">
+                <thead class="bg-gray-100 text-xs uppercase text-gray-600 sticky top-0">
+                    <tr>
+                        <th class="p-3">Status</th>
+                        <th class="p-3">Name</th>
+                        <th class="p-3">Phone</th>
+                        <th class="p-3">Code</th>
+                    </tr>
+                </thead>
+                <tbody id="modalBody" class="text-sm">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function openHistoryModal(campaignId) {
+        const modal = document.getElementById('historyModal');
+        const tbody = document.getElementById('modalBody');
+        
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
+        modal.classList.remove('hidden');
+
+        try {
+            const res = await fetch(`/api/gamification/history/${campaignId}`);
+            const data = await res.json();
+            
+            tbody.innerHTML = '';
+            
+            data.participants.forEach(p => {
+                const isWinner = p.is_winner == 1;
+                const rowClass = isWinner ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'border-b hover:bg-gray-50';
+                
+                const row = `
+                    <tr class="${rowClass}">
+                        <td class="p-3">
+                            ${isWinner ? '<span class="text-yellow-600 font-bold flex items-center gap-1"><span class="material-icons-outlined text-sm">emoji_events</span> WINNER</span>' : '<span class="text-gray-400">Participant</span>'}
+                        </td>
+                        <td class="p-3 font-medium ${isWinner ? 'text-black' : 'text-gray-700'}">${p.name}</td>
+                        <td class="p-3 text-gray-600">${p.phone}</td>
+                        <td class="p-3 font-mono text-xs">${p.code}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+        } catch (error) {
+            tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Failed to load data</td></tr>';
+        }
+    }
+</script>
