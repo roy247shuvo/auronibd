@@ -28,13 +28,8 @@
             <div id="giftStage1">
                 <div class="text-6xl mb-4 animate-pulse">🌸</div>
                 <h2 class="font-serif text-2xl font-bold text-rose-950 mb-2">অভিনন্দন!</h2>
-                <p class="text-sm text-rose-800 mb-6 font-medium">আপনি একটি গোপন গিফট বক্স খুঁজে পেয়েছেন! লটারিতে অংশ নিতে নিচের ফর্মটি পূরণ করুন।</p>
+                <p class="text-sm text-rose-800 mb-6 font-medium">আপনি একটি গোপন গিফট বক্স খুঁজে পেয়েছেন! লটারিতে অংশ নিতে আপনার নাম ও মোবাইল নাম্বার দিয়ে নিচের ফর্মটি পূরণ করুন।</p>
                 
-                <div class="bg-white border border-rose-200 p-4 rounded-xl mb-6 shadow-sm">
-                    <span class="text-[10px] text-rose-400 uppercase tracking-widest font-bold">আপনার গোপন কোড</span>
-                    <div id="generatedCode" class="text-2xl font-bold font-mono text-rose-600 mt-1 tracking-widest">---</div>
-                </div>
-
                 <form onsubmit="submitGiftForm(event)" class="space-y-4 text-left">
                     <div>
                         <label class="block text-xs font-bold uppercase text-rose-900/60 mb-1 ml-1">আপনার নাম</label>
@@ -130,8 +125,6 @@
     }
 
     function openGiftModal() {
-        const code = generateCode();
-        document.getElementById('generatedCode').innerText = code;
         document.getElementById('giftModal').classList.remove('hidden');
         document.getElementById('goldenBoxContainer').classList.add('hidden'); 
     }
@@ -145,7 +138,7 @@
         e.preventDefault();
         const name = document.getElementById('giftName').value;
         const phone = document.getElementById('giftPhone').value;
-        const code = document.getElementById('generatedCode').innerText;
+        const code = generateCode(); // Generate the code upon submission
 
         // CSRF Token সংগ্রহ (Layout ফাইল থেকে)
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
