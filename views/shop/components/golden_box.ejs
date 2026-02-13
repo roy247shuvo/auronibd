@@ -127,6 +127,36 @@
     function openGiftModal() {
         document.getElementById('giftModal').classList.remove('hidden');
         document.getElementById('goldenBoxContainer').classList.add('hidden'); 
+
+        // [NEW] Hyped Celebration Animation
+        if (typeof confetti !== 'undefined') {
+            // 1. Initial massive center burst
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { y: 0.5 },
+                colors: ['#FFD700', '#FF8C00', '#FF1493', '#FF69B4', '#00E5FF'],
+                disableForReducedMotion: true
+            });
+
+            // 2. Follow-up side cannons for extra hype!
+            setTimeout(() => {
+                confetti({
+                    particleCount: 80,
+                    angle: 60,
+                    spread: 70,
+                    origin: { x: 0, y: 0.8 },
+                    colors: ['#f43f5e', '#fb7185', '#ffe4e6']
+                });
+                confetti({
+                    particleCount: 80,
+                    angle: 120,
+                    spread: 70,
+                    origin: { x: 1, y: 0.8 },
+                    colors: ['#f43f5e', '#fb7185', '#ffe4e6']
+                });
+            }, 250);
+        }
     }
 
     function closeGiftModal() {
