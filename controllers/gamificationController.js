@@ -75,39 +75,39 @@ exports.drawWinner = async (req, res) => {
     try {
         // ১. বর্তমান ক্যাম্পেইন বের করি
         const [campaigns] = await db.query("SELECT id FROM gamification_campaigns WHERE status = 'active' LIMIT 1");
-        if (campaigns.length === 0) return res.status(400).send("No active campaign to draw winner.");
+        if (campaigns.length === 0) return res.status(400).json({ success: false, message: "No active campaign" });
         
         const campaignId = campaigns[0].id;
 
         // ২. র‍্যান্ডম উইনার সিলেক্ট করি
-        const [participants] = await db.query("SELECT id FROM gamification_participants WHERE campaign_id = ?", [campaignId]);
+        const [participants] = await db.query("SELECT id, name, code FROM gamification_participants WHERE campaign_id = ?", [campaignId]);
         
         if (participants.length === 0) {
-            // কেউ অংশ নেয়নি, তাই শুধু ক্লোজ করে দিচ্ছি
             await db.query("UPDATE gamification_campaigns SET status = 'completed', end_date = NOW() WHERE id = ?", [campaignId]);
             await db.query("UPDATE gamification_settings SET is_active = 0 WHERE id = 1");
-            return res.redirect('/admin/gamification/participants?msg=Campaign ended with no participants');
+            return res.json({ success: false, message: "No participants found" });
         }
 
         const randomIndex = Math.floor(Math.random() * participants.length);
-        const winnerId = participants[randomIndex].id;
+        const winner = participants[randomIndex]; // উইনার অবজেক্ট
 
-        // ৩. আপডেট: উইনার সেট করা + ক্যাম্পেইন কমপ্লিট করা + অটোমেটিক অফ করা
-        await db.query("UPDATE gamification_participants SET is_winner = 1 WHERE id = ?", [winnerId]);
+        // ৩. আপডেট: উইনার সেট করা
+        await db.query("UPDATE gamification_participants SET is_winner = 1 WHERE id = ?", [winner.id]);
         
         await db.query(`
             UPDATE gamification_campaigns 
             SET winner_id = ?, status = 'completed', end_date = NOW(), total_participants = ? 
             WHERE id = ?
-        `, [winnerId, participants.length, campaignId]);
+        `, [winner.id, participants.length, campaignId]);
 
         // ৪. অটোমেটিক সিস্টেম অফ করা
         await db.query("UPDATE gamification_settings SET is_active = 0 WHERE id = 1");
 
-        res.redirect('/admin/gamification/participants?success=Winner Selected Successfully!');
+        // [CHANGE] Redirect এর বদলে JSON পাঠানো হচ্ছে
+        res.json({ success: true, winnerName: winner.name, winnerCode: winner.code });
     } catch (err) {
         console.error(err);
-        res.status(500).send("Error drawing winner");
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 };
 
@@ -139,7 +139,8 @@ exports.getTargetUrl = async (req, res) => {
         if (rand < 0.2) return res.json({ target: '/' });
         else if (rand < 0.4) return res.json({ target: '/shop' });
         else {
-            const [products] = await db.query("SELECT sku FROM products WHERE is_online='yes' ORDER BY RAND() LIMIT 1");
+            // [UPDATE] Target only products that are Online AND (In Stock OR Preorder Enabled)
+            const [products] = await db.query("SELECT sku FROM products WHERE is_online='yes' AND (stock_quantity > 0 OR is_preorder = 'yes') ORDER BY RAND() LIMIT 1");
             return res.json({ target: products.length > 0 ? '/product/' + products[0].sku : '/shop' });
         }
     } catch (err) {
