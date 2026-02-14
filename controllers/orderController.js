@@ -149,7 +149,7 @@ exports.createManualOrder = async (req, res) => {
     try {
         await conn.beginTransaction();
 
-        const { phone, name, address, delivery_area, order_source, new_admin_note, cart_items, advance_payment, discount_amount, is_confirmed } = req.body;
+        const { phone, name, address, delivery_area, order_source, new_admin_note, cart_items, advance_payment, discount_amount, is_confirmed, order_type, courier_note } = req.body;
 
         // 1. Parse Items & Calculate Totals
         const items = JSON.parse(cart_items);
@@ -226,9 +226,9 @@ exports.createManualOrder = async (req, res) => {
         
         // [UPDATED] Added gateway_fee to INSERT
         const [orderResult] = await conn.query(`
-            INSERT INTO orders (order_number, nb_trx_id, bank_account_id, customer_id, guest_name, guest_phone, shipping_address, delivery_area, delivery_charge, product_subtotal, total_amount, payment_method, status, payment_status, order_source, admin_note, paid_amount, gateway_fee)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'cod', ?, 'unpaid', ?, ?, ?, ?)
-        `, [temp_ref, nbTrxId, depositAccountId, customer_id, name, phone, address, delivery_area, shipping_rate, product_subtotal, total_amount, status, order_source, finalNote, advance, capturedFee]);
+            INSERT INTO orders (order_number, nb_trx_id, bank_account_id, customer_id, guest_name, guest_phone, shipping_address, delivery_area, delivery_charge, product_subtotal, total_amount, payment_method, status, payment_status, order_source, admin_note, paid_amount, gateway_fee, order_type, courier_note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'cod', ?, 'unpaid', ?, ?, ?, ?, ?, ?)
+        `, [temp_ref, nbTrxId, depositAccountId, customer_id, name, phone, address, delivery_area, shipping_rate, product_subtotal, total_amount, status, order_source, finalNote, advance, capturedFee, order_type || 'regular', courier_note || '']);
 
         const order_id = orderResult.insertId;
 
@@ -547,13 +547,15 @@ exports.sendToSteadfast = async (req, res) => {
             
             const cleanAddress = (o.shipping_address || '').substring(0, 245);
 
+            let noteForCourier = o.courier_note ? o.courier_note : `Order #${o.order_number}`;
+
             return {
                 invoice: o.order_number, 
                 recipient_name: o.guest_name,
                 recipient_phone: cleanPhone,
                 recipient_address: cleanAddress,
                 cod_amount: parseInt(due), 
-                note: `Order #${o.order_number}`
+                note: noteForCourier
             };
         });
 
@@ -696,9 +698,39 @@ exports.handleWebhook = async (req, res) => {
             let dbStatus = null;
             
             // [UPDATED] Treat 'approval_pending' same as final status
-            if (status === 'delivered' || status === 'delivered_approval_pending') dbStatus = 'delivered';
-            else if (status === 'partial_delivered' || status === 'partial_delivered_approval_pending') dbStatus = 'Partially_Delivered';
-            else if (status === 'cancelled') dbStatus = 'Pending_return'; 
+            if (status === 'delivered' || status === 'delivered_approval_pending') {
+                dbStatus = 'delivered';
+                
+                // --- NEW: WORKFLOW A (GIVEAWAY EXPENSE AUTOMATION) ---
+                const [orderData] = await db.query("SELECT total_amount, delivery_charge, order_type FROM orders WHERE id = ?", [orderId]);
+                
+                // If total amount is 0 AND the official order type is 'giveaway'
+                if (orderData.length > 0 && parseFloat(orderData[0].total_amount) === 0 && orderData[0].order_type === 'giveaway') {
+                    // Fetch items to calculate actual Cost Price (COGS)
+                    const [items] = await db.query("SELECT quantity, cost_price FROM order_items WHERE order_id = ?", [orderId]);
+                    let totalCost = 0;
+                    items.forEach(i => totalCost += (parseFloat(i.cost_price) * parseInt(i.quantity)));
+
+                    const deliveryCharge = parseFloat(orderData[0].delivery_charge) || 0;
+                    const totalExpense = totalCost + deliveryCharge;
+
+                    // Log directly to the Expense Tracker
+                    await db.query(`
+                        INSERT INTO expenses (title, amount, category, expense_date, note)
+                        VALUES (?, ?, 'marketing', CURDATE(), ?)
+                    `, [
+                        `PR/Giveaway Order #${invoice}`,
+                        totalExpense,
+                        `Items Cost: ৳${totalCost} + Courier Charge: ৳${deliveryCharge}`
+                    ]);
+                }
+                // -----------------------------------------------------
+
+            } else if (status === 'partial_delivered' || status === 'partial_delivered_approval_pending') {
+                dbStatus = 'Partially_Delivered';
+            } else if (status === 'cancelled') {
+                dbStatus = 'Pending_return'; 
+            }
             
             if (dbStatus) {
                 await db.query(`
@@ -707,7 +739,7 @@ exports.handleWebhook = async (req, res) => {
                     WHERE id = ?
                 `, [dbStatus, status, orderId]);
             }
-        } 
+        }
 
         res.status(200).json({ status: "success" });
 

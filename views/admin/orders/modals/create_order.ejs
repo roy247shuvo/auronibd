@@ -93,7 +93,7 @@
                         </div>
 
                         <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Order Source & Status</h4>
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Order Configuration</h4>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Source</label>
@@ -105,11 +105,24 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Order Comments</label>
-                                    
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Order Type</label>
+                                    <select name="order_type" id="orderTypeSelect" onchange="handleOrderTypeChange()" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                                        <option value="regular">Regular Sell</option>
+                                        <option value="exchange">Exchange</option>
+                                        <option value="giveaway">Giveaway</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Internal Note</label>
                                     <div id="noteHistory" class="w-full border border-gray-200 bg-gray-50 rounded p-2 text-[10px] text-gray-600 mb-2 h-24 overflow-y-auto whitespace-pre-wrap hidden"></div>
-                                    
-                                    <textarea name="new_admin_note" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" placeholder="Add a new comment..."></textarea>
+                                    <textarea name="new_admin_note" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" placeholder="For admins..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="flex justify-between items-end mb-1">
+                                        <span class="block text-xs font-bold text-gray-700 uppercase">Courier Note</span>
+                                        <span id="courierNoteBadge" class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded hidden">Auto</span>
+                                    </label>
+                                    <textarea name="courier_note" id="courierNoteInput" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" placeholder="Instructions for rider..."></textarea>
                                 </div>
                             </div>
                             
@@ -234,6 +247,30 @@
 
 <script>
     let cart = [];
+
+    // --- Order Type Logic ---
+    function handleOrderTypeChange() {
+        const type = document.getElementById('orderTypeSelect').value;
+        const noteInput = document.getElementById('courierNoteInput');
+        const badge = document.getElementById('courierNoteBadge');
+
+        if (type === 'exchange') {
+            noteInput.value = 'Exchange';
+            noteInput.readOnly = true;
+            noteInput.classList.add('bg-gray-100', 'text-gray-500');
+            badge.classList.remove('hidden');
+        } else if (type === 'giveaway') {
+            noteInput.value = 'Thank you';
+            noteInput.readOnly = true;
+            noteInput.classList.add('bg-gray-100', 'text-gray-500');
+            badge.classList.remove('hidden');
+        } else {
+            noteInput.value = '';
+            noteInput.readOnly = false;
+            noteInput.classList.remove('bg-gray-100', 'text-gray-500');
+            badge.classList.add('hidden');
+        }
+    }
 
     // --- 1. Phone Validation & Customer Check ---
     function validatePhone(input) {
