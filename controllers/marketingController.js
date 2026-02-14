@@ -72,7 +72,17 @@ exports.transferToVault = async (req, res) => {
         const [variant] = await conn.query("SELECT product_id, cost_price, stock_quantity FROM product_variants WHERE id = ?", [variant_id]);
         if (variant.length === 0 || variant[0].stock_quantity < qty) throw new Error("Insufficient stock.");
         
-        const costPrice = parseFloat(variant[0].cost_price);
+        // --- FIXED: Get the actual cost from active inventory batch ---
+        const [batches] = await conn.query(`
+            SELECT buying_price 
+            FROM inventory_batches 
+            WHERE variant_id = ? AND remaining_quantity > 0 
+            ORDER BY created_at ASC LIMIT 1
+        `, [variant_id]);
+
+        // Use batch buying_price if available, otherwise fallback to variant cost_price
+        const costPrice = batches.length > 0 ? parseFloat(batches[0].buying_price) : parseFloat(variant[0].cost_price);
+        // --------------------------------------------------------------
         
         // Deduct Stock
         await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE id = ?", [qty, variant_id]);
