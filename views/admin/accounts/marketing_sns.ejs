@@ -1,15 +1,389 @@
 <%- include('../partials/custom_alert') %>
 
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto pb-10">
     <div class="flex border-b border-gray-200 mb-8 overflow-x-auto">
         <a href="/admin/accounts/marketing/sns" class="whitespace-nowrap px-6 py-3 text-sm font-bold uppercase tracking-wider text-black border-b-2 border-black">SNS Marketing</a>
         <a href="/admin/accounts/marketing/vault" class="whitespace-nowrap px-6 py-3 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-700">Marketing & PR Vault</a>
         <a href="/admin/accounts/marketing/other" class="whitespace-nowrap px-6 py-3 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-700">Other</a>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-500">
-        <span class="material-icons-outlined text-5xl mb-3 opacity-30">rocket_launch</span>
-        <h2 class="text-lg font-bold text-gray-800">SNS Marketing Data</h2>
-        <p class="text-sm mt-1">Metrics and social media ROI will be displayed here.</p>
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">SNS Ad Spend</h1>
+            <p class="text-sm text-gray-500 mt-1">Track and import your social media marketing expenses.</p>
+        </div>
+        <button onclick="openPlatformModal()" class="bg-black text-white px-5 py-2.5 rounded-lg shadow hover:bg-gray-800 transition text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+            <span class="material-icons-outlined text-lg">add_circle</span> Add Expense
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="bg-blue-50 text-blue-600 p-3 rounded-lg"><span class="material-icons-outlined">payments</span></div>
+            <div>
+                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Ad Spend (BDT)</div>
+                <div class="text-xl font-black text-gray-900">৳<%= totalBdt.toLocaleString('en-IN', {minimumFractionDigits: 2}) %></div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="bg-green-50 text-green-600 p-3 rounded-lg"><span class="material-icons-outlined">public</span></div>
+            <div>
+                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Ad Spend (USD)</div>
+                <div class="text-xl font-black text-gray-900">$<%= totalUsd.toLocaleString('en-IN', {minimumFractionDigits: 2}) %></div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="bg-purple-50 text-purple-600 p-3 rounded-lg"><span class="material-icons-outlined">receipt_long</span></div>
+            <div>
+                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Imported Receipts</div>
+                <div class="text-xl font-black text-gray-900"><%= history.length %></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gray-50">
+            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Import History</h3>
+        </div>
+        <% if (history.length === 0) { %>
+            <div class="p-12 text-center text-gray-400">
+                <span class="material-icons-outlined text-5xl mb-2 opacity-30">receipt_long</span>
+                <p class="text-sm">No SNS expenses have been imported yet.</p>
+            </div>
+        <% } else { %>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-white border-b border-gray-100 text-[10px] text-gray-500 uppercase tracking-wider">
+                            <th class="p-4">Date</th>
+                            <th class="p-4">Transaction ID</th>
+                            <th class="p-4 text-right">Amount (USD)</th>
+                            <th class="p-4 text-right">Cost (BDT)</th>
+                            <th class="p-4 text-right">Imported On</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <% history.forEach(item => { %>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="p-4 text-gray-600"><%= item.date %></td>
+                                <td class="p-4 font-mono text-xs text-blue-600"><%= item.transaction_id %></td>
+                                <td class="p-4 text-right font-bold text-gray-700">$<%= parseFloat(item.amount_usd).toFixed(2) %></td>
+                                <td class="p-4 text-right font-bold text-red-600">৳<%= parseFloat(item.bdt_cost).toLocaleString('en-IN', {minimumFractionDigits: 2}) %></td>
+                                <td class="p-4 text-right text-xs text-gray-400"><%= new Date(item.imported_at).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' }) %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        <% } %>
     </div>
 </div>
+
+<div id="platformModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+        <button onclick="closePlatformModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition"><span class="material-icons-outlined">close</span></button>
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Select Ad Platform</h3>
+        
+        <div class="grid grid-cols-1 gap-3">
+            <button onclick="openMetaModal()" class="p-4 border border-gray-200 rounded-xl flex items-center gap-4 hover:border-blue-500 hover:bg-blue-50 transition text-left group">
+                <div class="bg-blue-100 text-blue-600 p-2 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition"><span class="material-icons-outlined">facebook</span></div>
+                <div>
+                    <div class="font-bold text-gray-900">Meta Ads</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Upload Invoice CSV</div>
+                </div>
+            </button>
+            <button class="p-4 border border-gray-200 rounded-xl flex items-center gap-4 opacity-50 cursor-not-allowed text-left">
+                <div class="bg-red-100 text-red-600 p-2 rounded-lg"><span class="material-icons-outlined">travel_explore</span></div>
+                <div>
+                    <div class="font-bold text-gray-900">Google Ads</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Coming Soon</div>
+                </div>
+            </button>
+            <button class="p-4 border border-gray-200 rounded-xl flex items-center gap-4 opacity-50 cursor-not-allowed text-left">
+                <div class="bg-black text-white p-2 rounded-lg"><span class="material-icons-outlined">music_note</span></div>
+                <div>
+                    <div class="font-bold text-gray-900">TikTok Ads</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Coming Soon</div>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="metaModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col relative overflow-hidden">
+        <div class="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+            <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
+                <span class="material-icons-outlined text-blue-600">facebook</span> Meta Ads Expense Importer
+            </h3>
+            <button onclick="closeMetaModal()" class="text-gray-400 hover:text-black transition"><span class="material-icons-outlined">close</span></button>
+        </div>
+        
+        <div class="p-6 overflow-y-auto flex-1 bg-white space-y-8">
+            
+            <div class="bg-blue-50/50 rounded-xl border border-blue-100 p-6 flex justify-between items-center">
+                <div>
+                    <h4 class="font-bold text-gray-900 text-sm mb-1">Step 1: Upload CSV</h4>
+                    <p class="text-xs text-gray-500">Upload your Meta Invoice Summary. Duplicates are automatically skipped.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="file" id="csvFile" accept=".csv" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-white file:text-blue-700 hover:file:bg-blue-50 cursor-pointer">
+                    <button onclick="parseFile()" class="bg-black text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded shadow hover:bg-gray-800 transition">Analyze Data</button>
+                </div>
+            </div>
+
+            <div id="previewContainer" class="hidden space-y-8">
+                
+                <div>
+                    <h4 class="font-bold text-gray-900 text-sm mb-4">Step 2: Review & Set Exchange Rates</h4>
+                    
+                    <div class="grid grid-cols-4 gap-4 mb-4">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                            <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Trx Found</div>
+                            <div id="statFound" class="text-xl font-black mt-1">0</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+                            <div class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Duplicates Skipped</div>
+                            <div id="statDuplicate" class="text-xl font-black text-red-600 mt-1">0</div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
+                            <div class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">New Items</div>
+                            <div id="statNew" class="text-xl font-black text-blue-700 mt-1">0</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg border border-green-100 text-center relative overflow-hidden">
+                            <div class="text-[10px] text-green-700 font-bold uppercase tracking-wider">Master USD Rate</div>
+                            <div class="flex items-center justify-center gap-1 mt-1">
+                                <span class="font-bold text-gray-400">৳</span>
+                                <input type="number" id="masterUsdRate" value="126" step="0.01" oninput="applyMasterRate()" class="w-20 bg-transparent text-xl font-black text-green-800 border-b-2 border-green-300 focus:outline-none focus:border-green-600 text-center p-0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200 text-[10px] text-gray-500 uppercase tracking-wider">
+                                    <th class="p-3">Date</th>
+                                    <th class="p-3">Transaction Info</th>
+                                    <th class="p-3 text-right">Amount (USD)</th>
+                                    <th class="p-3 text-center">Rate</th>
+                                    <th class="p-3 text-right">Total (BDT)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody" class="divide-y divide-gray-100">
+                                </tbody>
+                            <tfoot>
+                                <tr class="bg-gray-50 border-t border-gray-200">
+                                    <td colspan="4" class="p-4 text-right font-bold text-xs uppercase text-gray-500">Grand Total Required:</td>
+                                    <td class="p-4 text-right text-lg font-black text-red-600">৳<span id="grandTotalBdt">0.00</span></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <hr class="border-gray-200">
+
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-sm mb-1">Step 3: Fund This Expense</h4>
+                            <p class="text-xs text-gray-500">Select which accounts were used to pay this bill to balance your ledgers.</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Difference Remaining</div>
+                            <div id="paymentDiff" class="text-lg font-black text-red-500">৳0.00</div>
+                        </div>
+                    </div>
+
+                    <div id="paymentRows" class="space-y-3 mb-4">
+                        <div class="flex gap-2 payment-row">
+                            <select class="account-select flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                                <option value="">-- Select Account --</option>
+                                <% accounts.forEach(acc => { %>
+                                    <option value="<%= acc.id %>"><%= acc.account_name %> (Bal: ৳<%= parseFloat(acc.current_balance).toLocaleString('en-IN') %>)</option>
+                                <% }) %>
+                            </select>
+                            <input type="number" placeholder="Amount (BDT)" class="payment-amount w-1/3 border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" oninput="calculateDifference()">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-6">
+                        <button onclick="addPaymentRow()" class="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">add_circle</span> Split payment across multiple accounts
+                        </button>
+                        
+                        <button id="confirmImportBtn" onclick="submitImport()" disabled class="bg-green-600 text-white text-sm font-bold uppercase tracking-wider px-8 py-3 rounded shadow-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            <span class="material-icons-outlined">check_circle</span> Confirm & Import Data
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal Control Functions
+    function openPlatformModal() {
+        document.getElementById('platformModal').classList.remove('hidden');
+        document.getElementById('platformModal').classList.add('flex');
+    }
+    function closePlatformModal() {
+        document.getElementById('platformModal').classList.add('hidden');
+        document.getElementById('platformModal').classList.remove('flex');
+    }
+    function openMetaModal() {
+        closePlatformModal();
+        document.getElementById('metaModal').classList.remove('hidden');
+        document.getElementById('metaModal').classList.add('flex');
+    }
+    function closeMetaModal() {
+        document.getElementById('metaModal').classList.add('hidden');
+        document.getElementById('metaModal').classList.remove('flex');
+    }
+
+    // Import Logic
+    let parsedItems = [];
+    let globalTotalBdt = 0;
+
+    async function parseFile() {
+        const fileInput = document.getElementById('csvFile');
+        if (!fileInput.files[0]) return alert("Please select a .csv file first.");
+
+        const formData = new FormData();
+        formData.append('csv_file', fileInput.files[0]);
+
+        const res = await fetch('/admin/accounts/marketing/sns/parse', {
+            method: 'POST',
+            body: formData,
+            headers: { 'CSRF-Token': '<%= csrfToken %>' }
+        });
+
+        const data = await res.json();
+        if (!data.success) return alert(data.message);
+
+        parsedItems = data.items;
+        
+        document.getElementById('statFound').innerText = data.stats.totalFound;
+        document.getElementById('statDuplicate').innerText = data.stats.totalDuplicate;
+        document.getElementById('statNew').innerText = data.stats.totalNew;
+        
+        document.getElementById('previewContainer').classList.remove('hidden');
+        renderItems();
+    }
+
+    function renderItems() {
+        const tbody = document.getElementById('itemsTableBody');
+        const masterRate = parseFloat(document.getElementById('masterUsdRate').value) || 126;
+        tbody.innerHTML = '';
+        globalTotalBdt = 0;
+
+        parsedItems.forEach((item, index) => {
+            const rowRate = item.custom_rate || masterRate;
+            const bdtAmount = (item.usd_amount * rowRate).toFixed(2);
+            globalTotalBdt += parseFloat(bdtAmount);
+            item.final_bdt = bdtAmount; 
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3 text-gray-500">${item.date}</td>
+                    <td class="p-3">
+                        <div class="font-mono text-xs text-gray-900">${item.trx_id}</div>
+                        <div class="text-[9px] text-gray-400 uppercase tracking-wider mt-0.5 flex items-center gap-1">
+                            <span class="material-icons-outlined text-[10px]">credit_card</span> ${item.payment_method}
+                        </div>
+                    </td>
+                    <td class="p-3 text-right font-bold text-gray-700">$${item.usd_amount.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <input type="number" step="0.01" value="${rowRate}" onchange="updateRowRate(${index}, this.value)" class="w-20 border border-gray-200 rounded px-2 py-1 text-center text-xs focus:border-black focus:ring-0">
+                    </td>
+                    <td class="p-3 text-right font-bold">৳${parseFloat(bdtAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('grandTotalBdt').innerText = globalTotalBdt.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        calculateDifference();
+    }
+
+    function applyMasterRate() {
+        parsedItems.forEach(i => i.custom_rate = null); 
+        renderItems();
+    }
+
+    function updateRowRate(index, newRate) {
+        parsedItems[index].custom_rate = parseFloat(newRate);
+        renderItems();
+    }
+
+    // Payment Logic
+    function addPaymentRow() {
+        const rowHTML = `
+            <div class="flex gap-2 payment-row mt-2">
+                <select class="account-select flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                    <option value="">-- Select Account --</option>
+                    <% accounts.forEach(acc => { %>
+                        <option value="<%= acc.id %>"><%= acc.account_name %> (Bal: ৳<%= parseFloat(acc.current_balance).toLocaleString('en-IN') %>)</option>
+                    <% }) %>
+                </select>
+                <input type="number" placeholder="Amount (BDT)" class="payment-amount w-1/3 border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" oninput="calculateDifference()">
+                <button onclick="this.parentElement.remove(); calculateDifference();" class="text-red-500 hover:text-red-700 px-2 bg-red-50 rounded border border-red-100"><span class="material-icons-outlined text-sm">delete</span></button>
+            </div>`;
+        document.getElementById('paymentRows').insertAdjacentHTML('beforeend', rowHTML);
+    }
+
+    function calculateDifference() {
+        let currentTotal = 0;
+        document.querySelectorAll('.payment-amount').forEach(inp => {
+            currentTotal += parseFloat(inp.value) || 0;
+        });
+        
+        const diff = globalTotalBdt - currentTotal;
+        const diffSpan = document.getElementById('paymentDiff');
+        diffSpan.innerText = `৳${Math.abs(diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        
+        // Exact match required to enable import button
+        if (Math.abs(diff) < 0.1 && globalTotalBdt > 0) { 
+            diffSpan.className = "text-lg font-black text-green-600";
+            document.getElementById('confirmImportBtn').disabled = false;
+        } else {
+            diffSpan.className = "text-lg font-black text-red-500";
+            document.getElementById('confirmImportBtn').disabled = true;
+        }
+    }
+
+    async function submitImport() {
+        const btn = document.getElementById('confirmImportBtn');
+        btn.innerHTML = `<span class="material-icons-outlined animate-spin text-sm">sync</span> Processing...`;
+        btn.disabled = true;
+
+        const payments = [];
+        document.querySelectorAll('.payment-row').forEach(row => {
+            const accId = row.querySelector('.account-select').value;
+            const amt = parseFloat(row.querySelector('.payment-amount').value);
+            if (accId && amt > 0) payments.push({ account_id: accId, amount: amt });
+        });
+
+        const payload = {
+            items: parsedItems.map(i => ({ date: i.date, trx_id: i.trx_id, usd_amount: i.usd_amount, bdt_amount: i.final_bdt })),
+            payments: payments
+        };
+
+        const res = await fetch('/admin/accounts/marketing/sns/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'CSRF-Token': '<%= csrfToken %>' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+            btn.innerHTML = `<span class="material-icons-outlined">check_circle</span> Confirm & Import Data`;
+            btn.disabled = false;
+        }
+    }
+</script>

@@ -239,8 +239,8 @@ exports.getTransfers = async (req, res) => {
                     e.expense_date as t_date,
                     CONVERT(CONCAT(UPPER(e.category), ': ', e.title) USING utf8mb4) as note,
                     CONVERT('System' USING utf8mb4) as created_by,
-                    CONVERT(NULL USING utf8mb4) as trx_id,
-                    CONVERT(NULL USING utf8mb4) as nb_trx_id,
+                    CONVERT(e.trx_id USING utf8mb4) as trx_id,          /* CHANGED */
+                    CONVERT(e.nb_trx_id USING utf8mb4) as nb_trx_id,    /* CHANGED */
                     CONVERT(NULL USING utf8mb4) as po_number,
                     NULL as po_id,
                     CONVERT(NULL USING utf8mb4) as order_number
@@ -666,7 +666,15 @@ exports.getBalanceSheet = async (req, res) => {
 
         // A. Finished Goods (Batches)
         const [inventory] = await db.query("SELECT SUM(remaining_quantity * buying_price) as total_value FROM inventory_batches WHERE is_active = 1");
-        const finishedGoods = parseFloat(inventory[0].total_value) || 0;
+        let finishedGoods = parseFloat(inventory[0].total_value) || 0;
+
+        // --- FIXED: Deduct Marketing Vault Items from Finished Goods ---
+        // Items in the vault are expensed, so they must be removed from Assets to keep books balanced
+        const [vault] = await db.query("SELECT SUM(quantity * cost_price) as vault_value FROM marketing_vault WHERE status = 'active'");
+        const vaultValue = parseFloat(vault[0].vault_value) || 0;
+        
+        finishedGoods = finishedGoods - vaultValue;
+        // ---------------------------------------------------------------
 
         // B. Raw Materials (Weighted Average Cost)
         const [materials] = await db.query("SELECT SUM(stock_quantity * average_cost) as total_value FROM raw_material_variants WHERE stock_quantity > 0");

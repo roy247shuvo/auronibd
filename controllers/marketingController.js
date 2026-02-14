@@ -4,7 +4,171 @@ const db = require('../config/database');
 
 // 1. Tab: SNS Marketing
 exports.getSnsPage = async (req, res) => {
-    res.render('admin/accounts/marketing_sns', { title: 'SNS Marketing', layout: 'admin/layout', activeTab: 'sns' });
+    try {
+        const [accounts] = await db.query("SELECT * FROM bank_accounts WHERE status = 'active' ORDER BY account_name ASC");
+        
+        // --- NEW: Fetch imported SNS history & calculate totals ---
+        const [history] = await db.query("SELECT * FROM sns_ad_transactions ORDER BY imported_at DESC");
+        
+        let totalUsd = 0;
+        let totalBdt = 0;
+        
+        history.forEach(item => {
+            totalUsd += parseFloat(item.amount_usd) || 0;
+            totalBdt += parseFloat(item.bdt_cost) || 0;
+        });
+
+        res.render('admin/accounts/marketing_sns', { 
+            title: 'SNS Marketing', 
+            layout: 'admin/layout', 
+            activeTab: 'sns', 
+            accounts,
+            history,       // Send the history to the view
+            totalUsd,      // Send Total USD
+            totalBdt       // Send Total BDT
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Server Error");
+    }
+};
+
+// 1A. Parse Meta CSV (AJAX)
+exports.parseSnsCsv = async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
+
+        const csvData = req.file.buffer.toString('utf8');
+        const lines = csvData.split(/\r?\n/);
+        
+        let isParsing = false;
+        let items = [];
+        let totalFound = 0, totalDuplicate = 0, totalNew = 0, totalUsd = 0;
+
+        const [existing] = await db.query("SELECT transaction_id FROM sns_ad_transactions");
+        const existingIds = existing.map(e => e.transaction_id);
+
+        // Track dynamic CSV formats
+        let globalPaymentMethod = "Unknown";
+        let amountIndex = 3; 
+        let paymentMethodIndex = 2;
+        let hasPaymentColumn = true;
+
+        for (let line of lines) {
+            if (!line.trim()) continue;
+            if (line.includes('Total amount billed')) break;
+
+            // Capture the global payment method (Format 2)
+            if (line.startsWith('Payment Method:')) {
+                globalPaymentMethod = line.replace('Payment Method:', '').replace(/,/g, '').trim();
+            }
+
+            const cols = line.split(',');
+
+            // Detect header and set format rules
+            if (cols[0]?.trim() === 'Date' && cols[1]?.trim() === 'Transaction ID') {
+                isParsing = true;
+                
+                if (cols[2]?.trim() === 'Amount') {
+                    hasPaymentColumn = false; // It's Format 2 (No payment column)
+                    amountIndex = 2;
+                } else if (cols[3]?.trim() === 'Amount') {
+                    hasPaymentColumn = true; // It's Format 1 (Standard)
+                    amountIndex = 3;
+                    paymentMethodIndex = 2;
+                }
+                continue;
+            }
+
+            if (isParsing && cols.length >= 3) {
+                const date = cols[0].trim();
+                const trxId = cols[1].trim();
+                
+                if (!trxId || trxId === '') continue;
+
+                // Dynamically fetch payment method based on the layout
+                let paymentMethod = hasPaymentColumn ? cols[paymentMethodIndex].trim() : globalPaymentMethod;
+                let amount = parseFloat(cols[amountIndex].trim());
+
+                if (paymentMethod === 'N/A') continue; // Skip ad credits
+
+                totalFound++;
+                const isDuplicate = existingIds.includes(trxId);
+                
+                if (isDuplicate) {
+                    totalDuplicate++;
+                } else {
+                    totalNew++;
+                    totalUsd += amount;
+                    // Pass the captured payment method to the frontend
+                    items.push({ date, trx_id: trxId, usd_amount: amount, payment_method: paymentMethod });
+                }
+            }
+        }
+
+        res.json({ success: true, stats: { totalFound, totalDuplicate, totalNew, totalUsd }, items });
+    } catch (err) {
+        console.error("CSV Parse Error:", err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 1B. Import & Process Expenses (AJAX)
+exports.importSnsExpenses = async (req, res) => {
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+        const { items, payments } = req.body;
+        
+        // 1. Generate Master NBTRX ID
+        const [settings] = await conn.query("SELECT last_nb_trx_sequence FROM shop_settings LIMIT 1");
+        const nextSeq = (settings[0].last_nb_trx_sequence || 0) + 1;
+        const nbTrxId = `NBTRX${String(nextSeq).padStart(4, '0')}`;
+        await conn.query("UPDATE shop_settings SET last_nb_trx_sequence = ?", [nextSeq]);
+
+        // 2. Save Trx IDs to prevent future duplicates
+        for (let item of items) {
+            await conn.query(`
+                INSERT INTO sns_ad_transactions (transaction_id, date, amount_usd, bdt_cost) 
+                VALUES (?, ?, ?, ?)
+            `, [item.trx_id, item.date, item.usd_amount, item.bdt_amount]);
+        }
+
+        // 3. Process Payments (Deduct from Accounts & Create Expenses)
+        for (let pay of payments) {
+            const accId = pay.account_id;
+            const amt = parseFloat(pay.amount);
+
+            // Deduct from bank
+            const [acc] = await conn.query("SELECT account_name, current_balance FROM bank_accounts WHERE id = ?", [accId]);
+            if (acc[0].current_balance < amt) throw new Error(`Insufficient funds in ${acc[0].account_name}`);
+            await conn.query("UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?", [amt, accId]);
+
+            // Capture exact importing Date & Time
+            const importTimestamp = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', dateStyle: 'medium', timeStyle: 'medium' });
+
+            // Create Expense record (NOW() explicitly saves the exact database timestamp to created_at)
+            await conn.query(`
+                INSERT INTO expenses (title, amount, category, account_id, expense_date, note, nb_trx_id, created_at)
+                VALUES (?, ?, 'marketing', ?, CURDATE(), ?, ?, NOW())
+            `, [
+                `Meta Ads Import`, 
+                amt, 
+                accId, 
+                `Imported on: ${importTimestamp} | Paid via ${acc[0].account_name}. Included ${items.length} ad transactions.`,
+                nbTrxId
+            ]);
+        }
+
+        await conn.commit();
+        res.json({ success: true, message: "Import successful" });
+    } catch (err) {
+        await conn.rollback();
+        console.error("Import Error:", err);
+        res.status(500).json({ success: false, message: err.message });
+    } finally {
+        conn.release();
+    }
 };
 
 // 2. Tab: Marketing & PR Vault

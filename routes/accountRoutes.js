@@ -62,6 +62,10 @@ router.get('/marketing/sns', authController.isLoggedIn, checkPermission('acc_rep
 router.get('/marketing/vault', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.getVaultPage);
 router.get('/marketing/other', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.getOtherPage);
 
+// [NEW] SNS Marketing CSV Parsing & Import
+router.post('/marketing/sns/parse', authController.isLoggedIn, checkPermission('acc_reports'), upload.single('csv_file'), marketingController.parseSnsCsv);
+router.post('/marketing/sns/import', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.importSnsExpenses);
+
 // [NEW] Marketing Vault Search & Actions
 router.get('/marketing/search', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.searchVaultProduct);
 router.post('/marketing/transfer', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.transferToVault);
