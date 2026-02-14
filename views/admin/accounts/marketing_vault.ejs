@@ -1,0 +1,210 @@
+<%- include('../partials/custom_alert') %>
+
+<div class="max-w-7xl mx-auto">
+    <div class="flex border-b border-gray-200 mb-8 overflow-x-auto">
+        <a href="/admin/accounts/marketing/sns" class="whitespace-nowrap px-6 py-3 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-700">SNS Marketing</a>
+        <a href="/admin/accounts/marketing/vault" class="whitespace-nowrap px-6 py-3 text-sm font-bold uppercase tracking-wider text-black border-b-2 border-black">Marketing & PR Vault</a>
+        <a href="/admin/accounts/marketing/other" class="whitespace-nowrap px-6 py-3 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-700">Other</a>
+    </div>
+
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-xl font-bold text-gray-900">Manage Internal Stock</h1>
+        </div>
+        <div class="bg-purple-50 text-purple-700 px-4 py-2 rounded-lg border border-purple-100 flex items-center gap-2">
+            <span class="material-icons-outlined">campaign</span>
+            <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider opacity-70">Total Vault Expense</div>
+                <div class="text-lg font-black font-mono">৳<%= parseFloat(totalExpense).toLocaleString('en-IN') %></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span class="material-icons-outlined text-gray-400">search</span> Find Product
+                </h3>
+                
+                <div class="mb-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="vaultSearchInput" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0" placeholder="SKU or Name...">
+                        <button type="button" id="searchBtn" onclick="searchVaultProduct()" class="bg-gray-100 border border-gray-300 px-4 py-2 rounded text-sm font-bold hover:bg-gray-200 transition">Search</button>
+                    </div>
+                </div>
+
+                <div id="vaultSearchResults" class="mb-4 space-y-2"></div>
+
+                <hr class="mb-4 border-gray-100">
+
+                <form action="/admin/accounts/marketing/transfer" method="POST" class="space-y-4">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="variant_id" id="selectedVariantId" required>
+                    
+                    <div id="selectedVariantDisplay" class="hidden p-3 border border-green-200 bg-green-50 rounded flex items-center gap-3">
+                        </div>
+
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity</label>
+                            <input type="number" name="quantity" value="1" min="1" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Reason</label>
+                            <select name="reason" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-black focus:ring-0">
+                                <option value="Photoshoot">Photoshoot</option>
+                                <option value="Content Creation">Content Creation</option>
+                                <option value="Office Display">Office Display</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="transferBtn" disabled class="w-full bg-black text-white text-xs font-bold uppercase tracking-widest py-3 rounded shadow-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        Move to Vault
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Items Currently Out</h3>
+                </div>
+                
+                <% if (vaultItems.length === 0) { %>
+                    <div class="p-8 text-center text-gray-500">
+                        <span class="material-icons-outlined text-4xl mb-2 opacity-50">inventory_2</span>
+                        <p class="text-sm">The vault is currently empty.</p>
+                    </div>
+                <% } else { %>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-white border-b border-gray-100 text-[10px] text-gray-500 uppercase tracking-wider">
+                                <th class="p-4 font-bold">Item</th>
+                                <th class="p-4 font-bold">Details</th>
+                                <th class="p-4 font-bold">Cost Logged</th>
+                                <th class="p-4 font-bold text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            <% vaultItems.forEach(item => { %>
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <img src="<%= item.image || '/uploads/placeholder.jpg' %>" class="w-10 h-10 object-cover rounded border border-gray-200">
+                                            <div>
+                                                <div class="text-sm font-bold text-gray-900"><%= item.product_name %></div>
+                                                <div class="text-[10px] text-gray-500 font-mono"><%= item.sku %> (<%= item.color %>)</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="text-xs font-bold text-gray-800"><%= item.quantity %>x for <%= item.reason %></div>
+                                        <div class="text-[10px] text-gray-500"><%= new Date(item.created_at).toLocaleDateString('en-GB') %></div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="text-xs font-mono font-bold text-red-600">৳<%= (item.cost_price * item.quantity).toLocaleString('en-IN') %></div>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                        <form action="/admin/accounts/marketing/return" method="POST" onsubmit="return confirm('Return this to sellable stock?');">
+                                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                            <input type="hidden" name="vault_id" value="<%= item.id %>">
+                                            <button type="submit" class="bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider hover:bg-green-100 transition">Return</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function searchVaultProduct() {
+        const query = document.getElementById('vaultSearchInput').value;
+        if (!query) return;
+        
+        const btn = document.getElementById('searchBtn');
+        btn.innerHTML = '...';
+        
+        const res = await fetch(`/admin/accounts/marketing/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        btn.innerHTML = 'Search';
+        const container = document.getElementById('vaultSearchResults');
+        container.innerHTML = '';
+        
+        if (data.products.length === 0) {
+            container.innerHTML = '<p class="text-[10px] text-red-500 font-bold uppercase">No products found.</p>';
+            return;
+        }
+
+        data.products.forEach(p => {
+            const prodDiv = document.createElement('div');
+            prodDiv.className = 'border border-gray-200 rounded overflow-hidden mb-2 shadow-sm';
+
+            const header = document.createElement('div');
+            header.className = 'bg-gray-50 p-2 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition';
+            header.innerHTML = `<div class="font-bold text-xs truncate max-w-[150px]">${p.name}</div><div class="text-[10px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono">${p.sku}</div>`;
+
+            const variantsDiv = document.createElement('div');
+            variantsDiv.className = 'hidden p-2 grid grid-cols-1 gap-2 border-t border-gray-200 bg-white';
+
+            if(p.variants.length === 0) {
+                variantsDiv.innerHTML = '<p class="text-[10px] text-gray-500">Out of stock.</p>';
+            }
+
+            p.variants.forEach(v => {
+                const vCard = document.createElement('div');
+                vCard.className = 'flex items-center gap-2 border border-gray-200 p-1.5 rounded cursor-pointer hover:border-black transition bg-gray-50';
+                vCard.onclick = () => selectVariant(v, p.name);
+                const imgUrl = v.image || '/uploads/placeholder.jpg';
+                vCard.innerHTML = `
+                    <img src="${imgUrl}" class="w-8 h-8 object-cover rounded">
+                    <div class="flex-1">
+                        <div class="text-[10px] font-bold text-gray-800">${v.color} - ${v.size}</div>
+                        <div class="text-[9px] text-gray-500 font-mono">${v.sku}</div>
+                    </div>
+                    <div class="text-[10px] font-bold bg-white border border-gray-200 px-1.5 rounded text-blue-600">${v.stock_quantity} in stock</div>
+                `;
+                variantsDiv.appendChild(vCard);
+            });
+
+            header.onclick = () => variantsDiv.classList.toggle('hidden');
+            prodDiv.appendChild(header);
+            prodDiv.appendChild(variantsDiv);
+            container.appendChild(prodDiv);
+        });
+    }
+
+    function selectVariant(variant, productName) {
+        document.getElementById('selectedVariantId').value = variant.id;
+        const display = document.getElementById('selectedVariantDisplay');
+        const imgUrl = variant.image || '/uploads/placeholder.jpg';
+        
+        display.innerHTML = `
+            <img src="${imgUrl}" class="w-10 h-10 object-cover rounded border border-gray-300">
+            <div class="flex-1">
+                <div class="text-[10px] font-bold text-green-800 leading-tight">${productName}</div>
+                <div class="text-[10px] text-green-700">${variant.color} - ${variant.size}</div>
+            </div>
+            <button type="button" onclick="clearVariant()" class="text-red-500 text-xs font-bold hover:bg-red-50 p-1 rounded transition"><span class="material-icons-outlined text-sm">close</span></button>
+        `;
+        
+        display.classList.remove('hidden');
+        document.getElementById('vaultSearchResults').innerHTML = '';
+        document.getElementById('vaultSearchInput').value = '';
+        document.getElementById('transferBtn').disabled = false;
+    }
+
+    function clearVariant() {
+        document.getElementById('selectedVariantId').value = '';
+        document.getElementById('selectedVariantDisplay').classList.add('hidden');
+        document.getElementById('transferBtn').disabled = true;
+    }
+</script>

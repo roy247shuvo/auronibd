@@ -55,6 +55,16 @@ router.post('/transfers/add', authController.isLoggedIn, checkPermission('acc_tr
 
 // --- NEW ROUTES (SALES & MARKETING) ---
 router.get('/sales', authController.isLoggedIn, checkPermission('acc_sales'), salesController.getSalesPage);
-router.get('/marketing', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.getMarketingPage);
+
+// [UPDATED] Marketing Tab Routes
+router.get('/marketing', authController.isLoggedIn, checkPermission('acc_reports'), (req, res) => res.redirect('/admin/accounts/marketing/vault'));
+router.get('/marketing/sns', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.getSnsPage);
+router.get('/marketing/vault', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.getVaultPage);
+router.get('/marketing/other', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.getOtherPage);
+
+// [NEW] Marketing Vault Search & Actions
+router.get('/marketing/search', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.searchVaultProduct);
+router.post('/marketing/transfer', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.transferToVault);
+router.post('/marketing/return', authController.isLoggedIn, checkPermission('acc_reports'), marketingController.returnFromVault);
 
 module.exports = router;
