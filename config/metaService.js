@@ -30,7 +30,12 @@ const sendEvent = async (eventName, eventData, req) => {
         
         // CRITICAL: Extract Facebook Cookies for Match Quality
         const fbp = getCookie(req, '_fbp');
-        const fbc = getCookie(req, '_fbc');
+        let fbc = getCookie(req, '_fbc');
+
+        // If cookie is missing but URL has fbclid, build fbc manually
+        if (!fbc && req.query && req.query.fbclid) {
+            fbc = `fb.1.${Date.now()}.${req.query.fbclid}`;
+        }
 
         const payload = {
             data: [{

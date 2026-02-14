@@ -57,7 +57,8 @@ exports.getDashboard = async (req, res) => {
         // Ensure the table exists or handle empty array
         let visitors = [];
         try {
-            const [rows] = await db.query(`SELECT * FROM live_visitors`);
+            // CHANGED: Only fetch visitors who were active in the last 2 minutes
+            const [rows] = await db.query(`SELECT * FROM live_visitors WHERE last_active >= NOW() - INTERVAL 2 MINUTE`);
             visitors = rows;
         } catch (e) {
             console.error("Live visitors table missing or error:", e.message);
@@ -92,7 +93,8 @@ exports.getDashboard = async (req, res) => {
 // [NEW] API to fetch just the live numbers
 exports.getLiveStats = async (req, res) => {
     try {
-        const [visitors] = await db.query(`SELECT city, lat, lng FROM live_visitors`);
+        // CHANGED: Also limit the auto-refresh API to the last 2 minutes
+        const [visitors] = await db.query(`SELECT city, lat, lng FROM live_visitors WHERE last_active >= NOW() - INTERVAL 2 MINUTE`);
         res.json({ 
             count: visitors.length,
             visitors: visitors 

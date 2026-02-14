@@ -218,6 +218,16 @@ app.use('/admin/discounts', require('./routes/discountRoutes'));
 app.get('/admin/dashboard', requireAuth, dashboardController.getDashboard);
 app.get('/admin/api/live-stats', requireAuth, dashboardController.getLiveStats);
 
+// === LIVE VISITOR CLEANUP (Runs every 1 minute) ===
+// Deletes visitors who haven't pinged the heartbeat in the last 2 minutes
+setInterval(async () => {
+    try {
+        await db.query("DELETE FROM live_visitors WHERE last_active < (NOW() - INTERVAL 2 MINUTE)");
+    } catch (err) {
+        console.error("Error in Live Visitor Cleanup:", err);
+    }
+}, 60 * 1000);
+
 // === AUTOMATIC ZOMBIE KILLER (Runs every 10 minutes) ===
 // This releases stock automatically even if NO ONE logs into the POS.
 // Example: Crash at 6:00 PM -> This job detects it around 8:00 PM and frees stock.
