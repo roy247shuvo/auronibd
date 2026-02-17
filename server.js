@@ -1,9 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const MySQLStore = require('express-mysql-session')(session);
+// [NEW FIX] We must extract RedisStore using curly brackets in v9!
+const { RedisStore } = require('connect-redis'); 
+const { createClient } = require('redis');
 const expressLayouts = require('express-ejs-layouts');
 const db = require('./config/database'); 
+
+// 1. Initialize Redis Client
+const redisClient = createClient({ url: 'redis://127.0.0.1:6379' });
+redisClient.on('error', (err) => console.log('Redis Client Error', err));
+redisClient.connect().catch(console.error);
 const dashboardController = require('./controllers/dashboardController');
 // [REMOVED] request-ip and geoip-lite imports (Moved to controller)
 
@@ -42,10 +49,14 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// 3. Session Setup
-const sessionStore = new MySQLStore({}, db); 
+// 3. Session Setup (Using classic connect-redis initialization)
+const sessionStore = new RedisStore({
+    client: redisClient,
+    prefix: "auroni:",
+});
+
 app.use(session({
-    key: 'niche_session',
+    key: 'auroni_session', // Renamed for clarity
     secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
@@ -158,7 +169,8 @@ app.use(async (req, res, next) => {
 
 // 2. View Engine & Assets
 app.use(express.static('public', {
-    maxAge: '7d' 
+    maxAge: '365d', // Increased to 1 year to pass audit
+    etag: true      // Helps browser validate if file changed
 }));
 app.use(expressLayouts);
 app.set('view engine', 'ejs');
@@ -218,15 +230,26 @@ app.use('/admin/discounts', require('./routes/discountRoutes'));
 app.get('/admin/dashboard', requireAuth, dashboardController.getDashboard);
 app.get('/admin/api/live-stats', requireAuth, dashboardController.getLiveStats);
 
-// === LIVE VISITOR CLEANUP (Runs every 1 minute) ===
-// Deletes visitors who haven't pinged the heartbeat in the last 2 minutes
-setInterval(async () => {
+// [NEW] Advanced Redis Visitor Tracking (with Location for Map)
+app.use(async (req, res, next) => {
+    // Skip tracking for admin pages to keep the map clean
+    if (req.path.startsWith('/admin')) return next();
+
     try {
-        await db.query("DELETE FROM live_visitors WHERE last_active < (NOW() - INTERVAL 2 MINUTE)");
-    } catch (err) {
-        console.error("Error in Live Visitor Cleanup:", err);
+        // Prepare the data for the map (Reading headers from Cloudflare/Webuzo)
+        const visitorData = {
+            city: req.headers['x-vercel-ip-city'] || 'Customer', 
+            lat: parseFloat(req.headers['x-vercel-ip-latitude']) || 23.8103, // Default to Dhaka
+            lng: parseFloat(req.headers['x-vercel-ip-longitude']) || 90.4125
+        };
+        
+        // Save to Redis for 120 seconds. Redis handles the "DELETE" automatically!
+        await redisClient.set(`active_visitor:${req.ip}`, JSON.stringify(visitorData), { EX: 120 });
+    } catch (e) {
+        console.log("Redis Tracking error:", e.message);
     }
-}, 60 * 1000);
+    next();
+});
 
 // === AUTOMATIC ZOMBIE KILLER (Runs every 10 minutes) ===
 // This releases stock automatically even if NO ONE logs into the POS.

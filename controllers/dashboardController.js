@@ -1,4 +1,9 @@
 const db = require('../config/database');
+const { createClient } = require('redis'); // [NEW]
+
+// 1. Initialize Redis Client for the Controller
+const redisClient = createClient({ url: 'redis://127.0.0.1:6379' });
+redisClient.connect().catch(console.error);
 
 exports.getDashboard = async (req, res) => {
     try {
@@ -53,18 +58,22 @@ exports.getDashboard = async (req, res) => {
         const chartLabels = graphData.map(d => new Date(d.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
         const chartValues = graphData.map(d => d.total);
 
-        // 5. FETCH LIVE VISITORS (This was missing!)
-        // Ensure the table exists or handle empty array
+        // 5. FETCH LIVE VISITORS (Now using Redis RAM)
         let visitors = [];
+        let onlineCount = 0;
         try {
-            // CHANGED: Only fetch visitors who were active in the last 2 minutes
-            const [rows] = await db.query(`SELECT * FROM live_visitors WHERE last_active >= NOW() - INTERVAL 2 MINUTE`);
-            visitors = rows;
+            // Get all keys that match our visitor pattern
+            const keys = await redisClient.keys('active_visitor:*');
+            onlineCount = keys.length;
+            
+            if (keys.length > 0) {
+                // Fetch the actual data (city, lat, lng) for the map
+                const rawData = await redisClient.mGet(keys);
+                visitors = rawData.map(val => JSON.parse(val)).filter(v => v !== 1);
+            }
         } catch (e) {
-            console.error("Live visitors table missing or error:", e.message);
+            console.error("Redis fetch error:", e.message);
         }
-        
-        const onlineCount = visitors.length;
 
         res.render('admin/dashboard', { 
             title: 'Dashboard',
@@ -90,16 +99,22 @@ exports.getDashboard = async (req, res) => {
     }
 };
 
-// [NEW] API to fetch just the live numbers
+// [NEW] API to fetch just the live numbers (Redis Version)
 exports.getLiveStats = async (req, res) => {
     try {
-        // CHANGED: Also limit the auto-refresh API to the last 2 minutes
-        const [visitors] = await db.query(`SELECT city, lat, lng FROM live_visitors WHERE last_active >= NOW() - INTERVAL 2 MINUTE`);
+        const keys = await redisClient.keys('active_visitor:*');
+        let visitors = [];
+        
+        if (keys.length > 0) {
+            const rawData = await redisClient.mGet(keys);
+            visitors = rawData.map(val => JSON.parse(val)).filter(v => v !== 1);
+        }
+
         res.json({ 
-            count: visitors.length,
+            count: keys.length,
             visitors: visitors 
         });
     } catch (err) {
-        res.status(500).json({ error: 'Error' });
+        res.status(500).json({ error: 'Redis Error' });
     }
 };
