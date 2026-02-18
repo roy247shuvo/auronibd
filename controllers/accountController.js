@@ -514,19 +514,33 @@ exports.getPLReport = async (req, res) => {
 
         const totalCOGS = parseFloat(cogsResult[0].total_cogs) || 0;
 
-        // 3. Fetch Manual Expenses
-        const [expenseStats] = await db.query(`
-            SELECT SUM(amount) as total_opex, category
+        // 3. Fetch Manual Expenses (Split Marketing)
+        const [expensesList] = await db.query(`
+            SELECT amount, category, title
             FROM expenses 
             WHERE for_month = ?
-            GROUP BY category
         `, [selectedMonth]);
 
         let totalOpex = 0;
         let expenseBreakdown = {};
-        expenseStats.forEach(e => {
-            totalOpex += parseFloat(e.total_opex);
-            expenseBreakdown[e.category] = parseFloat(e.total_opex);
+        
+        expensesList.forEach(e => {
+            let catName = e.category;
+            
+            // --- NEW: Split Marketing Expenses ---
+            if (e.category === 'marketing') {
+                if (e.title && e.title.includes('Meta Ads')) {
+                    catName = 'marketing_ads';
+                } else if (e.title && (e.title.includes('Internal Transfer') || e.title.includes('Vault Return') || e.title.includes('PR/Giveaway'))) {
+                    catName = 'marketing_vault';
+                } else {
+                    catName = 'marketing_general';
+                }
+            }
+            // -------------------------------------
+
+            totalOpex += parseFloat(e.amount);
+            expenseBreakdown[catName] = (expenseBreakdown[catName] || 0) + parseFloat(e.amount);
         });
 
         // --- 4. HIDDEN COSTS (Now Exact via 'gateway_fee' column) ---
