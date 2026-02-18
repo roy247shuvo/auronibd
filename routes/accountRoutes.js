@@ -15,6 +15,10 @@ router.get('/overview', authController.isLoggedIn, checkPermission('acc_overview
 // Settings Page (List Accounts)
 router.get('/settings', authController.isLoggedIn, checkPermission('acc_settings'), accountController.getSettings);
 
+router.get('/fix-cogs', authController.isLoggedIn, checkPermission('acc_settings'), accountController.fixHistoricalCOGS);
+
+router.get('/fix-expenses', authController.isLoggedIn, checkPermission('acc_settings'), accountController.fixHistoricalExpenses);
+
 // Courier Data Page
 router.get('/courier-data', authController.isLoggedIn, checkPermission('acc_overview'), accountController.getCourierData);
 

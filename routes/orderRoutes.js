@@ -26,7 +26,9 @@ router.post('/update-status', checkPermission('orders_web'), orderController.upd
 router.post('/bulk-update-status', checkPermission('orders_web'), orderController.bulkUpdateStatus);
 router.post('/send-to-steadfast', checkPermission('orders_web'), orderController.sendToSteadfast);
 router.post('/sync-steadfast', checkPermission('orders_web'), orderController.manualSyncStatus);
+// --- NEW ROUTE FOR VIEW MODAL ---
 router.get('/details/:id', checkPermission('orders_web'), orderController.getOrderDetails);
+// --------------------------------
 router.get('/print-labels', checkPermission('orders_web'), orderController.printLabels);
 router.get('/label-settings', checkPermission('orders_label'), orderController.getLabelSettings);
 

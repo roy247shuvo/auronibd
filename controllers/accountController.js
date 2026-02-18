@@ -776,3 +776,58 @@ exports.getOverview = async (req, res) => {
         res.status(500).send("Error loading account overview");
     }
 };
+
+// --- TEMPORARY FIX: BACKFILL HISTORICAL COGS ---
+exports.fixHistoricalCOGS = async (req, res) => {
+    try {
+        // 1. Find all order items with 0 or null cost price
+        const [items] = await db.query("SELECT id, variant_id FROM order_items WHERE cost_price IS NULL OR cost_price = 0");
+
+        let updatedCount = 0;
+
+        for (const item of items) {
+            // 2. Try to get the oldest buying price from batches for this variant
+            const [batches] = await db.query("SELECT buying_price FROM inventory_batches WHERE variant_id = ? ORDER BY created_at ASC LIMIT 1", [item.variant_id]);
+            
+            let costToSet = 0;
+
+            if (batches.length > 0 && batches[0].buying_price > 0) {
+                costToSet = batches[0].buying_price;
+            } else {
+                // 3. Fallback to variant table's static cost price
+                const [variant] = await db.query("SELECT cost_price FROM product_variants WHERE id = ?", [item.variant_id]);
+                if (variant.length > 0 && variant[0].cost_price > 0) {
+                    costToSet = variant[0].cost_price;
+                }
+            }
+
+            // 4. Update the order item permanently
+            if (costToSet > 0) {
+                await db.query("UPDATE order_items SET cost_price = ? WHERE id = ?", [costToSet, item.id]);
+                updatedCount++;
+            }
+        }
+
+        res.send(`<h2 style="font-family:sans-serif; text-align:center; margin-top:50px;">✅ Successfully fixed ${updatedCount} historical order items! Your P/L is now accurate.</h2>`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error fixing COGS: " + err.message);
+    }
+};
+
+// --- TEMPORARY FIX 2: BACKFILL HISTORICAL EXPENSE MONTHS ---
+exports.fixHistoricalExpenses = async (req, res) => {
+    try {
+        // This query finds any expense missing a month, looks at the date it was created, and locks in the correct 'YYYY-MM'
+        const [result] = await db.query(`
+            UPDATE expenses 
+            SET for_month = DATE_FORMAT(expense_date, '%Y-%m') 
+            WHERE for_month IS NULL OR for_month = ''
+        `);
+
+        res.send(`<h2 style="font-family:sans-serif; text-align:center; margin-top:50px;">✅ Successfully patched ${result.affectedRows} historical expenses! Your past Marketing Vault items are now correctly showing on your P/L.</h2>`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error fixing expenses: " + err.message);
+    }
+};

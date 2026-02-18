@@ -258,9 +258,28 @@ exports.createManualOrder = async (req, res) => {
 
         // 6. Insert Items & Deduct Stock
         for (const item of items) {
-            // [STEP 2.1] Fetch current cost_price to lock it in
-            const [variantInfo] = await conn.query("SELECT cost_price FROM product_variants WHERE id = ?", [item.variant_id]);
-            const costPrice = (variantInfo.length > 0) ? variantInfo[0].cost_price : 0;
+            // [STEP 2.1] Fetch current cost_price from Batches (FIFO)
+            let qtyNeeded = item.quantity;
+            let totalCost = 0;
+            const [batches] = await conn.query(`
+                SELECT remaining_quantity, buying_price 
+                FROM inventory_batches 
+                WHERE variant_id = ? AND remaining_quantity > 0 AND is_active = 1 
+                ORDER BY created_at ASC
+            `, [item.variant_id]);
+            
+            for (const batch of batches) {
+                if (qtyNeeded <= 0) break;
+                const take = Math.min(qtyNeeded, batch.remaining_quantity);
+                totalCost += take * batch.buying_price;
+                qtyNeeded -= take;
+            }
+            
+            if (qtyNeeded > 0) {
+                const [fallback] = await conn.query("SELECT cost_price FROM product_variants WHERE id = ?", [item.variant_id]);
+                totalCost += qtyNeeded * (fallback.length > 0 ? fallback[0].cost_price : 0);
+            }
+            const costPrice = (totalCost / item.quantity).toFixed(2);
 
             // [FIX] Calculate line_total
             const lineTotal = item.price * item.quantity;

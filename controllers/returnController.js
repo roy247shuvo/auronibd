@@ -70,9 +70,10 @@ exports.processRestock = async (req, res) => {
         for (const item of returned_items) {
             const qty = parseInt(item.qty);
             if (qty > 0) {
-                // A. Fetch Price for Financial Adjustment [NEW]
-                const [itemData] = await conn.query("SELECT price FROM order_items WHERE id = ?", [item.id]);
+                // A. Fetch Price & Cost Price for Financial Adjustment
+                const [itemData] = await conn.query("SELECT price, cost_price FROM order_items WHERE id = ?", [item.id]);
                 const price = parseFloat(itemData[0].price || 0);
+                const costPrice = parseFloat(itemData[0].cost_price || 0);
                 totalRefundValue += (price * qty);
 
                 // B. Update Order Item (Record that it came back)
@@ -84,10 +85,23 @@ exports.processRestock = async (req, res) => {
                 // D. Restock Main Product Count
                 await conn.query(`UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?`, [qty, item.product_id]);
 
-                // E. Update Inventory Batch (FIFO Logic)
-                const [batches] = await conn.query(`SELECT id FROM inventory_batches WHERE variant_id = ? ORDER BY id DESC LIMIT 1`, [item.variant_id]);
-                if (batches.length > 0) {
-                    await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity + ? WHERE id = ?`, [qty, batches[0].id]);
+                // E. Restock Inventory Batch (Matching Exact Cost Price)
+                const [matchingBatches] = await conn.query(`
+                    SELECT id FROM inventory_batches 
+                    WHERE variant_id = ? AND buying_price = ? AND is_active = 1 
+                    ORDER BY id DESC LIMIT 1
+                `, [item.variant_id, costPrice]);
+
+                if (matchingBatches.length > 0) {
+                    // Put it back in the batch with the exact same cost
+                    await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity + ? WHERE id = ?`, [qty, matchingBatches[0].id]);
+                } else {
+                    // Create a return batch to preserve the exact Balance Sheet asset value
+                    const batchNum = 'RET-' + Date.now();
+                    await conn.query(`
+                        INSERT INTO inventory_batches (batch_number, product_id, variant_id, buying_price, initial_quantity, remaining_quantity) 
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    `, [batchNum, item.product_id, item.variant_id, costPrice, qty, qty]);
                 }
             }
         }
@@ -131,12 +145,35 @@ exports.processFullReturn = async (req, res) => {
 
         // 2. Restock Logic
         for (const item of items) {
+            const qty = parseInt(item.quantity);
+            const costPrice = parseFloat(item.cost_price || 0);
+
             // A. Restock Variant
-            await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?", [item.quantity, item.variant_id]);
+            await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?", [qty, item.variant_id]);
+            
             // B. Restock Main Product
-            await conn.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?", [item.quantity, item.product_id]);
+            await conn.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?", [qty, item.product_id]);
+            
             // C. Mark Item as Returned
-            await conn.query("UPDATE order_items SET returned_quantity = ? WHERE id = ?", [item.quantity, item.id]);
+            await conn.query("UPDATE order_items SET returned_quantity = ? WHERE id = ?", [qty, item.id]);
+
+            // D. Restock Inventory Batch (Matching Exact Cost Price)
+            const [matchingBatches] = await conn.query(`
+                SELECT id FROM inventory_batches 
+                WHERE variant_id = ? AND buying_price = ? AND is_active = 1 
+                ORDER BY id DESC LIMIT 1
+            `, [item.variant_id, costPrice]);
+
+            if (matchingBatches.length > 0) {
+                await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity + ? WHERE id = ?`, [qty, matchingBatches[0].id]);
+            } else {
+                // Create a return batch to preserve asset value (append ID to avoid duplicate batch names in fast loops)
+                const batchNum = 'RET-' + Date.now() + '-' + item.variant_id;
+                await conn.query(`
+                    INSERT INTO inventory_batches (batch_number, product_id, variant_id, buying_price, initial_quantity, remaining_quantity) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `, [batchNum, item.product_id, item.variant_id, costPrice, qty, qty]);
+            }
         }
 
         // 3. Update Order Financials (Zero out for full return)

@@ -383,15 +383,39 @@ exports.placeOrder = async (req, res) => {
         const orderItemsData = [];
         const stockUpdates = [];
 
-        cartSession.forEach(item => {
+        for (const item of cartSession) {
             const dbItem = variants.find(v => v.id == item.variantId);
             if (dbItem) {
                 let price = (dbItem.compare_price > 0 && dbItem.compare_price < dbItem.price) ? dbItem.compare_price : (dbItem.price || dbItem.regular_price);
                 product_subtotal += price * item.quantity;
-                orderItemsData.push([ null, dbItem.product_id, dbItem.id, dbItem.name, dbItem.sku, dbItem.color, dbItem.size, price, item.quantity, price * item.quantity ]);
+                
+                // --- NEW: FIFO Cost Price Calculation ---
+                let qtyNeeded = item.quantity;
+                let totalCost = 0;
+                const [batches] = await db.query(`
+                    SELECT remaining_quantity, buying_price 
+                    FROM inventory_batches 
+                    WHERE variant_id = ? AND remaining_quantity > 0 AND is_active = 1 
+                    ORDER BY created_at ASC
+                `, [dbItem.id]);
+                
+                for (const batch of batches) {
+                    if (qtyNeeded <= 0) break;
+                    const take = Math.min(qtyNeeded, batch.remaining_quantity);
+                    totalCost += take * batch.buying_price;
+                    qtyNeeded -= take;
+                }
+                
+                // Fallback to variant's static cost price if batches are empty
+                if (qtyNeeded > 0) totalCost += qtyNeeded * (dbItem.cost_price || 0);
+                const avgCostPrice = (totalCost / item.quantity).toFixed(2);
+                // ----------------------------------------
+
+                // Added avgCostPrice to the end of the array
+                orderItemsData.push([ null, dbItem.product_id, dbItem.id, dbItem.name, dbItem.sku, dbItem.color, dbItem.size, price, item.quantity, price * item.quantity, avgCostPrice ]);
                 stockUpdates.push({ id: dbItem.id, qty: item.quantity });
             }
-        });
+        }
 
         const total_amount = product_subtotal + Number(rate);
         
@@ -491,8 +515,10 @@ exports.placeOrder = async (req, res) => {
         await db.query("UPDATE orders SET order_number = ? WHERE id = ?", [order_number, order_id]);
 
         // Insert Items
+        // Insert Items
         const finalItems = orderItemsData.map(item => { item[0] = order_id; return item; });
-        if (finalItems.length > 0) await db.query(`INSERT INTO order_items (order_id, product_id, variant_id, product_name, sku, color, size, price, quantity, line_total) VALUES ?`, [finalItems]);
+        // Added cost_price column to the INSERT query
+        if (finalItems.length > 0) await db.query(`INSERT INTO order_items (order_id, product_id, variant_id, product_name, sku, color, size, price, quantity, line_total, cost_price) VALUES ?`, [finalItems]);
         
         // Stock Update (Variants + Batches)
         for (const update of stockUpdates) {

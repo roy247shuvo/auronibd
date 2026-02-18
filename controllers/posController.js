@@ -402,8 +402,32 @@ exports.submitOrder = async (req, res) => {
         const userId = req.session.user.id;
 
         for(let item of finalItems) {
-            await conn.query(`INSERT INTO order_items (order_id, product_id, variant_id, product_name, sku, size, color, quantity, price, line_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-            [orderId, item.product_id, item.variant_id, item.name, item.sku, item.size, item.color, item.quantity, item.price, (item.price * item.quantity)]);
+            // --- NEW: FIFO Cost Price Calculation ---
+            let qtyNeeded = item.quantity;
+            let totalCost = 0;
+            const [batches] = await conn.query(`
+                SELECT remaining_quantity, buying_price 
+                FROM inventory_batches 
+                WHERE variant_id = ? AND remaining_quantity > 0 AND is_active = 1 
+                ORDER BY created_at ASC
+            `, [item.variant_id]);
+            
+            for (const batch of batches) {
+                if (qtyNeeded <= 0) break;
+                const take = Math.min(qtyNeeded, batch.remaining_quantity);
+                totalCost += take * batch.buying_price;
+                qtyNeeded -= take;
+            }
+            
+            if (qtyNeeded > 0) {
+                const [fallback] = await conn.query("SELECT cost_price FROM product_variants WHERE id = ?", [item.variant_id]);
+                totalCost += qtyNeeded * (fallback.length > 0 ? fallback[0].cost_price : 0);
+            }
+            const avgCostPrice = (totalCost / item.quantity).toFixed(2);
+            // ----------------------------------------
+
+            await conn.query(`INSERT INTO order_items (order_id, product_id, variant_id, product_name, sku, size, color, quantity, price, line_total, cost_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+            [orderId, item.product_id, item.variant_id, item.name, item.sku, item.size, item.color, item.quantity, item.price, (item.price * item.quantity), avgCostPrice]);
 
             // --- NEW: SMART DEDUCTION ---
             // Check if this item was held (reserved)

@@ -253,7 +253,9 @@ exports.transferToVault = async (req, res) => {
         await conn.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?", [qty, variant[0].product_id]);
 
         // Create Expense & Add to Vault
-        const [expense] = await conn.query(`INSERT INTO expenses (title, amount, category, expense_date, note) VALUES (?, ?, 'marketing', CURDATE(), ?)`, [`Internal Transfer: ${reason}`, (costPrice * qty), `${qty} units @ ৳${costPrice}`]);
+        // --- FIXED: Added for_month so the P/L report catches this expense ---
+        const forMonth = new Date().toISOString().slice(0, 7); // Generates 'YYYY-MM'
+        const [expense] = await conn.query(`INSERT INTO expenses (title, amount, category, expense_date, for_month, note) VALUES (?, ?, 'marketing', CURDATE(), ?, ?)`, [`Internal Transfer: ${reason}`, (costPrice * qty), forMonth, `${qty} units @ ৳${costPrice}`]);
         await conn.query(`INSERT INTO marketing_vault (product_id, variant_id, quantity, cost_price, reason, expense_id) VALUES (?, ?, ?, ?, ?, ?)`, [variant[0].product_id, variant_id, qty, costPrice, reason, expense.insertId]);
 
         await conn.commit();
@@ -277,10 +279,26 @@ exports.returnFromVault = async (req, res) => {
         if (vault.length === 0) throw new Error("Item not found or already returned.");
         const item = vault[0];
 
-        // Restore Stock & Delete Expense
+        // 1. Restore Stock (Variants & Products)
         await conn.query("UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE id = ?", [item.quantity, item.variant_id]);
         await conn.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?", [item.quantity, item.product_id]);
-        if (item.expense_id) await conn.query("DELETE FROM expenses WHERE id = ?", [item.expense_id]);
+        
+        // 2. Restock Inventory Batches (Match exact cost price)
+        const qty = parseInt(item.quantity);
+        const costPrice = parseFloat(item.cost_price);
+        const [matchingBatches] = await conn.query(`SELECT id FROM inventory_batches WHERE variant_id = ? AND buying_price = ? AND is_active = 1 ORDER BY id DESC LIMIT 1`, [item.variant_id, costPrice]);
+
+        if (matchingBatches.length > 0) {
+            await conn.query(`UPDATE inventory_batches SET remaining_quantity = remaining_quantity + ? WHERE id = ?`, [qty, matchingBatches[0].id]);
+        } else {
+            const batchNum = 'RET-VAULT-' + Date.now();
+            await conn.query(`INSERT INTO inventory_batches (batch_number, product_id, variant_id, buying_price, initial_quantity, remaining_quantity) VALUES (?, ?, ?, ?, ?, ?)`, [batchNum, item.product_id, item.variant_id, costPrice, qty, qty]);
+        }
+
+        // 3. Accounting Fix: Create a Negative Expense instead of Deleting
+        const forMonth = new Date().toISOString().slice(0, 7); 
+        await conn.query(`INSERT INTO expenses (title, amount, category, expense_date, for_month, note) VALUES (?, ?, 'marketing', CURDATE(), ?, ?)`, [`Vault Return: ${item.reason}`, -(costPrice * qty), forMonth, `Restocked ${qty} units`]);
+        
         await conn.query("UPDATE marketing_vault SET status = 'returned', returned_at = NOW() WHERE id = ?", [vault_id]);
 
         await conn.commit();
