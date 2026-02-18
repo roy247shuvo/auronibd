@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: __dirname + '/.env' });
 const express = require('express');
 const session = require('express-session');
 // [NEW FIX] We must extract RedisStore using curly brackets in v9!
@@ -322,7 +322,7 @@ setInterval(async () => {
 }, 30 * 60 * 1000);
 
 // Start Server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 30000;
 app.listen(PORT, () => {
     const time = new Date().toLocaleString();
     console.log(`[${time}] Server running on port ${PORT}`);
