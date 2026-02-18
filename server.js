@@ -174,8 +174,19 @@ app.use(express.static('public', {
 }));
 app.use(expressLayouts);
 app.set('view engine', 'ejs');
+app.set('views', __dirname + '/views'); 
 app.set('layout', 'admin/layout');
-// <--- ADD THIS LINE HERE
+
+// === NEW: GLOBAL NO-CACHE FOR DYNAMIC PAGES ===
+// This forces browsers, Vercel, and Nginx to always fetch fresh HTML,
+// but leaves the express.static (images/css) alone so the site stays fast!
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    next();
+});
 
 // 3. Route Imports
 const productRoutes = require('./routes/productRoutes');
