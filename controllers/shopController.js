@@ -228,13 +228,37 @@ exports.getShop = async (req, res) => {
         const styles = ['poem1', 'poem2']; 
         const randomStyle = styles[Math.floor(Math.random() * styles.length)];
 
-        res.render('shop/shop', { 
-            title: pageTitle, 
-            pageTitle: pageTitle, 
+        // --- NEW: SEO AUTOMATION LOGIC ---
+        // 1. Strip HTML tags from description for the SEO Meta tag
+        const cleanDesc = product.description ? product.description.replace(/(<([^>]+)>)/ig, '').substring(0, 160) : `${product.name} available at Auroni.`;
+        
+        // 2. Ensure absolute URL for Google/Facebook image crawler
+        let seoImage = '/uploads/auronifav.webp';
+        if (images.length > 0) {
+            seoImage = images[0].image_url.startsWith('http') ? images[0].image_url : `${req.protocol}://${req.get('host')}${images[0].image_url}`;
+        }
+        
+        // 3. Current URL
+        const currentUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+        // ---------------------------------
+
+        res.render('shop/product', {
+            title: product.name,
             layout: 'shop/layout',
+            product,
+            productData,
+            related,
+            minPrice,
             ...globalData,
-            bgStyle: randomStyle // <--- PASS THIS
+            bgStyle: randomStyle,
+            
+            // Pass SEO Data to View
+            metaDescription: cleanDesc,
+            metaImage: seoImage,
+            currentUrl: currentUrl,
+            isProductPage: true
         });
+
     } catch (err) {
         console.error(err);
         res.status(500).send("Error loading shop");
@@ -722,4 +746,62 @@ exports.getTermsOfService = async (req, res) => {
         console.error(err);
         res.status(500).send("Error loading terms of service");
     }
+};
+
+// === NEW: DYNAMIC SITEMAP GENERATOR ===
+exports.getSitemap = async (req, res) => {
+    try {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        
+        // Fetch all active products
+        const [products] = await db.query(`
+            SELECT sku, created_at 
+            FROM products 
+            WHERE is_online = 'yes' 
+            ORDER BY created_at DESC
+        `);
+
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+        xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+        // 1. Add Core Static Pages
+        const staticPages = [
+            { url: '/', priority: '1.0', freq: 'daily' },
+            { url: '/shop', priority: '0.9', freq: 'daily' },
+            { url: '/contact', priority: '0.5', freq: 'monthly' },
+            { url: '/shipping-policy', priority: '0.3', freq: 'yearly' },
+            { url: '/returns-policy', priority: '0.3', freq: 'yearly' }
+        ];
+
+        for (const page of staticPages) {
+            xml += `  <url>\n    <loc>${baseUrl}${page.url}</loc>\n    <changefreq>${page.freq}</changefreq>\n    <priority>${page.priority}</priority>\n  </url>\n`;
+        }
+
+        // 2. Add All Product Pages Dynamically
+        for (const p of products) {
+            // Format date to YYYY-MM-DD
+            const lastMod = p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            
+            xml += `  <url>\n    <loc>${baseUrl}/product/${p.sku}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+        }
+
+        xml += `</urlset>`;
+
+        // Send as XML
+        res.header('Content-Type', 'application/xml');
+        res.send(xml);
+
+    } catch (err) {
+        console.error("Sitemap Generation Error:", err);
+        res.status(500).send("Error generating sitemap");
+    }
+};
+
+// === NEW: ROBOTS.TXT GENERATOR ===
+exports.getRobotsTxt = (req, res) => {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const robots = `User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /checkout/\nDisallow: /cart/\n\nSitemap: ${baseUrl}/sitemap.xml`;
+    
+    res.header('Content-Type', 'text/plain');
+    res.send(robots);
 };

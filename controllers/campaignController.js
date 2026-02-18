@@ -261,9 +261,15 @@ exports.getProductFeed = async (req, res) => {
             if (row.size && row.size !== 'N/A') variantTitle += ` / ${row.size}`;
 
             // Availability
-            let availability = 'in_stock';
+            let availability = 'in stock'; // [FIX] Meta prefers space over underscore
+            let availabilityDateTag = '';
+            
             if (row.stock_quantity <= 0 && row.is_preorder === 'yes') {
                 availability = 'preorder';
+                // [FIX] Meta REQUIRES a date for preorders. Defaulting to 14 days from now.
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 14);
+                availabilityDateTag = `\n    <g:availability_date>${futureDate.toISOString()}</g:availability_date>`;
             }
 
             xml += `<item>
@@ -275,7 +281,7 @@ exports.getProductFeed = async (req, res) => {
     <g:image_link>${img}</g:image_link>
     <g:brand>${sanitize(row.brand_name)}</g:brand>
     <g:condition>new</g:condition>
-    <g:availability>${availability}</g:availability>
+    <g:availability>${availability}</g:availability>${availabilityDateTag}
     <g:price>${formatPrice(metaPrice)}</g:price>
     ${metaSalePriceTag}
     <g:inventory>${row.stock_quantity}</g:inventory>

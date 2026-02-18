@@ -168,9 +168,16 @@ app.use(async (req, res, next) => {
 });
 
 // 2. View Engine & Assets
-app.use(express.static('public', {
-    maxAge: '365d', // Increased to 1 year to pass audit
-    etag: true      // Helps browser validate if file changed
+// [FIX] Use absolute paths to prevent breaking on live servers
+app.use(express.static(__dirname + '/public', {
+    maxAge: '365d', 
+    etag: true      
+}));
+
+// [FIX] Explicitly tell the server how to handle '/uploads' URLs
+app.use('/uploads', express.static(__dirname + '/public/uploads', {
+    maxAge: '365d',
+    etag: true
 }));
 app.use(expressLayouts);
 app.set('view engine', 'ejs');

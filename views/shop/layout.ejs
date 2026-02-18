@@ -3,9 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title><%= typeof title !== 'undefined' ? title : 'Auroni' %></title> 
-      <link rel="icon" href="/uploads/auronifav.webp" type="image/webp"> 
-      <meta name="csrf-token" content="<%= csrfToken %>">
+    
+    <title><%= typeof title !== 'undefined' ? title + ' | Auroni' : 'Auroni | Authentic Collection' %></title> 
+    <meta name="description" content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'Discover the exclusive collection at Auroni.' %>">
+    
+    <meta property="og:type" content="<%= typeof isProductPage !== 'undefined' && isProductPage ? 'product' : 'website' %>">
+    <meta property="og:url" content="<%= typeof currentUrl !== 'undefined' ? currentUrl : 'https://auronibd.com' %>">
+    <meta property="og:title" content="<%= typeof title !== 'undefined' ? title : 'Auroni' %>">
+    <meta property="og:description" content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'Discover the exclusive collection at Auroni.' %>">
+    <meta property="og:image" content="<%= typeof metaImage !== 'undefined' ? metaImage : '/uploads/auronifav.webp' %>">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= typeof title !== 'undefined' ? title : 'Auroni' %>">
+    <meta name="twitter:description" content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'Discover the exclusive collection at Auroni.' %>">
+    <meta name="twitter:image" content="<%= typeof metaImage !== 'undefined' ? metaImage : '/uploads/auronifav.webp' %>">
+    <link rel="icon" href="/uploads/auronifav.webp" type="image/webp"> 
+    <meta name="csrf-token" content="<%= csrfToken %>">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>

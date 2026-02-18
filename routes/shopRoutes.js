@@ -9,6 +9,11 @@ const customerAccountController = require('../controllers/customerAccountControl
 // [NEW] Public Meta Catalog Feed
 router.get('/api/meta/catalog.xml', campaignController.getProductFeed);
 
+
+// Public Website Routes
+router.get('/sitemap.xml', shopController.getSitemap);      // <--- NEW
+router.get('/robots.txt', shopController.getRobotsTxt);     // <--- NEW
+
 // Public Website Routes
 router.get('/', shopController.getHome);
 router.get('/shop', shopController.getShop);

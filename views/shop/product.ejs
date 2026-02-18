@@ -1,4 +1,31 @@
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "<%= product.name %>",
+  "image": [
+    "<%= typeof metaImage !== 'undefined' ? metaImage : '' %>"
+  ],
+  "description": "<%= typeof metaDescription !== 'undefined' ? metaDescription : product.name %>",
+  "sku": "<%= product.sku %>",
+  "brand": {
+    "@type": "Brand",
+    "name": "<%= product.brand_name || 'Auroni' %>"
+  },
+  "category": "<%= product.category_name || '' %>",
+  "color": "<%= productData.colors.map(c => c.name).join(', ') %>",
+  "offers": {
+    "@type": "Offer",
+    "url": "<%= typeof currentUrl !== 'undefined' ? currentUrl : '' %>",
+    "priceCurrency": "BDT",
+    "price": "<%= minPrice %>",
+    "availability": "<%= (product.stock_quantity > 0 || product.is_preorder === 'yes') ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' %>",
+    "itemCondition": "https://schema.org/NewCondition"
+  }
+}
+</script>
 <% if (typeof bgStyle !== 'undefined') { %>
+
     <%- include('components/backgrounds/' + bgStyle) %>
 <% } %>
 
