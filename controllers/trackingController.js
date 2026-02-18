@@ -146,27 +146,100 @@ const getVibeMessage = (steadfastMsg) => {
     return steadfastMsg; // Fallback to original text if no match
 };
 
-// 1. Render Track Page (GET)
+// 1. Render Track Page (GET - with Auto-Load if Link Provided)
 exports.getTrackPage = async (req, res) => {
     try {
         const { id } = req.params; 
         const globalData = await getGlobalData(); 
-        let prefillOrder = '';
 
-        if (id) {
-            const [rows] = await db.query("SELECT order_number FROM orders WHERE tracking_secret = ?", [id]);
-            if (rows.length > 0) prefillOrder = rows[0].order_number;
+        // A. If NO parameter -> Show empty search page
+        if (!id) {
+            return res.render('shop/pages/track_order', {
+                title: 'Track Your Order',
+                layout: 'shop/layout',
+                prefillOrder: '',
+                order: null,
+                timeline: [],
+                error: null,
+                ...globalData
+            });
         }
 
+        // Clean the ID (handles things like ar-00001 or pure secrets)
+        const cleanId = id.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+        // B. Fetch Order Immediately by Secret OR Order Number (No Phone Check)
+        const [orders] = await db.query(`
+            SELECT o.*, c.full_name, c.phone as cust_phone 
+            FROM orders o 
+            LEFT JOIN customers c ON o.customer_id = c.id
+            WHERE o.tracking_secret = ? 
+               OR UPPER(REPLACE(o.order_number, '-', '')) = ?
+        `, [id, cleanId]);
+
+        if (orders.length === 0) {
+            // Invalid Link -> Show Error and form
+            return res.render('shop/pages/track_order', {
+                title: 'Track Your Order',
+                layout: 'shop/layout',
+                prefillOrder: id, // Prefill whatever they typed so they don't lose it
+                order: null,
+                timeline: [],
+                error: 'Order not found. Invalid tracking link.',
+                ...globalData
+            });
+        }
+
+        const order = orders[0];
+
+        // Block POS Orders gracefully
+        if (order.order_source === 'pos') {
+            return res.render('shop/pages/track_order', { 
+                title: 'Track Order', 
+                layout: 'shop/layout', 
+                prefillOrder: order.order_number, 
+                order: null, 
+                timeline: [], 
+                error: 'You bought this from in-store. No tracking ID is available for this purchase.',
+                ...globalData
+            });
+        }
+
+        // Generate a Secret Link if this is an old order that doesn't have one yet
+        if (!order.tracking_secret) {
+            const crypto = require('crypto');
+            const secret = crypto.randomBytes(8).toString('hex');
+            await db.query("UPDATE orders SET tracking_secret = ? WHERE id = ?", [secret, order.id]);
+            order.tracking_secret = secret;
+        }
+
+        // C. Fetch Timeline
+        const [rawTimeline] = await db.query("SELECT * FROM order_timelines WHERE order_id = ? ORDER BY timestamp DESC", [order.id]);
+
+        const timeline = rawTimeline.map(t => ({
+            original: t.message,
+            vibe_msg: getVibeMessage(t.message), // Applies the new Bangla variations
+            time: t.timestamp,
+            rider_name: t.rider_name,
+            rider_phone: t.rider_phone,
+            is_rider_msg: (t.message || "").toLowerCase().includes('assigned by rider')
+        }));
+
+        // D. Render with Data instantly
         res.render('shop/pages/track_order', {
             title: 'Track Your Order',
-            layout: 'shop/layout', // Ensures Website Header/Footer
-            prefillOrder,
-            order: null,
-            timeline: [],
+            layout: 'shop/layout', 
+            prefillOrder: order.order_number,
+            order: { 
+                ...order, 
+                due_amount: (order.total_amount - order.paid_amount),
+                secret_link: `${req.protocol}://${req.get('host')}/track/${order.tracking_secret}`
+            },
+            timeline,
             error: null,
-            ...globalData // Pass menu data
+            ...globalData
         });
+
     } catch (err) {
         console.error(err);
         res.status(500).send("Server Error");

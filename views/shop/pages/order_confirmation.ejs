@@ -1,97 +1,64 @@
-<div class="max-w-4xl mx-auto px-6 py-20">
-    
-    <div class="text-center mb-12">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 text-green-600 mb-4">
-            <span class="material-icons-outlined text-3xl">check_circle</span>
-        </div>
-        <h1 class="font-serif text-3xl italic text-gray-900">Thank you, <%= order.guest_name %>!</h1>
-        <p class="text-gray-500 mt-2">Your order has been received.</p>
-        <div class="mt-4 inline-block bg-gray-50 px-4 py-2 rounded-sm border border-gray-200">
-            <span class="text-xs uppercase tracking-widest text-gray-400">Order No:</span>
-            <span class="font-mono font-bold text-gray-900 ml-2"><%= order.order_number %></span>
+<style>
+    @font-face {
+        font-family: 'MyVintageFont';
+        /* Make sure file is named bangla.ttf inside public/fonts folder */
+        src: url('/fonts/bangla.ttf?v=1') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+    }
+    .bangla-type { 
+        font-family: 'MyVintageFont', 'SolaimanLipi', 'Noto Serif Bengali', serif; 
+    }
+</style>
+
+<div class="max-w-3xl mx-auto my-10 px-4">
+    <div class="w-full bg-[url('https://res.cloudinary.com/ddsv71gem/image/upload/v1771324317/letter_bg_a4unt6.jpg')] bg-cover bg-center shadow-2xl text-gray-800 rounded-sm">
+        
+        <div class="px-10 py-20 md:px-24 md:py-32 bangla-type text-sm md:text-base leading-relaxed tracking-wide">
+            
+            <div class="text-left mb-8 text-gray-700">
+                <p>বনশ্রী, ঢাকা</p>
+                <p><%= new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' }).format(order.createdAt ? new Date(order.createdAt) : new Date()) %></p>
+            </div>
+
+            <div class="text-center mb-8">
+                <h1 class="text-xl md:text-2xl font-bold border-b border-gray-500 inline-block pb-1">ধন্যবাদ পত্র</h1>
+            </div>
+
+            <div class="space-y-4 text-justify">
+                <p>হে প্রিয় <%= order.guest_name %>,</p>
+                <p class="indent-8">
+                    অরণীর এই ক্ষুদ্র অঙ্গনে আপনার পদধূলি পড়িয়াছে, তজ্জন্য আমরা ধন্য। আমাদের পরম যত্নে বুনিয়া তোলা একখণ্ড স্বপ্নকে আপনি আপন করিয়া লইয়াছেন। আপনার নির্দেশিত এই শাড়িখানি আজ হইতে আপনার হওয়ার পথে পা বাড়াইয়াছে।
+                </p>
+                <p class="indent-8">
+                    জানিবেন, এই বয়নখানি কেবল আপনার অঙ্গশোভা বর্ধন করিবে না, বরং আমাদের একরাশ ভালোবাসা ও নিপুণ কারিগরের শ্রমের গল্প আপনার কানে কানে কহিবে।
+                </p>
+            </div>
+
+            <div class="mt-8 mb-8 space-y-1">
+                <p class="font-bold mb-2">আপনার অর্ডার সংক্রান্ত তথ্য:</p>
+                <p>অর্ডার নম্বর: <%= order.order_number %></p>
+                <p>নির্বাচিত শাড়ি: <% items.forEach((item, index) => { %><%= item.product_name %> x <%= item.quantity %><%= index < items.length - 1 ? ', ' : '' %><% }) %></p>
+                <p>মোট পরিশোধযোগ্য: <%= order.total_amount %> টাকা মাত্র</p>
+            </div>
+
+            <p class="text-justify mb-12">
+                আমরা অতি শীঘ্রই আপনার এই মায়ার পসরাটি সুচারুরূপে আপনার দ্বারে পৌঁছাইয়া দিবার ব্যবস্থা করিতেছি। আপনার এই সান্নিধ্য অরণীর পথচলায় এক পরম আশিস হইয়া থাকিবে।
+            </p>
+
+            <div class="text-right flex flex-col items-end">
+                <p>ইতি,</p>
+                <p class="mb-3">আপনার অনুরাগী,</p>
+                <img src="https://res.cloudinary.com/ddsv71gem/image/upload/v1770263294/auronibd_logo_zlpz8k.png" alt="Auroni" class="h-12 grayscale opacity-80 mix-blend-multiply">
+            </div>
+            
         </div>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-8">
-        
-        <div class="flex-1 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <h2 class="font-bold text-xs uppercase tracking-widest border-b border-gray-100 pb-4 mb-4">Order Summary</h2>
-            
-            <div class="space-y-4">
-                <% items.forEach(item => { %>
-                <div class="flex gap-4">
-                    <div class="w-16 h-20 bg-gray-50 rounded-sm overflow-hidden border border-gray-100 flex-shrink-0">
-                        <img src="<%= item.image %>" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="text-sm font-bold text-gray-900"><%= item.product_name %></h3>
-                        <p class="text-[10px] text-gray-500 uppercase tracking-wide mt-1">
-                            <%= item.color %> / <%= item.size %>
-                        </p>
-                        <p class="text-xs text-gray-400 mt-1">Qty: <%= item.quantity %></p>
-                    </div>
-                    <div class="text-sm font-bold text-gray-900">
-                        TK. <%= item.price * item.quantity %>
-                    </div>
-                </div>
-                <% }) %>
-            </div>
-
-            <div class="border-t border-dashed border-gray-200 mt-6 pt-6 space-y-2 text-sm">
-                <div class="flex justify-between text-gray-600">
-                    <span>Subtotal</span>
-                    <span>TK. <%= order.product_subtotal %></span>
-                </div>
-                <div class="flex justify-between text-gray-600">
-                    <span>Delivery Charge</span>
-                    <span>TK. <%= order.delivery_charge %></span>
-                </div>
-                <div class="flex justify-between font-bold text-lg text-gray-900 border-t border-gray-200 pt-3 mt-2">
-                    <span>Total Amount</span>
-                    <span>TK. <%= order.total_amount %></span>
-                </div>
-            </div>
-
-            <div class="mt-6 p-4 rounded-sm flex justify-between items-center <%= order.payment_method === 'cod' ? 'bg-orange-50 text-orange-800' : 'bg-green-50 text-green-800' %>">
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Already Paid</p>
-                    <p class="text-lg font-bold">
-                        TK. <%= order.paid_amount %>
-                    </p>
-                </div>
-                <div class="text-right">
-                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Due Amount</p>
-                    <p class="text-lg font-bold">
-                        TK. <%= order.total_amount - order.paid_amount %>
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div class="w-full lg:w-80 space-y-6">
-            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h2 class="font-bold text-xs uppercase tracking-widest border-b border-gray-100 pb-4 mb-4">Delivery Details</h2>
-                
-                <div class="space-y-4 text-sm">
-                    <div>
-                        <span class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Name</span>
-                        <span class="font-medium text-gray-900"><%= order.guest_name %></span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Phone</span>
-                        <span class="font-medium text-gray-900"><%= order.guest_phone %></span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Address</span>
-                        <span class="font-medium text-gray-900 leading-relaxed"><%= order.shipping_address %></span>
-                    </div>
-                </div>
-            </div>
-
-            <a href="/" class="block w-full bg-black text-white text-center py-4 text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-gray-800 transition shadow-lg">
-                Continue Shopping
-            </a>
-        </div>
-
+    <div class="text-center mt-8 pb-10">
+        <a href="/" class="inline-block bg-black text-white px-8 py-3 text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-gray-800 transition shadow-md">
+            Continue Shopping
+        </a>
     </div>
 </div>
