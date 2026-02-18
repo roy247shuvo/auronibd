@@ -251,17 +251,7 @@ exports.processBatch = async (req, res) => {
         let processedCount = 0;
 
         for (const item of verified_items) {
-            await conn.query(`
-                UPDATE orders 
-                SET status = 'delivered', 
-                    payment_status = 'paid',
-                    courier_delivery_charge = ?,
-                    cod_received = ?, 
-                    gateway_fee = gateway_fee + ?,
-                    settled_at = NOW(),
-                    bank_account_id = ?
-                WHERE order_number = ?
-            `, [item.delivery, item.cod, item.fee, target_account_id, item.invoice]);
+            await conn.query(`UPDATE orders SET status = 'delivered', payment_status = 'paid', courier_delivery_charge = ?, cod_received = ?, gateway_fee = gateway_fee + ?, settled_at = NOW(), bank_account_id = ? WHERE order_number = ?`, [item.delivery, item.cod, item.fee, target_account_id, item.invoice]);
 
             processedCount++;
         }

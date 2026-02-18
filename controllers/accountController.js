@@ -566,10 +566,14 @@ exports.getPLReport = async (req, res) => {
         const grossProfit = totalRevenue - totalCOGS;
         const netProfit = grossProfit - totalExpenses;
 
+        // --- NEW: Fetch Shop Settings for the Print Logo ---
+        const [settings] = await db.query("SELECT shop_name, shop_logo FROM shop_settings LIMIT 1");
+
         res.render('admin/accounts/pl_report', {
             title: 'Monthly P/L Report',
             layout: 'admin/layout',
             month: selectedMonth,
+            shop: settings[0], // Pass settings to EJS
             stats: {
                 revenue: totalRevenue,
                 breakdown_revenue: {
