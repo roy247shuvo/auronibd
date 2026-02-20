@@ -79,7 +79,8 @@ exports.updateProfile = async (req, res) => {
     try {
         if (!req.session.customer) return res.redirect('/');
 
-        const { full_name, phone, address, city } = req.body;
+        // In exports.updateProfile
+        const { full_name, phone, address } = req.body;
         const customerId = req.session.customer.id;
 
         // 1. Fetch Current Data to check if phone changed
@@ -96,9 +97,9 @@ exports.updateProfile = async (req, res) => {
         // 3. Update DB (Saving the history in alt_phone)
         await db.query(`
             UPDATE customers 
-            SET full_name = ?, phone = ?, alt_phone = ?, address = ?, city = ?
+            SET full_name = ?, phone = ?, alt_phone = ?, address = ?
             WHERE id = ?
-        `, [full_name, phone, altPhone, address, city, customerId]);
+        `, [full_name, phone, altPhone, address, customerId]);
 
         // 4. Update Session
         req.session.customer.name = full_name;
