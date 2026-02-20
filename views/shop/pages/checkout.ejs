@@ -1,10 +1,10 @@
 <div class="max-w-6xl mx-auto px-6 pt-32 pb-20">
     
     <div class="text-center mb-10">
-        <h1 class="font-serif text-3xl italic text-gray-900 mb-2">Secure Checkout</h1>
+        <h1 class="font-serif text-3xl italic text-gray-900 mb-2">অর্ডার নিশ্চিত করতে নিচের তথ্যগুলো দিন </h1>
         <div class="flex items-center justify-center gap-2 text-green-700 bg-green-50 inline-flex px-4 py-1 rounded-full border border-green-100">
             <span class="material-icons-outlined text-sm">lock</span>
-            <span class="text-[10px] font-bold uppercase tracking-widest">100% Secured Payment</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest">১০০% নিরাপদ এবং সুরক্ষিত </span>
         </div>
     </div>
 
@@ -30,16 +30,16 @@
             <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
                 <h2 class="font-bold text-xs uppercase tracking-widest mb-6 pb-2 border-b border-gray-100 flex items-center gap-2">
                     <span class="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[10px]">1</span>
-                    Customer Details
+                    আপনার তথ্য 
                 </h2>
                 
                 <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">Full Name</label>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">সম্পূর্ণ নাম </label>
                         <input type="text" name="full_name" required class="w-full bg-gray-50 border border-gray-200 p-3 text-sm focus:border-black focus:bg-white outline-none transition rounded-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">Phone Number</label>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">ফোন নাম্বার </label>
                         <div class="flex">
                             <span class="inline-flex items-center px-4 bg-gray-100 border border-r-0 border-gray-200 text-gray-500 text-sm font-bold rounded-l-sm">+88</span>
                             
@@ -66,8 +66,8 @@
                         </p>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">Full Address</label>
-                        <textarea name="address" rows="2" required placeholder="House, Road, Area..." class="w-full bg-gray-50 border border-gray-200 p-3 text-sm focus:border-black focus:bg-white outline-none transition rounded-sm"></textarea>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1.5">সম্পূর্ণ ঠিকানা </label>
+                        <textarea name="address" rows="2" required placeholder="বাসা নাম্বার, রোড, থানা, জেলা... " class="w-full bg-gray-50 border border-gray-200 p-3 text-sm focus:border-black focus:bg-white outline-none transition rounded-sm"></textarea>
                     </div>
                 </div>
             </div>
@@ -75,7 +75,7 @@
             <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
                 <h2 class="font-bold text-xs uppercase tracking-widest mb-6 pb-2 border-b border-gray-100 flex items-center gap-2">
                     <span class="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[10px]">2</span>
-                    Delivery Area
+                    ডেলিভারির এলাকা 
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -83,7 +83,7 @@
                            :class="area === 'inside' ? 'border-black bg-gray-50 ring-1 ring-black' : 'border-gray-200'">
                         <div class="flex items-center">
                             <input type="radio" name="delivery_area" value="inside" x-model="area" class="w-4 h-4 text-black focus:ring-black">
-                            <span class="ml-3 font-bold text-sm">Inside Dhaka</span>
+                            <span class="ml-3 font-bold text-sm">ঢাকার ভিতর </span>
                         </div>
                         <span class="font-bold text-sm">TK. <%= settings.delivery_inside_dhaka %></span>
                     </label>
@@ -92,7 +92,7 @@
                            :class="area === 'outside' ? 'border-black bg-gray-50 ring-1 ring-black' : 'border-gray-200'">
                         <div class="flex items-center">
                             <input type="radio" name="delivery_area" value="outside" x-model="area" class="w-4 h-4 text-black focus:ring-black">
-                            <span class="ml-3 font-bold text-sm">Outside Dhaka</span>
+                            <span class="ml-3 font-bold text-sm">ঢাকার বাহিরে </span>
                         </div>
                         <span class="font-bold text-sm">TK. <%= settings.delivery_outside_dhaka %></span>
                     </label>
@@ -103,11 +103,11 @@
                     <label class="flex items-start p-4 border border-gray-200 rounded-lg bg-white cursor-pointer hover:border-gray-300 transition group">
                         <input type="radio" name="payment_method" value="cod" x-model="paymentMethod" class="w-4 h-4 text-black focus:ring-black mt-1">
                         <div class="ml-3">
-                            <span class="block font-bold text-sm group-hover:text-gray-700">Cash on Delivery</span>
+                            <span class="block font-bold text-sm group-hover:text-gray-700">ক্যাশ অন্য ডেলিভারি </span>
                             
                             <% if (settings.checkout_advance_delivery === 'yes') { %>
                             <p class="text-[10px] font-medium text-gray-500 mt-1.5 bg-gray-100 px-2 py-1 rounded-sm border border-gray-200 inline-block">
-                                <span class="text-red-600 font-bold">*</span> Must pay Delivery Charge in advance through Bkash
+                                <span class="text-red-600 font-bold">*</span> বিকাশের মাধ্যমে অবশ্যই ডেলিভারি চার্জ অগ্রিম দিতে হবে 
                             </p>
                             <% } %>
 
@@ -128,7 +128,7 @@
 
         <div class="w-full lg:w-2/5">
             <div class="bg-white border border-gray-200 p-8 rounded-lg sticky top-32 shadow-xl">
-                <h2 class="font-serif text-xl italic text-gray-900 mb-6">Order Summary</h2>
+                <h2 class="font-serif text-xl italic text-gray-900 mb-6">অর্ডারের বিবরণ </h2>
 
                 <div class="space-y-4 mb-6 custom-scrollbar max-h-80 overflow-y-auto pr-2">
                     <% cartItems.forEach(item => { %>
@@ -150,15 +150,15 @@
 
                 <div class="border-t border-dashed border-gray-200 pt-6 space-y-3 text-sm">
                     <div class="flex justify-between text-gray-600">
-                        <span>Subtotal</span>
+                        <span>মোট পণ্যের দাম </span>
                         <span class="font-medium text-black">TK. <%= subtotal %></span>
                     </div>
                     <div class="flex justify-between text-gray-600">
-                        <span>Delivery</span>
+                        <span>ডেলিভারি চার্জ</span>
                         <span x-text="'TK. ' + (area === 'inside' ? insideRate : outsideRate)" class="font-medium text-black"></span>
                     </div>
                     <div class="flex justify-between text-xl font-bold text-black border-t border-gray-200 pt-4 mt-2">
-                        <span>Total</span>
+                        <span>সর্বমোট</span>
                         <span x-text="'TK. ' + (subtotal + (area === 'inside' ? insideRate : outsideRate))"></span>
                     </div>
                 </div>
@@ -172,7 +172,7 @@
                 
                 <template x-if="isPreOrder">
                     <button type="button" @click="showPreOrderModal = true" class="w-full bg-indigo-900 text-white text-xs font-bold uppercase tracking-[0.2em] py-5 mt-8 hover:bg-indigo-800 transition shadow-lg rounded-sm flex items-center justify-center gap-2 group">
-                        <span>Pre Order Now</span>
+                        <span>প্রি-অর্ডার নিশ্চিত করুন   </span>
                         <span class="material-icons-outlined text-sm">watch_later</span>
                     </button>
                 </template>
@@ -197,7 +197,7 @@
                 <div class="mt-6 flex justify-center gap-4 opacity-50 grayscale">
                     <span class="material-icons-outlined">verified_user</span>
                     <span class="material-icons-outlined">lock</span>
-                    <span class="text-[10px] uppercase tracking-widest pt-1">SSL Encrypted</span>
+                    <span class="text-[10px] uppercase tracking-widest pt-1">SSL সুরক্ষিত </span>
                 </div>
             </div>
         </div>

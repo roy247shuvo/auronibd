@@ -36,11 +36,11 @@
                         <div class="flex-shrink-0">
                             <div class="bg-[#800000] text-white text-center py-2 text-[10px] font-bold uppercase tracking-widest"
                                  x-show="cart.items.length > 0">
-                                Discounts expire in <span x-text="timerDisplay" class="font-mono text-xs ml-1"></span>
+                                ডিসকাউন্ট শেষ হবার সময় বাকি  <span x-text="timerDisplay" class="font-mono text-xs ml-1"></span>
                             </div>
 
                             <div class="flex items-center justify-between px-6 py-6 border-b border-gray-100">
-                                <h2 class="text-xl font-serif italic text-gray-900">Shopping Bag</h2>
+                                <h2 class="text-xl font-serif italic text-gray-900">শপিং ব্যাগ</h2>
                                 <button @click="open = false" class="text-gray-400 hover:text-black transition-colors">
                                     <span class="material-icons-outlined">close</span>
                                 </button>
@@ -51,8 +51,8 @@
                             
                             <div x-show="cart.items.length === 0" class="h-full flex flex-col items-center justify-center text-center space-y-4 text-gray-400" style="display: none;">
                                 <span class="material-icons-outlined text-4xl">shopping_basket</span>
-                                <p class="text-xs uppercase tracking-widest">Your bag is empty</p>
-                                <button @click="open = false" class="text-black border-b border-black text-xs font-bold uppercase pb-1">Continue Shopping</button>
+                                <p class="text-xs uppercase tracking-widest">আপনার ব্যাগে কিছুই নেই  </p>
+                                <button @click="open = false" class="text-black border-b border-black text-xs font-bold uppercase pb-1">ব্যাগে কিছু পণ্য যোগ করুন </button>
                             </div>
 
                             <ul role="list" class="-my-6 divide-y divide-gray-100" x-show="cart.items.length > 0">
@@ -76,7 +76,7 @@
                                                 
                                                 <template x-if="item.price < item.originalPrice">
                                                     <p class="text-[10px] text-[#800000] mt-1 font-bold">
-                                                        Saved TK. <span x-text="(item.originalPrice - item.price) * item.quantity"></span>
+                                                        টাকা সেইভ করেছেন  <span x-text="(item.originalPrice - item.price) * item.quantity"></span>
                                                     </p>
                                                 </template>
                                             </div>
@@ -88,7 +88,7 @@
                                                     <button @click="updateQty(item.variantId, 'increase')" class="px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-black transition">+</button>
                                                 </div>
 
-                                                <button type="button" @click="removeItem(item.variantId)" class="font-medium text-[10px] text-gray-400 uppercase tracking-widest hover:text-red-600 transition-colors">Remove</button>
+                                                <button type="button" @click="removeItem(item.variantId)" class="font-medium text-[10px] text-gray-400 uppercase tracking-widest hover:text-red-600 transition-colors">বাদ দিন </button>
                                             </div>
                                         </div>
                                     </li>
@@ -101,25 +101,25 @@
                             <template x-if="cart.totalSavings > 0">
                                 <div class="mb-4 bg-green-50 border border-green-100 p-3 flex items-center justify-center space-x-2 text-green-800">
                                     <span class="material-icons-outlined text-sm">savings</span>
-                                    <span class="text-xs font-bold uppercase tracking-wide">You have saved TK. <span x-text="cart.totalSavings"></span> today</span>
+                                    <span class="text-xs font-bold uppercase tracking-wide"> সেইভ করেছেন  <span x-text="cart.totalSavings"></span> টাকা </span>
                                 </div>
                             </template>
 
                             <div class="flex justify-between text-base font-bold text-gray-900 mb-2">
-                                <p>Subtotal</p>
+                                <p>মোট পণ্যের দাম</p>
                                 <p x-text="'TK. ' + cart.subtotal"></p>
                             </div>
-                            <p class="mt-0.5 text-[10px] text-gray-500 text-center mb-6">Delivery charge will be calculated during checkout.</p>
+                            <p class="mt-0.5 text-[10px] text-gray-500 text-center mb-6">ডেলিভারি চার্জ পরবর্তীতে হিসেব করা হবে </p>
                             
                             <div class="mt-6">
                                 <a href="/checkout" class="flex items-center justify-center w-full bg-black px-6 py-4 text-xs font-bold text-white uppercase tracking-[0.2em] shadow-sm hover:bg-gray-800 transition-all group">
-                                    <span>Checkout Now</span>
+                                    <span>কেনাকাটা কমপ্লিট </span>
                                     <span class="material-icons-outlined ml-2 text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
                                 </a>
                             </div>
                             <div class="mt-4 flex justify-center text-center text-sm text-gray-500">
                                 <button type="button" class="font-medium text-[10px] uppercase tracking-widest hover:text-gray-800" @click="open = false">
-                                    Continue Shopping
+                                    কেনাকাটা আরও বাকি আছে 
                                 </button>
                             </div>
                         </div>

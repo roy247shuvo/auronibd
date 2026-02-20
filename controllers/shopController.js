@@ -228,35 +228,21 @@ exports.getShop = async (req, res) => {
         const styles = ['poem1', 'poem2']; 
         const randomStyle = styles[Math.floor(Math.random() * styles.length)];
 
-        // --- NEW: SEO AUTOMATION LOGIC ---
-        // 1. Strip HTML tags from description for the SEO Meta tag
-        const cleanDesc = product.description ? product.description.replace(/(<([^>]+)>)/ig, '').substring(0, 160) : `${product.name} available at Auroni.`;
-        
-        // 2. Ensure absolute URL for Google/Facebook image crawler
-        let seoImage = '/uploads/auronifav.webp';
-        if (images.length > 0) {
-            seoImage = images[0].image_url.startsWith('http') ? images[0].image_url : `${req.protocol}://${req.get('host')}${images[0].image_url}`;
-        }
-        
-        // 3. Current URL
+        // Current URL for SEO
         const currentUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
         // ---------------------------------
 
-        res.render('shop/product', {
-            title: product.name,
+        res.render('shop/shop', {
+            title: pageTitle,
+            pageTitle: pageTitle,
             layout: 'shop/layout',
-            product,
-            productData,
-            related,
-            minPrice,
             ...globalData,
             bgStyle: randomStyle,
             
-            // Pass SEO Data to View
-            metaDescription: cleanDesc,
-            metaImage: seoImage,
-            currentUrl: currentUrl,
-            isProductPage: true
+            // Pass generic SEO Data to View
+            metaDescription: 'Explore our latest collection at Auroni.',
+            metaImage: '/uploads/auronifav.webp',
+            currentUrl: currentUrl
         });
 
     } catch (err) {

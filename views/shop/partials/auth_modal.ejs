@@ -54,8 +54,8 @@
             </button>
 
             <div x-show="step === 'init'" class="p-8 text-center">
-                <h2 class="text-2xl font-serif font-bold mb-2">Welcome Back</h2>
-                <p class="text-gray-500 text-sm mb-8">Sign in to access your account</p>
+                <h2 class="text-2xl font-serif font-bold mb-2">স্বাগতম </h2>
+                <p class="text-gray-500 text-sm mb-8">আপনার একাউন্ট দেখতে লগইন করুন </p>
 
                 <button @click="handleGoogleLogin()" 
                         class="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-xl transition-all transform active:scale-95 shadow-sm">
@@ -65,12 +65,12 @@
             </div>
 
             <div x-show="step === 'phone'" class="p-8">
-                <h2 class="text-xl font-bold mb-2">One Last Step</h2>
-                <p class="text-gray-500 text-sm mb-6">We need your phone number to link or create your account.</p>
+                <h2 class="text-xl font-bold mb-2">সর্বশেষ ধাপ </h2>
+                <p class="text-gray-500 text-sm mb-6">আপনার ফোন নাম্বারটি দিন </p>
                 
                 <form @submit.prevent="verifyPhone">
                     <div class="mb-4">
-                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Mobile Number</label>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">ফোন নাম্বার</label>
                         <input type="tel" x-model="phone" placeholder="017XXXXXXXX" maxlength="11"
                            class="w-full border-2 rounded-lg px-4 py-3 outline-none font-mono tracking-widest transition-all"
                            :class="{
@@ -82,8 +82,8 @@
                     </div>
                     <button type="submit" :disabled="loading"
                             class="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition disabled:opacity-50">
-                        <span x-show="!loading">Verify Number</span>
-                        <span x-show="loading">Checking...</span>
+                        <span x-show="!loading">নাম্বার নিশ্চিত করুন </span>
+                        <span x-show="loading">চেক করা হচ্ছে ...</span>
                     </button>
                 </form>
             </div>
@@ -92,19 +92,19 @@
                 <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span class="material-icons-outlined text-3xl text-green-600">person</span>
                 </div>
-                <h2 class="text-xl font-bold mb-2">Account Found!</h2>
+                <h2 class="text-xl font-bold mb-2">একাউন্ট পাওয়া গেছে </h2>
                 <p class="text-gray-500 text-sm mb-6">
-                    Is this you?<br>
+                    এটা কি আপনি? <br>
                     <strong class="text-black text-lg" x-text="foundUser.name"></strong><br>
                     <span x-text="foundUser.address"></span>
                 </p>
                 
                 <button @click="confirmLink()" 
                         class="w-full bg-black text-white font-bold py-3 rounded-xl mb-3 hover:bg-gray-800 transition">
-                    Yes, Link my Google Account
+                    হ্যাঁ এটা আমি 
                 </button>
                 <button @click="step = 'phone'" class="text-gray-500 text-sm hover:underline">
-                    No, use a different number
+                    না, অন্য নাম্বার ব্যবহার করুন 
                 </button>
             </div>
 
@@ -113,9 +113,9 @@
                     <span class="material-icons-outlined text-3xl">lock</span>
                 </div>
                 
-                <h2 class="text-xl font-bold mb-2">Account Exists</h2>
+                <h2 class="text-xl font-bold mb-2">আপনার ইতিমধ্যে একটা একাউন্ট আছে </h2>
                 <p class="text-gray-500 text-sm mb-6">
-                    The phone number <strong x-text="phone"></strong> is already linked to another email address:
+                    <strong x-text="phone"></strong> এই নাম্বারটি অন্যয় একটি ইমেইলের সাথে যুক্ত 
                 </p>
 
                 <div class="bg-gray-100 py-3 px-4 rounded-lg mb-6 border border-gray-200">
@@ -123,12 +123,12 @@
                 </div>
 
                 <p class="text-xs text-gray-400 mb-6">
-                    Please log out of Google and sign in with the email above to access your account.
+                    দয়া করে উপরে দেয়া Google ব্যবহার করে লগইন করুন 
                 </p>
 
                 <button @click="closeModal()" 
                         class="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition">
-                    Okay, understood
+                    বুঝতে পেরেছি 
                 </button>
             </div>
 
